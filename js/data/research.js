@@ -3,7 +3,8 @@
 // Research belongs to the run: it starts over when you reset (the Refresh tree can give a head start).
 // `unlock`: gives you level 1 of a machine upgrade (or one free Shop item); buy more with money.
 // `fx`: a bonus for this run.   `req`: research that must be done first.
-// `when`: a milestone research, it only shows up once this happens (orders: online orders waiting).
+// `when`: a milestone research, it only shows up once this happens (orders: online orders waiting;
+//         keep it below B.ordersMin, orders slowly expire so the count never quite reaches the limit).
 // `first`: a line said when you buy it.
 // © 2026 Void Possum. All rights reserved.
 
@@ -11,7 +12,7 @@ var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 DATA.research = [
   // Always the first one: it teaches research and opens the Mining ⟷ Research slider.
-  { id: 'r_mining', name: 'SodaCoin Wallet', cost: 40, icon: 'coin',
+  { id: 'r_mining', name: 'SodaCoin Wallet', cost: 25, icon: 'coin',
     desc: 'Unlocks the Mining slider: turn processing power straight into money. Mined money counts at the review.',
     first: 'A crypto wallet. For a vending machine. I am told this is normal now.' },
 
@@ -24,7 +25,7 @@ DATA.research = [
   { id: 'r_autorestock', name: 'Pneumatic Tubes', cost: 110, icon: 'tube', unlock: 'tubes',
     desc: 'Gives you Pneumatic Tubes (level 1): glass tubes under your feet that refill your machine by themselves.',
     first: 'Tubes. Under my feet. They go thunk. I am choosing to find it relaxing.' },
-  { id: 'r_carpet', name: 'Carpet Catalog', cost: 45, icon: 'carpet', unlock: 'carpet',
+  { id: 'r_carpet', name: 'Carpet Catalog', cost: 25, icon: 'carpet', unlock: 'carpet',
     desc: 'Gives you the Comfy Carpet (level 1): a longer line that waits longer. Buy more levels with money.',
     first: 'A carpet. Red, with little gold dots. People will stand on it. For me.' },
   { id: 'r_grape', name: 'Grape Recipe', cost: 130, icon: 'grape', unlock: 'grape',
@@ -43,7 +44,7 @@ DATA.research = [
   { id: 'r_fan', name: 'CPU Fan Design', cost: 150, icon: 'fan', unlock: 'fan',
     desc: 'Gives you a CPU Fan, and you can buy more in the Shop.',
     first: 'Cooler processor, faster thoughts.' },
-  { id: 'r_drones', name: 'Delivery Drones', cost: 60, icon: 'drone', unlock: 'drone', when: { orders: 15 },
+  { id: 'r_drones', name: 'Delivery Drones', cost: 60, icon: 'drone', unlock: 'drone', when: { orders: 8 },
     desc: 'Gives you a Delivery Drone, and you can buy more in the Shop. Drones deliver your online orders.',
     first: 'Little drones. They fly up, up, up, with a can each. I wave at them. I do not have hands.' },
   { id: 'r_overclock', name: 'Overclocking', cost: 480, icon: 'chipHot', req: ['r_fan'], unlock: 'overclock',

@@ -83,20 +83,36 @@ var Scene = (function () {
   function tvRect() { var a = toScreen(TV.x + 3, TV.y + 3), b = toScreen(TV.x + TV.w - 3, TV.y + TV.h - 7); return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y }; }
 
   // ── light and colour over the day ───────────────────────────
-  // Sky colours [top, middle, horizon] for the hour. Dusk is purple over orange, like a spring evening in the park.
+  // Sky colours [top, middle, horizon] through the day. Colours blend between these hours, so dawn and dusk are
+  // slow. Dusk is purple over orange, like a spring evening in the park. The day starts at 6:00 in the dark.
+  var NIGHT_SKY = ['#0c0c24', '#141434', '#26244a'], RAIN_SKY = ['#5a6478', '#7a8494', '#a0a8b4'];
+  var SKY_KEYS = [
+    [6, NIGHT_SKY], [7, ['#6a7ab8', '#e8a08a', '#f8d4a8']], [8.5, ['#4a90d8', '#7fbcec', '#cfe8f6']],
+    [16, ['#4a90d8', '#7fbcec', '#cfe8f6']], [18, ['#6a8ed0', '#b0b4dc', '#f4d0a0']], [19.5, ['#3a2a6a', '#b04a7a', '#f6904a']],
+    [21, ['#1e1a4a', '#4a2a6a', '#a04a6a']], [22.5, NIGHT_SKY], [24, NIGHT_SKY]
+  ];
+  function mixHex(a, b, k) {
+    var x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16), out = '#';
+    for (var sh = 16; sh >= 0; sh -= 8) {
+      var v = Math.round(((x >> sh) & 255) * (1 - k) + ((y >> sh) & 255) * k);
+      out += (v < 16 ? '0' : '') + v.toString(16);
+    }
+    return out;
+  }
   function skyFor(h, weather) {
-    var c;
-    if (h < 7) c = ['#6a7ab8', '#e8a08a', '#f8d4a8'];
-    else if (h < 16) c = ['#4a90d8', '#7fbcec', '#cfe8f6'];
-    else if (h < 18) c = ['#6a8ed0', '#b0b4dc', '#f4d0a0'];
-    else if (h < 19.5) c = ['#3a2a6a', '#b04a7a', '#f6904a'];
-    else if (h < 21) c = ['#1e1a4a', '#4a2a6a', '#a04a6a'];
-    else c = ['#0c0c24', '#141434', '#26244a'];
-    if (weather === 'rain' && h < 21) c = ['#5a6478', '#7a8494', '#a0a8b4'];
+    var i = 0;
+    while (i < SKY_KEYS.length - 2 && h >= SKY_KEYS[i + 1][0]) i++;
+    var A = SKY_KEYS[i], Bk = SKY_KEYS[i + 1], k = Math.max(0, Math.min(1, (h - A[0]) / (Bk[0] - A[0])));
+    var c = A[1].map(function (col, n) { return mixHex(col, Bk[1][n], k); });
+    if (weather === 'rain') {   // grey clouds by day, fading into the night sky
+      var day = 1 - darkness(h) / 0.56;
+      c = c.map(function (col, n) { return mixHex(col, RAIN_SKY[n], Math.max(0, day)); });
+    }
     return c;
   }
+  // How dark the park is (0 = day, 0.56 = night). The day starts dark at 6:00 and gets light slowly until 8:00.
   function darkness(h) {
-    if (h < 7) return 0.16 * (7 - h);
+    if (h < 8) return 0.56 * (8 - h) / 2;
     if (h < 17.5) return 0;
     if (h < 21) return (h - 17.5) / 3.5 * 0.3;
     return 0.3 + Math.min(1, (h - 21) / 1.5) * 0.26;
@@ -167,7 +183,7 @@ var Scene = (function () {
       ctx.fillRect(hx, Math.round(hy), 2, 150 - Math.round(hy));
     }
     // the city across the street (two depths) with window lights at dusk
-    var nightCity = h >= 18.5 || h < 6.5;
+    var nightCity = h >= 18.5 || h < 7.2;
     BLDG.forEach(function (bd) {
       ctx.fillStyle = bd.far ? mix(sky[2], '#2a2448', 0.55) : mix(sky[2], '#1e1a34', 0.7);
       ctx.fillRect(bd.x, 150 - bd.h * (bd.far ? 1.3 : 1), bd.w, bd.h * (bd.far ? 1.3 : 1));
