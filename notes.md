@@ -19,6 +19,7 @@ What a new session needs to know to keep working without re-deriving anything.
 - Bash heredocs with single quotes inside JS can break. Write snippets to the scratchpad with the Write tool, then splice them in with Python.
 
 ## Design decisions (locked)
+- **0.2.1 (2026-09-27): research starts over every run.** Only the Refresh tree (constellations) and the Memory Book are permanent; tree "start with" stars give head starts. Followers who cannot fit in your line are online orders (drones deliver them); reviews come only from people at your machine and count per quarter.
 - **0.2.0 economy (2026-09-27, replaces older notes below where they differ):** one number = money. All earnings count at the review; bars never reset. Posting bar removed (power always brings likes; slider Mining ⟷ Research). 3 strikes instead of an instant reset. Standard mode is cozy (no rubber-banding, runs can last forever, reset is a choice); rivals still get features (crypto, price war, hack) and upgrades. Hard mode with rubber-banding: later.
 - **Tone and structure:**
   - Mostly funny tone.

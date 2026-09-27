@@ -9,6 +9,16 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.2.1 (2026-09-27, after Void Possum's 0.2.0 play; their save is the data)
+Research on Horripilant, Gnorp Apologue, Tower Wizard, Starvester: everything bought in a run resets; only the
+prestige tree is permanent; the best prestige nodes are "start with X". Void Possum approved:
+- **Research starts over every run** (it still lives in `S.meta.research`, reset in `newRun`, so old saves keep the current run's research). Each research **gives level 1** of what it unlocks (`grant()`; Shop items: one free copy). Order: SodaCoin Wallet → **Carpet Catalog** (cheap, visible) → the rest.
+- **Milestone research** (`when` in `DATA.research`, Cookie Clicker style): Delivery Drones is cheap and shows up once 15 online orders wait.
+- **Online orders:** followers who cannot fit in your line are online orders (drone counter at the left edge, hover explains, click opens the Shop). Undelivered orders expire quietly (`R.ordersLost`), no review for them.
+- **Customer reviews** count this quarter only (`R.qThoughts`, reset at every review). Only people at your machine: "gave up waiting" = left your line; "line too long" = saw it and did not join (new queue icon).
+- **Refresh tree = constellations** on a night sky (4 groups + a centre star, `DATA.treeGroups`). New "start with" stars: Rolled-Up Carpet, Pocket LED, Autopilot (tubes), Old Wallet, Lab Notes/Notebook (research points), Drone Hangar, Fan Mail. Fx keys `startResearch` (id) and `startRes` (points).
+- Ideas for later: hard mode with rubber-banding; FACEMINER-style achievements (no reset, no strike).
+
 ## 0.2.0 in progress (2026-09-27): "one number goes up" economy rework
 Plan approved by Void Possum (research: Cookie Clicker, Spaceplan, Gnorp Apologue, Tower Wizard, FACEMINER).
 - **Everything is money.** Cans, clicks, mining and tips all count. The card bars show money earned **this run** and never reset (`M.rSales`); small text shows the quarter (`qSales`). Cans sold are counted (`M.cans`, `meta.totalCans`). One helper: `score(S, amt)` in `js/engine.js`.

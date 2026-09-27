@@ -1390,7 +1390,7 @@ var UI = (function () {
   }
 
   function nodeInfo() {
-    if (!selNode) return '<h3>Refresh tree</h3><p>Click a box to read what it does.</p><p class="dim">Lines show what you need to buy first. Everything here is kept forever.</p>';
+    if (!selNode) return '<h3>Refresh stars</h3><p>Click a star to read what it does. Click it again to buy it.</p><p class="dim">Lines show which star you need first. Everything here is kept forever: it is how you get stronger from reset to reset.</p>';
     var n = Engine.TREE[selNode], st = nodeState(n), m = S.meta;
     var h = '<h3>' + esc(n.name) + '</h3><p>' + esc(n.desc) + '</p>';
     if (st === 'owned') return h + '<div class="st good">You own this.</div>';
@@ -1402,30 +1402,33 @@ var UI = (function () {
       '<button class="btn blue full" data-act="tree" data-id="' + n.id + '"' + (m.refresh < n.cost ? ' disabled' : '') + '>Buy for ' + n.cost + '</button>';
   }
 
+  // The Refresh tree as constellations: stars on a night sky, joined by thin lines. Bought stars glow green.
   function layoutTree() {
     var box = $('tree');
     if (!box) return;
-    var W = box.clientWidth;
-    var nw = Math.max(88, Math.min(118, W / 8.2));
-    var U = Math.min(120, (W - nw - 16) / 7.2), V = 104, top = 46;
-    box.style.height = (top * 2 + V * 2) + 'px';
-    box.style.setProperty('--nw', nw + 'px');
+    var W = box.clientWidth, H = Math.max(470, Math.min(580, Math.round(W * 0.66)));
+    box.style.height = H + 'px';
+    var padX = 70, padY = 40;
+    function px(x) { return W / 2 + x * (W - padX * 2) / 10; }
+    function py(y) { return padY + y * (H - padY * 2) / 8; }
     var pos = {};
-    DATA.tree.forEach(function (n) { pos[n.id] = { x: W / 2 + n.x * U, y: top + n.y * V }; });
+    DATA.tree.forEach(function (n) { pos[n.id] = { x: px(n.x), y: py(n.y) }; });
     var m = S.meta, lines = '';
     DATA.tree.forEach(function (n) {
       (n.req || []).forEach(function (q) {
         var a = pos[q], b = pos[n.id];
-        var col = m.tree[n.id] ? '#7bd88f' : m.tree[q] ? '#6fc3ff' : '#4a3c52';
-        var midY = (a.y + b.y) / 2;
-        lines += '<path d="M' + a.x + ' ' + a.y + ' V' + midY + ' H' + b.x + ' V' + b.y + '" fill="none" stroke="' + col + '" stroke-width="3"/>';
+        var col = m.tree[n.id] && m.tree[q] ? 'rgba(123,216,143,0.9)' : m.tree[q] ? 'rgba(220,225,255,0.55)' : 'rgba(160,160,190,0.22)';
+        lines += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="' + col + '" stroke-width="1.5"/>';
       });
     });
-    var h = '<svg viewBox="0 0 ' + W + ' ' + (top * 2 + V * 2) + '" preserveAspectRatio="none">' + lines + '</svg>';
+    var h = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + lines + '</svg>';
+    (DATA.treeGroups || []).forEach(function (g) {
+      h += '<span class="cname" style="left:' + px(g.x) + 'px;top:' + py(g.y) + 'px">' + esc(g.name) + '</span>';
+    });
     DATA.tree.forEach(function (n) {
       var p = pos[n.id], st = nodeState(n);
-      h += '<button class="node ' + st + (selNode === n.id ? ' sel' : '') + '" data-act="node" data-id="' + n.id + '" style="left:' + p.x + 'px;top:' + p.y + 'px">' +
-        '<span class="nm">' + esc(n.name) + '</span><span class="c">' + (st === 'owned' ? 'Owned' : n.cost + ' RP') + '</span></button>';
+      h += '<button class="node ' + st + (selNode === n.id ? ' sel' : '') + (n.id === 'root' ? ' big' : '') + '" data-act="node" data-id="' + n.id + '" style="left:' + p.x + 'px;top:' + p.y + 'px" aria-label="' + esc(n.name) + '">' +
+        '<i class="sw"><i class="star"></i></i><span class="nm">' + esc(n.name) + '</span><span class="c">' + (st === 'owned' ? 'owned' : n.cost + ' RP') + '</span></button>';
     });
     box.innerHTML = h;
   }
