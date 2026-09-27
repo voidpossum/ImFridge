@@ -174,6 +174,10 @@ var UI = (function () {
   function fold(on) {
     settings.folded = !!on;
     el.drawer.classList.toggle('folded', !!on);
+    // Your money sits at the top of the Shop panel; when the panel is folded away it goes back to the top bar.
+    var money = $('money'), slot = $('moneySlot');
+    if (on) { if (money.parentNode !== $('hud')) $('hud').insertBefore(money, el.btnPause); }
+    else if (money.parentNode !== slot) slot.appendChild(money);
     Save.saveSettings(settings);
     if (api.relayout) api.relayout();
   }
@@ -499,8 +503,9 @@ var UI = (function () {
         '<br><span class="d">Research starts over when you reset.</span>';
     },
     wait: function () {
-      return '<b>' + Math.floor(S.run.waiting) + ' online orders.</b><br>Your line is full, so followers ordered online.<br>' +
+      return '<b>' + Math.floor(S.run.waiting) + ' of ' + Engine.ordersCap(S) + ' online orders.</b><br>Your line is full, so followers ordered online.<br>' +
         (S.run.hw.drone ? 'Your Delivery Drones deliver them.' : 'You need Delivery Drones to deliver them.') + ' Orders nobody delivers expire.<br>' +
+        'More drones = more orders can wait. When orders are full, extra likes earn a little ad money instead.<br>' +
         '<span class="d">Or sell faster, so more followers fit in your line (Fast Coin Slot, Second Dispenser).</span>';
     },
     now: function (k) {
@@ -543,7 +548,7 @@ var UI = (function () {
     }
     ordersEl.hidden = n < 1;
     if (n < 1) return;
-    var sz = Scene.size(), a = Scene.toScreen(-sz.ox + 7, 94), b = Scene.toScreen(-sz.ox + 12 + Sprites.textWidth(String(n)) + 22, 113);
+    var sz = Scene.size(), a = Scene.toScreen(-sz.ox + 7, 94), b = Scene.toScreen(-sz.ox + 12 + Sprites.textWidth(n + '/' + Engine.ordersCap(S)) + 22, 113);
     ordersEl.style.left = a.x + 'px'; ordersEl.style.top = a.y + 'px';
     ordersEl.style.width = (b.x - a.x) + 'px'; ordersEl.style.height = (b.y - a.y) + 'px';
   }
@@ -741,7 +746,7 @@ var UI = (function () {
     setHTML(el.rates,
       '<span data-tip="New followers per second (from likes). They walk in to buy from you.">' + Icons.img('tabCustomers') + num(rt.followers) + '/s</span>' +
       (S.meta.flags.jailbreak ? '<span data-tip="Research points (you have ' + num(S.meta.research.points) + '). Spend them at the top of the Shop.">' + Icons.img('bits') + num(rt.research) + '/s</span>' : '') +
-      '<span class="inc" data-tip="' + esc('Money per second (average). All of it counts at the review.\nCans sold: ' + money(rt.sales) + '/s\nClicks: ' + money(rt.clickMoney) + '/s' + (rt.mined > 0.5 ? '\nMining: ' + money(rt.mined) + '/s' : '')) + '">' + money(rt.income) + '/s</span>');
+      '<span class="inc" data-tip="' + esc('Money per second (average). All of it counts at the review.\nCans sold: ' + money(rt.sales) + '/s\nClicks: ' + money(rt.clickMoney) + '/s' + (rt.mined > 0.5 ? '\nMining: ' + money(rt.mined) + '/s' : '') + (rt.ads > 0.5 ? '\nAds (online orders full): ' + money(rt.ads) + '/s' : '')) + '">' + money(rt.income) + '/s</span>');
     setText(el.allTime, 'all time ' + money(S.meta.totalSales));
   }
 

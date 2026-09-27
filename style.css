@@ -343,6 +343,8 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
 #drawer { display: flex; min-height: 0; background: var(--bg2); border-left: 2px solid var(--line); }
 #panelWrap { width: var(--drawer); display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-right: 2px solid var(--line); }
 #drawer.folded #panelWrap { display: none; }
+#moneySlot #money { border-left: 0; padding: 8px 12px 7px; min-width: 0; background: var(--bg2); border-bottom: 2px solid var(--line); }
+#moneySlot #cash { font-size: 1.9em; }
 #panelHead { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 2px solid var(--line); background: var(--panel2); }
 #panelHead h2 { margin: 0; font: 800 0.9em/1.2 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
 #btnFold { background: none; border: 2px solid var(--line); cursor: pointer; padding: 0 8px; font-weight: 800; color: var(--muted); }

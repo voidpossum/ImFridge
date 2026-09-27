@@ -238,6 +238,8 @@ var Engine = (function () {
     var R = S.run, n = R.hw[id] | 0;
     return n && HW[id].pps ? n * HW[id].pps * Math.pow(2, R.dbl[id] | 0) * prodMult(S) : 0;
   }
+  // How many online orders can wait: about 30 seconds of what your drones deliver (at least ordersMin).
+  function ordersCap(S) { return Math.max(B.ordersMin, Math.round(droneRate(S) * B.ordersSeconds)); }
   // Delivery drones: followers served per second.
   function droneRate(S) {
     var R = S.run, n = R.hw.drone | 0;
@@ -296,11 +298,20 @@ var Engine = (function () {
     }
     R.likes += likes; m.totalLikes += likes;
     R.likeBank += likes;
-    while (R.likeBank >= B.likesPerFollower) {
-      R.likeBank -= B.likesPerFollower;
-      R.waiting += 1;
-      R.followersRun++; m.totalFollowers++;
-      R.rate.followers += 1;
+    // Every few likes = one follower. They come to your line; if it is full they order online.
+    // When the online orders are full too, the extra likes earn ad money instead (it counts like any money).
+    if (R.likeBank >= B.likesPerFollower) {
+      var n = Math.floor(R.likeBank / B.likesPerFollower);
+      R.likeBank -= n * B.likesPerFollower;
+      var toOrders = Math.min(n, Math.max(0, Math.floor(ordersCap(S) - R.waiting)));
+      R.waiting += toOrders;
+      R.followersRun += toOrders; m.totalFollowers += toOrders;
+      R.rate.followers += toOrders;
+      if (n > toOrders) {
+        var ad = (n - toOrders) * B.adCash;
+        R.cash += ad; score(S, ad);
+        R.rate.adNow = (R.rate.adNow || 0) + ad;
+      }
     }
     if (research > 0) addResearch(S, research);
     return { likes: likes, research: research, mined: mined };
@@ -1534,7 +1545,8 @@ var Engine = (function () {
     R.rate.followersEMA = R.rate.followersEMA * (1 - a) + R.rate.followers / dt * a;
     R.rate.clicksEMA = R.rate.clicksEMA * (1 - a) + R.rate.clicks / dt * a;
     R.rate.clickEMA = (R.rate.clickEMA || 0) * (1 - a) + (R.rate.clickNow || 0) / dt * a;
-    R.rate.salesNow = 0; R.rate.followers = 0; R.rate.clicks = 0; R.rate.clickNow = 0;
+    R.rate.adEMA = (R.rate.adEMA || 0) * (1 - a) + (R.rate.adNow || 0) / dt * a;
+    R.rate.salesNow = 0; R.rate.followers = 0; R.rate.clicks = 0; R.rate.clickNow = 0; R.rate.adNow = 0;
 
     // Play stats: sampled once a second.
     if (!R.st) R.st = freshQStats(S);
@@ -1562,6 +1574,7 @@ var Engine = (function () {
     // Online orders: followers who could not fit in your line ordered online. Drones deliver them;
     // the rest come in when there is room in your line. Orders nobody delivers expire (lost sales, no complaint).
     var Y = R.machines[YOU];
+    if (R.waiting > ordersCap(S)) R.waiting = ordersCap(S);   // (older saves could have hundreds)
     if (R.waiting > 0 && !intro) {
       var gave = R.waiting * dt / (B.followerPatience * (1 + fx(S, 'patience')));
       R.waiting -= gave; R.gaveBank += gave;
@@ -1978,12 +1991,12 @@ var Engine = (function () {
   function rates(S) {
     var R = S.run, p = pps(S), spl = splitOf(S), click = clickPower(S), mr = mineRateNow(S);
     var clicks = R.rate.clicksEMA || 0, total = p + clicks * click;
-    var sales = R.rate.salesEMA || 0, mined = R.rate.mineEMA || 0, clickMoney = R.rate.clickEMA || 0;
+    var sales = R.rate.salesEMA || 0, mined = R.rate.mineEMA || 0, clickMoney = R.rate.clickEMA || 0, ads = R.rate.adEMA || 0;
     return {
       pps: p, clickPower: click, clicks: clicks, total: total,
       likes: total * likeMult(S), followers: total * likeMult(S) / B.likesPerFollower,
       research: total * spl.res * B.resRate, mining: total * spl.mine * mr, splits: spl,
-      sales: sales, mined: mined, clickMoney: clickMoney, income: sales + mined + clickMoney,
+      sales: sales, mined: mined, clickMoney: clickMoney, ads: ads, income: sales + mined + clickMoney + ads,
       capacity: capacity(S), drones: droneRate(S), prod: prodMult(S)
     };
   }
@@ -2009,7 +2022,7 @@ var Engine = (function () {
     buyHardware: buyHardware, hwCost: hwCost, hwCostN: hwCostN, hwMaxAffordable: hwMaxAffordable, hwAvailable: hwAvailable,
     hwPPS: hwPPS, pps: pps, doublerNext: doublerNext, buyDoubler: buyDoubler,
     buyResearch: buyResearch, researchAvailable: researchAvailable, resCost: resCost, resLevel: resLevel,
-    droneRate: droneRate, prodMult: prodMult, clickPower: clickPower, clickCash: clickCash,
+    droneRate: droneRate, prodMult: prodMult, clickPower: clickPower, clickCash: clickCash, ordersCap: ordersCap,
     pickCard: pickCard, reroll: reroll, closeInfo: closeInfo, hold: hold, clickGold: clickGold, stat: stat, loyalChance: loyalChance,
     buyTree: buyTree, treeReady: treeReady, startShift: startShift, requestReset: requestReset, canReset: canReset,
     hourOf: hourOf, daypartOf: daypartOf, rankNow: rankNow, rivalName: rivalName, rpFor: rpFor,
