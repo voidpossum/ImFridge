@@ -72,6 +72,14 @@
     hold.key = true; hold.acc = -0.15;
   });
   window.addEventListener('keyup', function (e) { if (e.key === ' ') hold.key = false; });
+  // Secret: the Konami code (up up down down left right left right B A) opens the game data wiki in a new tab.
+  var KONAMI = 'arrowup arrowup arrowdown arrowdown arrowleft arrowright arrowleft arrowright b a', lastKeys = [];
+  window.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' && e.target.type !== 'range' || e.target.tagName === 'TEXTAREA') return;
+    lastKeys.push(e.key.toLowerCase());
+    if (lastKeys.length > 10) lastKeys.shift();
+    if (lastKeys.join(' ') === KONAMI) { lastKeys = []; window.open('tools/wiki.html', '_blank'); }
+  });
   function holdTick(real) {
     if (S.pause || !((hold.on && hold.over) || hold.key)) return;
     hold.acc += real;
