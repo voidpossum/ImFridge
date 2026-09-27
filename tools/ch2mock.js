@@ -466,12 +466,36 @@
 
   // Version 5 (Void Possum's Photoshop layout): ChugGPT, [your slot], VEND-3, [your slot], lamp, Clawd, Grog.
   // VEND-3 in the exact centre (x 240), under the news board. One lamp. The edges stay free for the trees and the menus.
-  var LAYOUT = { chug: 138, slotL: 191, you: 240, slotR: 289, lamp1: 316, clawd: 345, grog: 413 };
+  var LAYOUT = { soon: 67, chug: 135, slotL: 191, you: 240, slotR: 289, clawd: 345, grog: 413 };
+  // A machine under a tarp: the spot for the rival that arrives later.
+  function coveredMachine(g, cx, t) {
+    var x0 = cx - 25, y0 = 106, w = 50, h = 94;
+    R(g, x0, y0 + h, w, 3, 'rgba(40,20,40,0.32)');
+    // the cloth: wider at the bottom, with folds
+    for (var y = 0; y < h; y++) {
+      var k = y / h, inset = Math.round((1 - k) * 3 + (y < 4 ? 4 - y : 0));
+      R(g, x0 + inset - 1, y0 + y, w - inset * 2 + 2, 1, P.ink);
+      R(g, x0 + inset, y0 + y, w - inset * 2, 1, '#6a7a8e');
+    }
+    for (var f = 0; f < 5; f++) {   // folds
+      var fx = x0 + 7 + f * 9;
+      for (var fy = 12; fy < h - 2; fy++) if ((fy + f * 5) % 23 < 18) R(g, fx + Math.round(Math.sin(fy / 9 + f) * 1.5), y0 + fy, 1, 1, f % 2 ? '#4e5c6e' : '#8a9aae');
+    }
+    R(g, x0 + 3, y0 + 4, w - 6, 2, '#8a9aae');
+    R(g, x0 + 1, y0 + h - 4, w - 2, 4, '#4e5c6e');                 // hem on the ground
+    R(g, x0 + 2, y0 + 38, w - 4, 2, '#c8a86a'); R(g, x0 + 2, y0 + 70, w - 4, 2, '#c8a86a');   // rope
+    // a paper tag
+    var tx = cx - 13, ty = y0 + 46, sway = Math.round(Math.sin(t * 1.5));
+    R(g, cx, y0 + 40, 1, 6, '#c8a86a');
+    R(g, tx - 1 + sway, ty - 1, 28, 14, P.ink); R(g, tx + sway, ty, 26, 12, '#f6ecd8');
+    T(g, 'SOON', tx + 5 + sway, ty + 4, '#a8362f');
+  }
   function drawParkTight(t, full) {
     var W = 480, g = setup(full ? 'tightFull' : 'tight', W, WH, 3), X = LAYOUT;
-    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[108, 444]], hello: 'GROG MOVED IN' });
+    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[36, 444]], hello: 'GROG MOVED IN' });
     tree(g, 26, 199, 1, full); tree(g, 454, 199, -1, full);
-    lamp(g, X.lamp1, 199, full);
+    lamp(g, X.slotL, 199, full); lamp(g, X.slotR, 199, full);   // behind your side machines
+    coveredMachine(g, X.soon, t);
     Sprites.machine(g, X.chug, { id: 'chug', stock: { cola: 6, lemon: 7, orange: 4 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: { sign: 2 }, feats: ['crypto', 'plus'] });
     Sprites.machine(g, X.you, { id: 'you', name: 'VEND-3', stock: { cola: 10, lemon: 8, orange: 11, grape: 6 }, cap: 12, drinks: ['cola', 'lemon', 'orange', 'grape'], t: t, cold: 1.2, up: { sign: 3, cool: 2 }, hw: { fan: 1, ram: 1 }, pps: 3, lanes: 2 });
     Sprites.machine(g, X.clawd, { id: 'clawd', stock: { cola: 7, lemon: 5, orange: 9 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: {}, feats: ['snacks'] });
@@ -498,7 +522,7 @@
   }
 
   // Shared with tools/export.html (PNG export for Photoshop mockups).
-  window.Mock = { grogMachine: grogMachine, grogFace: grogFace, sideMachine: sideMachine, lamp: lamp, tree: tree, person: person,
+  window.Mock = { coveredMachine: coveredMachine, grogMachine: grogMachine, grogFace: grogFace, sideMachine: sideMachine, lamp: lamp, tree: tree, person: person,
                   bigPark: bigPark, SIDE_W: SIDE_W, SIDE_H: SIDE_H, LAYOUT: LAYOUT };
 
   var t = 3.3;
