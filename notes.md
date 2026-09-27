@@ -42,6 +42,10 @@ What a new session needs to know to keep working without re-deriving anything.
 - **Lifts** on both sides (customers arrive through lifts); the floor display says "3".
 
 ## Useful commands
+- `node tools/gen-docs.js`: rewrite `docs/game-data.md` (run it for every shared build).
+- Game data wiki: `tools/wiki.html` (Konami code in the game). Void Possum edits values there and sends the exported list:
+  - each line ends with `[file: path old → new]`, e.g. `[machine.js: machine[slots].base 1500 → 1200]`
+  - apply those lines to the data files, then run the sim
 - `node tools/sim.js --runs 3`: pacing report.
 - Browser pane:
   - start the server with preview_start name `out-of-order` (port 8741)

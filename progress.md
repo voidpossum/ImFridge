@@ -9,6 +9,16 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## Game data wiki (2026-09-27, after 0.3.0; tools only, no version change)
+- **`tools/wiki.html`** lists every balance number, machine upgrade (cost of every level), hardware item (processing per $), research, Refresh star, card, rival (stats, quirks, upgrades, features and rival-only mods) and the park (customers, weather, dayparts, worlds).
+  - Read live from the data files, with their comments.
+  - 556 values can be edited: changed values turn yellow, and costs per level update.
+  - Edits and per-section notes are kept in the browser.
+  - **Export changes** gives an old → new list to send. **Download document** saves one HTML file.
+  - Search works across everything.
+- **Opening it:** the Konami code in the game (↑↑↓↓←→←→BA) opens it in a new tab. There is no visible link.
+- **`docs/game-data.md`:** the same content for GitHub, written by `node tools/gen-docs.js` from the shared `tools/describe.js`.
+
 ## 0.3.0 (2026-09-27): Chapter 2 starts: the new park and Grog
 - **Worlds** (`DATA.worlds` in `core.js`, `run.world`): world 1 = the Chapter 1 park, world 2 = the new park (Void Possum's layout, VEND-3 in the centre under the news board):
   - left to right: a cardboard box ("SOON", a machine that arrives later), ChugGPT, your slot, VEND-3, your slot, Clawd, Grog
