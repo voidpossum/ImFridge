@@ -464,14 +464,14 @@
     T(g, 'FOOD TRUCK', 20, 80, '#fffaf0'); T(g, 'BENCH', 104, 80, '#fffaf0'); T(g, 'FOUNTAIN', 166, 80, '#fffaf0'); T(g, 'BUS STOP', 240, 80, '#fffaf0'); T(g, 'RECYCLING', 322, 80, '#fffaf0'); T(g, 'LAMPS', 390, 80, '#fffaf0');
   }
 
-  // Version 4 (Void Possum's Photoshop layout): ChugGPT, [your slot], VEND-3, [your slot], lamp, Clawd, lamp, Grog.
-  // The edges stay free for the trees and the menus.
-  var LAYOUT = { chug: 110, slotL: 164, you: 215, slotR: 262, lamp1: 288, clawd: 318, lamp2: 352, grog: 386 };
+  // Version 5 (Void Possum's Photoshop layout): ChugGPT, [your slot], VEND-3, [your slot], lamp, Clawd, Grog.
+  // VEND-3 in the exact centre (x 240), under the news board. One lamp. The edges stay free for the trees and the menus.
+  var LAYOUT = { chug: 138, slotL: 191, you: 240, slotR: 289, lamp1: 316, clawd: 345, grog: 413 };
   function drawParkTight(t, full) {
     var W = 480, g = setup(full ? 'tightFull' : 'tight', W, WH, 3), X = LAYOUT;
-    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[80, 416]], hello: 'GROG MOVED IN' });
+    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[108, 444]], hello: 'GROG MOVED IN' });
     tree(g, 26, 199, 1, full); tree(g, 454, 199, -1, full);
-    lamp(g, X.lamp1, 199, full); lamp(g, X.lamp2, 199, full);
+    lamp(g, X.lamp1, 199, full);
     Sprites.machine(g, X.chug, { id: 'chug', stock: { cola: 6, lemon: 7, orange: 4 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: { sign: 2 }, feats: ['crypto', 'plus'] });
     Sprites.machine(g, X.you, { id: 'you', name: 'VEND-3', stock: { cola: 10, lemon: 8, orange: 11, grape: 6 }, cap: 12, drinks: ['cola', 'lemon', 'orange', 'grape'], t: t, cold: 1.2, up: { sign: 3, cool: 2 }, hw: { fan: 1, ram: 1 }, pps: 3, lanes: 2 });
     Sprites.machine(g, X.clawd, { id: 'clawd', stock: { cola: 7, lemon: 5, orange: 9 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: {}, feats: ['snacks'] });
@@ -479,12 +479,12 @@
     if (full) { sideMachine(g, X.slotL, 'snack', t); sideMachine(g, X.slotR, 'claw', t); }
     else { slotPlot(g, X.slotL, t); slotPlot(g, X.slotR, t); }
     if (full) { g.fillStyle = 'rgba(30,20,70,0.22)'; g.fillRect(0, 0, W, WH); }
-    person(g, 'office', 107, 213, t, { st: 'buy' }); person(g, 'kid', 112, 224, t);
-    person(g, 'boss', 212, 213, t, { st: 'buy' }); person(g, 'gym', 217, 223, t, { fol: 1 }); person(g, 'intern', 214, 233, t, { fol: 1 }); person(g, 'office', 216, 243, t);
-    person(g, 'intern', 316, 214, t, { st: 'buy' });
-    person(g, 'gym', 384, 213, t, { st: 'buy' }); person(g, 'office', 388, 224, t);
-    person(g, 'boss', 40, 250, t, { st: 'in', tx: 200 }); person(g, 'kid', 440, 250, t, { st: 'in', tx: 300 });
-    if (full) { person(g, 'office', 164, 212, t, { sipT: 0.5, drink: 'cola', st: 'out', tx: 164 }); person(g, 'kid', 262, 212, t, { st: 'look' }); }
+    person(g, 'office', 135, 213, t, { st: 'buy' }); person(g, 'kid', 140, 224, t);
+    person(g, 'boss', 237, 213, t, { st: 'buy' }); person(g, 'gym', 242, 223, t, { fol: 1 }); person(g, 'intern', 239, 233, t, { fol: 1 }); person(g, 'office', 241, 243, t);
+    person(g, 'intern', 343, 214, t, { st: 'buy' });
+    person(g, 'gym', 411, 213, t, { st: 'buy' }); person(g, 'office', 415, 224, t);
+    person(g, 'boss', 40, 250, t, { st: 'in', tx: 200 }); person(g, 'kid', 450, 252, t, { st: 'in', tx: 300 });
+    if (full) { person(g, 'office', 191, 212, t, { sipT: 0.5, drink: 'cola', st: 'out', tx: 191 }); person(g, 'kid', 289, 212, t, { st: 'look' }); }
   }
   // The four side-machine choices (you pick one for each slot).
   function drawSideChoices(t) {
