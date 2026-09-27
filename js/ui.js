@@ -751,7 +751,8 @@ var UI = (function () {
   }
 
   function renderNow() {
-    var list = S.run.intro ? [] : Engine.conditions(S).filter(function (c) { return c.k !== 'waiting'; });
+    // Only what is true about today (weather, part of the day, bonuses, a hack). Rival news is on their cards.
+    var list = S.run.intro ? [] : Engine.conditions(S).filter(function (c) { return c.k !== 'waiting' && !/^(fx|feat)/.test(c.k); });
     var sig = list.map(function (c) { return c.k + '=' + c.text; }).join('|');
     if (sig === nowSig) return;
     nowSig = sig;
