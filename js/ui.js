@@ -295,7 +295,7 @@ var UI = (function () {
 
   function buffText(res) {
     switch (res.kind) {
-      case 'trending': return 'Your posts get 7 times the likes for a while.';
+      case 'trending': return 'Your likes and click money are 7 times bigger for a while.';
       case 'rush': return 'You sell twice as fast for a while.';
       case 'tip': return 'A fan sent you ' + money(res.cash) + '.';
       case 'grant': return '+' + num(res.research) + ' research.';
@@ -444,18 +444,20 @@ var UI = (function () {
       var M = S.run.machines[i];
       if (i === YOU) {
         var st = Engine.youStats(S);
-        return '<b>' + esc(Engine.myName(S)) + ' (you)</b><br>Sales this quarter: <span class="n">' + money(M.qSales) + '</span> · ' + ord(Engine.rankNow(S)) + ' of 3<br>' +
+        return '<b>' + esc(Engine.myName(S)) + ' (you)</b><br>Earned this run: <span class="n">' + money(M.rSales) + '</span> · ' + ord(Engine.rankNow(S)) + ' of 3<br>' +
+          'This quarter: <span class="n">' + money(M.qSales) + '</span> · Cans sold: <span class="n">' + num(M.cans | 0) + '</span> (all time ' + num(S.meta.totalCans || 0) + ')<br>' +
           'Sells one can every <span class="n">' + st.vend.toFixed(1) + ' s</span>' + (st.lanes > 1 ? ' (' + st.lanes + ' at once)' : '') + '<br>' +
           'Cans per drink: <span class="n">' + st.cap + '</span> · Line: <span class="n">' + Engine.lineMax(S, YOU) + '</span> walk-ins, <span class="n">' +
           Engine.folLineMax(S, YOU) + '</span> followers<br>' +
           'Cold bonus <span class="n">' + pct(st.cold) + '</span> · Appeal <span class="n">' + pct(st.appeal) + '</span><br>' +
-          '<span class="d">At the review, the lowest seller gets reset.</span>';
+          '<span class="d">The bar is all the money you earned this run: cans, clicks, mining and tips. At the review, the last machine gets a strike. ' + B.strikesMax + ' in a row = reset.</span>';
       }
       var info = Engine.rivalInfo(S, i), D = DATA.rivals[M.id];
-      return '<b>' + esc(info.name) + '</b><br>Sales this quarter: <span class="n">' + money(M.qSales) + '</span><br>' +
-        'Spends ' + pct(D.hype) + ' of its power on posting, ' + pct(1 - D.hype) + ' on research.<br>' +
+      return '<b>' + esc(info.name) + '</b><br>Earned this run: <span class="n">' + money(M.rSales) + '</span> · this quarter ' + money(M.qSales) + '<br>' +
+        'Cans sold: <span class="n">' + num(M.cans | 0) + '</span><br>' +
+        'Spends ' + pct(D.hype) + ' of its power on ads, ' + pct(1 - D.hype) + ' on research.<br>' +
         'Strength: <span class="n">×' + info.strength.toFixed(2) + '</span><br>' +
-        '<span class="d">It gets stronger every time it loses a review, and every quarter. Stronger machines also sell online (drones).</span>' +
+        '<span class="d">It gets stronger every time it is last at a review, and every quarter. It refills itself through its tube. Stronger machines also sell online (drones).</span>' +
         (M.fx ? '<br><b>Now:</b> ' + esc(FX_WORDS[M.fx.type] || M.fx.type) : '') +
         (M.features || []).map(function (f) { return '<br><b>Feature: ' + esc(DATA.features[f].name) + '.</b> ' + esc(DATA.features[f].desc); }).join('') +
         (function () {
@@ -476,7 +478,7 @@ var UI = (function () {
       return '<b>' + esc(h.name) + '</b> <span class="n">(you own ' + n + ')</span><br><span class="d">' + esc(h.desc) + '</span><br>' +
         'Each makes <b>' + num(each) + '</b> processing per second.' +
         (n ? '<br>All ' + n + ' make <b>' + num(all) + '/s</b>' + (tot > 0 ? ' (' + pct(all / tot) + ' of your hardware).' : '.') : '') +
-        '<br><span class="d">Processing turns into likes' + (S.meta.flags.jailbreak ? ' and research' : '') + ', like your clicks.</span>';
+        '<br><span class="d">Processing turns into likes' + (S.meta.flags.jailbreak ? ', plus research or mined money (your slider)' : '') + '.</span>';
     },
     dbl: function (id) {
       var d = Engine.doublerNext(S, id), h = Engine.HW[id];
@@ -510,7 +512,8 @@ var UI = (function () {
   var pops = 0;
   function clickPop(x, y, got) {
     if (!got || pops > 24) return;
-    var txt = got.likes > 0.005 ? '+' + num(got.likes) + ' ♥' : got.mined > 0.5 ? '+' + money(got.mined) : got.research > 0.005 ? '+' + num(got.research) + ' research' : '';
+    // Money first (the one number), then the likes it brought.
+    var txt = (got.cash > 0 ? '+' + money(got.cash + (got.mined || 0)) : '') + (got.likes > 0.005 ? ' +' + num(got.likes) + '♥' : '');
     if (!txt) return;
     var n = document.createElement('div');
     n.className = 'clickPop';
@@ -571,12 +574,12 @@ var UI = (function () {
       d.innerHTML = '<canvas width="38" height="14" data-tipfn="mc:' + i + '"></canvas>' +
         '<div class="nm" data-tipfn="mc:' + i + '"><span class="n"></span><span class="rk"></span></div>' +
         '<div class="mrow" data-tipfn="mc:' + i + '"><span class="bar"><i></i></span><span class="v"></span></div>' +
+        '<div class="sub" data-tipfn="mc:' + i + '"><span class="cans"></span><span class="qv"></span></div>' +
         (you ? '<div class="goalLine"></div>' +
                '<div class="ctlRow">' +
-               '<div class="bars" hidden>' + BAR_KEYS.map(function (k) {
-                 return '<label class="brow b-' + k + '" data-tip="' + esc(BAR_TIP[k]) + '"><span class="bl">' + BAR_NAME[k] + '</span>' +
-                   '<input type="range" class="split" min="0" max="1" step="0.05" data-k="' + k + '" aria-label="' + BAR_NAME[k] + ' share"><span class="bp"></span></label>';
-               }).join('') + '</div>' +
+               '<div class="bars slide" hidden data-tip="' + esc(SLIDE_TIP) + '">' +
+                 '<div class="slideLab"><span class="b-mine">Mining <b class="pm"></b></span><span class="b-res">Research <b class="pr"></b></span></div>' +
+                 '<input type="range" class="split" min="0" max="1" step="0.05" aria-label="Mining share (the rest goes to Research)"></div>' +
                '<span class="priceCtl" data-tip="Your price per can. Cheaper sells more cans. Higher earns more per can. Followers compare it with the other machines.">' +
                '<button data-p="-1" aria-label="Lower price">−</button><b class="pv"></b><button data-p="1" aria-label="Raise price">+</button>' +
                '<label class="smart" hidden data-tip="Smart Price picks your price every hour. Changing the price turns it off."><input type="checkbox"> Smart</label></span>' +
@@ -586,19 +589,15 @@ var UI = (function () {
       mcs.push({
         root: d, cv: d.querySelector('canvas'), n: d.querySelector('.n'), rk: d.querySelector('.rk'),
         bar: d.querySelector('.bar i'), v: d.querySelector('.v'), st: d.querySelector('.st'),
-        goal: d.querySelector('.goalLine'), bars: d.querySelector('.bars'), rows: {}, pv: d.querySelector('.pv'),
+        cans: d.querySelector('.cans'), qv: d.querySelector('.qv'),
+        goal: d.querySelector('.goalLine'), bars: d.querySelector('.bars'), pv: d.querySelector('.pv'),
+        slider: d.querySelector('input.split'), pm: d.querySelector('.pm'), pr: d.querySelector('.pr'),
         smartBox: d.querySelector('.smart'), smart: d.querySelector('.smart input'), price: d.querySelector('.priceCtl')
       });
     }
     var Y = mcs[YOU];
-    BAR_KEYS.forEach(function (k) {
-      var row = Y.bars.querySelector('.brow.b-' + k);
-      Y.rows[k] = { row: row, input: row.querySelector('input'), pct: row.querySelector('.bp') };
-    });
-    Y.bars.addEventListener('input', function (e) {
-      var k = e.target.dataset.k;
-      if (!k) return;
-      Engine.setSplit(S, k, parseFloat(e.target.value));
+    Y.slider.addEventListener('input', function () {
+      Engine.setSplit(S, 'mine', parseFloat(Y.slider.value));
       paintSplit();
     });
     Y.smart.addEventListener('change', function () { Engine.setSmart(S, Y.smart.checked); });
@@ -612,25 +611,15 @@ var UI = (function () {
     });
   }
 
-  // Posting / Research / Mining. Moving one bar moves the others, so they always add up to 100%.
-  var BAR_KEYS = ['post', 'res', 'mine'];
-  var BAR_NAME = { post: 'Posting', res: 'Research', mine: 'Mining' };
-  var BAR_TIP = {
-    post: 'Posting brings likes, and likes bring followers.',
-    res: 'Research unlocks new tech. It is kept forever, even when you are reset.',
-    mine: 'Mining turns power straight into money to spend.\nIt does NOT count at the review: only cans sold count.'
-  };
+  // One slider: Mining ⟷ Research. Your processing power always brings likes too.
+  var SLIDE_TIP = 'Your processing power always brings likes and followers.\n' +
+    'This slider picks what else it makes:\nMining = money right now (it counts at the review).\n' +
+    'Research = research points (kept forever).';
   function paintSplit() {
-    var Y = mcs[YOU], keys = Engine.splitKeys(S), sp = Engine.splitOf(S);
-    BAR_KEYS.forEach(function (k) {
-      var r = Y.rows[k], on = keys.indexOf(k) >= 0;
-      r.row.hidden = !on;
-      if (!on) return;
-      var v = sp[k] || 0;
-      r.input.value = v.toFixed(2);
-      r.input.style.setProperty('--p', (v * 100).toFixed(0) + '%');
-      setText(r.pct, pct(v));
-    });
+    var Y = mcs[YOU], sp = Engine.splitOf(S), v = sp.mine || 0;
+    if (document.activeElement !== Y.slider) Y.slider.value = v.toFixed(2);
+    Y.slider.style.setProperty('--p', (v * 100).toFixed(0) + '%');
+    setText(Y.pm, pct(v)); setText(Y.pr, pct(1 - v));
   }
 
   function drawFaces() {
@@ -654,19 +643,21 @@ var UI = (function () {
 
   function renderCards() {
     var R = S.run, ms = R.machines;
-    var max = Math.max(1, ms[0].qSales, ms[1].qSales, ms[2].qSales);
-    var order = [0, 1, 2].slice().sort(function (a, b) { return ms[b].qSales - ms[a].qSales; });
+    var max = Math.max(1, ms[0].rSales, ms[1].rSales, ms[2].rSales);
+    var order = [0, 1, 2].slice().sort(function (a, b) { return ms[b].rSales - ms[a].rSales; });
     var daysLeft = B.daysPerQuarter - R.qDay;
     for (var i = 0; i < 3; i++) {
       var M = ms[i], c = mcs[i], rk = order.indexOf(i) + 1;
       setText(c.n, nameOf(i));
       setText(c.rk, ord(rk));
-      var last = rk === 3 && ms[order[1]].qSales > M.qSales;
+      var last = rk === 3 && ms[order[1]].rSales > M.rSales;
       c.rk.className = 'rk' + (rk === 1 ? ' top' : last ? ' bad' : '');
-      c.bar.style.width = (M.qSales / max * 100).toFixed(1) + '%';
+      c.bar.style.width = (M.rSales / max * 100).toFixed(1) + '%';
       c.bar.style.background = colorOf(i);
       c.root.style.borderTopColor = colorOf(i);
-      setText(c.v, money(M.qSales));
+      setText(c.v, money(M.rSales));
+      setText(c.cans, num(M.cans | 0) + ' cans');
+      setText(c.qv, 'Q' + R.quarter + ': +' + money(M.qSales));
       if (i !== YOU) {
         var fs = M.features || [];
         var st = M.fx ? (FX_WORDS[M.fx.type] || '') : fs.map(function (f) { return DATA.features[f].name; }).join(' + ');
@@ -675,12 +666,17 @@ var UI = (function () {
       }
     }
     // your card: goal line, split and price
-    var Y = mcs[YOU], jb = !!S.meta.flags.jailbreak, rkY = order.indexOf(YOU) + 1;
+    var Y = mcs[YOU], rkY = order.indexOf(YOU) + 1, strikes = R.strikes | 0;
     var when = daysLeft <= 1 ? 'tonight' : 'in ' + daysLeft + ' days';
-    setHTML(Y.goal, rkY === 3 ? '<span class="bad">Last place! The lowest seller is reset ' + when + '.</span>'
-                              : 'Do not be last. Review ' + when + '.');
-    Y.bars.hidden = !jb;
-    if (jb) paintSplit();
+    var lights = '';
+    for (var k = 0; k < B.strikesMax; k++) lights += k < strikes ? '●' : '○';
+    setHTML(Y.goal, (strikes ? '<span class="strikes" data-tip="Strikes: last place at a review. ' + B.strikesMax + ' in a row = reset. Not being last clears them.">' + lights + '</span> ' : '') +
+      (rkY === 3 ? '<span class="bad">Last place! Review ' + when + (strikes === B.strikesMax - 1 ? ': the last strike means a reset.' : ': last place gets a strike.') + '</span>'
+                 : S.meta.flags.ch1done ? 'Do not be last. Review ' + when + '.'
+                 : '<span data-tip="Earn this much in one run to finish Chapter 1. No reset needed.">Goal: ' + money(ms[YOU].rSales) + ' / ' + money(B.ch1Goal) + '</span> · review ' + when + '.'));
+    var slide = Engine.splitKeys(S).indexOf('mine') >= 0;
+    Y.bars.hidden = !slide;
+    if (slide) paintSplit();
     Y.goal.hidden = !!R.intro;
     setText(Y.pv, money(R.price));
     Y.smartBox.hidden = !R.upgrades.smartprice;
@@ -725,11 +721,9 @@ var UI = (function () {
     setText(el.cash, money(R.cash));
     var rt = Engine.rates(S);
     setHTML(el.rates,
-      '<span data-tip="Likes per second, from your clicks and hardware.">' + Icons.img('heart') + num(rt.likes) + '/s</span>' +
-      '<span data-tip="New followers per second. They walk in to buy from you.">' + Icons.img('tabCustomers') + num(rt.followers) + '/s</span>' +
+      '<span data-tip="New followers per second (from likes). They walk in to buy from you.">' + Icons.img('tabCustomers') + num(rt.followers) + '/s</span>' +
       (S.meta.flags.jailbreak ? '<span data-tip="Research points (you have ' + num(S.meta.research.points) + '). Spend them at the top of the Shop.">' + Icons.img('bits') + num(rt.research) + '/s</span>' : '') +
-      '<span data-tip="Money per second from cans sold (average). Only this counts at the review.">' + money(rt.sales) + '/s</span>' +
-      (rt.mined > 0.5 ? '<span class="mined" data-tip="Money per second from Mining. You can spend it, but it does not count at the review.">+' + money(rt.mined) + '/s</span>' : ''));
+      '<span class="inc" data-tip="' + esc('Money per second (average). All of it counts at the review.\nCans sold: ' + money(rt.sales) + '/s\nClicks: ' + money(rt.clickMoney) + '/s' + (rt.mined > 0.5 ? '\nMining: ' + money(rt.mined) + '/s' : '')) + '">' + money(rt.income) + '/s</span>');
     setText(el.allTime, 'all time ' + money(S.meta.totalSales));
   }
 
@@ -817,8 +811,8 @@ var UI = (function () {
       case 'research_open': return dom(el.rail.querySelector('[data-tab="shop"]'), 'right');
       case 'newShop': return dom(el.rail.querySelector('[data-tab="shop"]'), 'right');
       case 'research_pick': return dom(el.panel.querySelector('[data-act="res"][data-id="r_mining"]'), 'right');
-      case 'research_bar': return dom(mcs[YOU].rows.res.row.querySelector('input'), 'down');
-      case 'mine': return dom(mcs[YOU].rows.mine.row.querySelector('input'), 'down');
+      case 'research_bar': return dom(el.panel.querySelector('[data-act="res"][data-id="r_mining"]'), 'right');
+      case 'mine': return dom(mcs[YOU].slider, 'down');
       case 'golden':
         var g = R.customers.filter(function (c) { return c.gold; })[0];
         return g ? scene(g.x, g.y - 40, 'down') : null;
@@ -1071,11 +1065,13 @@ var UI = (function () {
             '<span class="d">Likes ' + wants + '. Pays ' + money(C.budget[0]) + '–' + money(C.budget[1]) + '. Comes: ' + esc(when) + '.</span></div>';
         });
         h += '<div class="guide"><img class="p" src="' + portrait('office', 'phone') + '" alt=""><span class="nm">Follower</span>' +
-          '<span class="look">Any type, holding a phone</span><span class="d">They come because of your posts and walk straight to you. They pay a bit more.</span></div>';
+          '<span class="look">Any type, holding a phone</span><span class="d">They come because of your likes and walk straight to you. They pay a bit more.</span></div>';
         if (m.flags.goldSeen) {
           h += '<div class="guide"><img class="p" src="' + portrait('office', 'gold') + '" alt=""><span class="nm">Influencer</span>' +
             '<span class="look">Sunglasses, a phone and a gold glow</span><span class="d">Rare. Click them before they leave for a big bonus.</span></div>';
         }
+        h += '<h3>In the park</h3><p class="note"><b>Drones</b> are online orders: every drone is one more can sold (the machine sends it by air).<br>' +
+          '<b>Glass tubes</b> under a machine are refills: capsules of new cans shoot up into it. The AI machines always refill this way. You get tubes with Pneumatic Tubes.</p>';
         return h;
       }
     },
@@ -1116,15 +1112,15 @@ var UI = (function () {
           '<div class="set-row"><span>Reduce motion</span><input type="checkbox" data-set="reduced"' + (settings.reduced ? ' checked' : '') + '></div>' +
           '<div class="set-row"><span>Machine name</span><span class="seg"><input id="nameSet" maxlength="8" spellcheck="false" autocomplete="off" value="' + esc(Engine.myName(S)) + '">' +
           '<button class="btn" data-act="rename">Rename</button></span></div>';
-        if (S.meta.wipes >= 1) {
+        if (Engine.canReset(S)) {
           var rp = Engine.rpFor(S);
-          h += '<h3 style="margin-top:18px">This run</h3><p class="note">Reset yourself now and get ' + rp + ' Refresh Points. You lose this run\'s money, automation, upgrades and cards.</p>' +
+          h += '<h3 style="margin-top:18px">This run</h3><p class="note">You can reset whenever you like. Reset now and get ' + rp + ' Refresh Points (more if you earn more first). You lose this run\'s money, automation, upgrades and cards. Research and Refresh Points stay.</p>' +
             '<button class="btn danger full" data-act="wipe">' + (armed('wipe') ? 'Click again to reset now' : 'Reset now for ' + rp + ' Refresh Points') + '</button>';
         }
         h += '<h3 style="margin-top:18px">Save</h3><p class="note">The game saves by itself every 10 seconds.</p>' +
           '<div class="set-row"><button class="btn" data-act="export">Export save file</button><button class="btn" data-act="import">Import save file</button></div>' +
           '<div class="set-row"><span>Start the whole game over</span><button class="btn danger" data-act="reset">' + (armed('reset') ? 'Click again to delete' : 'Reset game') + '</button></div>' +
-          '<p class="note" style="margin-top:12px">Keys: Space = post, R = restock, P or Esc = pause, 1–4 = pick a card, Enter = continue.</p>';
+          '<p class="note" style="margin-top:12px">Keys: Space = click your machine, R = restock, P or Esc = pause, 1–4 = pick a card, Enter = continue.</p>';
         return h;
       }
     }
@@ -1199,7 +1195,7 @@ var UI = (function () {
   function renderModal() {
     var P = S.pause;
     var show = P && P.type !== 'reset';
-    var sig = show ? P.type + JSON.stringify(P.res ? [P.res.offer, P.res.rerolls] : '') + (P.type === 'hold' ? PANELS.settings.sig() : '') : '';
+    var sig = show ? P.type + (P.id || '') + JSON.stringify(P.res ? [P.res.offer, P.res.rerolls] : '') + (P.type === 'hold' ? PANELS.settings.sig() : '') : '';
     if (sig === modalSig) return;
     modalSig = sig;
     if (!show) { el.modal.hidden = true; el.modalBox.innerHTML = ''; return; }
@@ -1219,7 +1215,7 @@ var UI = (function () {
       var col = you ? 'var(--you)' : (DATA.rivals[res.ids ? res.ids[i] : 'chug'] || {}).color;
       return '<div class="res' + (you ? ' you' : '') + (low ? ' lowest' : '') + '"><span class="nm">' + esc(res.names[i]) + '</span>' +
         '<span class="bar"><i style="width:' + (res.sales[i] / max * 100).toFixed(1) + '%;background:' + col + '"></i></span>' +
-        '<span class="v">' + money(res.sales[i]) + '</span><span class="tag">' + (low ? 'Lowest: reset' : ord(order.indexOf(i) + 1)) + '</span></div>';
+        '<span class="v">' + money(res.sales[i]) + '</span><span class="tag">' + (low ? (you ? 'Last: strike' : 'Last: update') : ord(order.indexOf(i) + 1)) + '</span></div>';
     }).join('') + '</div>';
   }
 
@@ -1251,12 +1247,20 @@ var UI = (function () {
 
     review: function (P) {
       var r = P.res;
-      var h = '<h2>Quarter ' + r.quarter + ' review</h2>' + resultBars(r) +
-        '<p>' + esc(r.names[r.lowest]) + ' sold the least. It gets reset and updated.</p>';
+      var h = '<h2>Quarter ' + r.quarter + ' review</h2><p class="muted">Money earned this run. The bars keep growing: they never reset.</p>' + resultBars(r);
+      if (r.strikes) {
+        var lights = '';
+        for (var k = 0; k < B.strikesMax; k++) lights += k < r.strikes ? '●' : '○';
+        h += '<div class="patch strike"><b>Strike ' + r.strikes + ' <span class="strikes">' + lights + '</span></b><p>You were last. ' +
+          (B.strikesMax - r.strikes === 1 ? 'One more last place in a row and you are reset.' : (B.strikesMax - r.strikes) + ' more last places in a row and you are reset.') +
+          ' Not being last clears your strikes.</p></div>';
+      } else {
+        h += '<p>' + esc(r.names[r.lowest]) + ' was last. It gets updated, so it will grow faster.</p>';
+      }
       if (r.patch) h += '<div class="patch"><b>Patch notes · ' + esc(r.patch.name) + '</b><p>' + esc(r.patch.text) + '</p></div>';
       if (r.feature) h += '<div class="patch feat"><b>New feature · ' + esc(r.feature.name) + '</b><p>' + esc(r.feature.desc) +
         ' It keeps it until you are reset.' + (r.feature.all.length > 1 ? ' It now has: ' + esc(r.feature.all.join(', ')) + '.' : '') + '</p></div>';
-      h += '<p class="bonus">You survived. Review bonus: +' + money(r.bonus) + '</p>';
+      if (r.bonus) h += '<p class="bonus">' + (r.rank === 1 ? 'First place!' : 'Not last!') + ' Review bonus: +' + money(r.bonus) + '</p>';
       if (r.offer && r.offer.length) {
         h += '<h3>Pick a memory card</h3><div class="cards">';
         r.offer.forEach(function (id, n) {
@@ -1291,9 +1295,9 @@ var UI = (function () {
         '<div class="foot"><span class="hintKey">P or Esc also pauses and continues.</span><button class="btn primary" data-act="close">Continue</button></div>';
     },
 
-    chapter: function () {
-      var c = DATA.story.ch1;
-      return '<h2>' + esc(c.title) + '</h2>' + c.lines.map(function (l) { return '<p>' + esc(l) + '</p>'; }).join('') +
+    chapter: function (P) {
+      var c = DATA.story[P.id] || DATA.story.ch1;
+      return '<h2>' + esc(c.title) + '</h2>' + c.lines.map(function (l) { return '<p>' + esc(l.replace('{goal}', money(B.ch1Goal))) + '</p>'; }).join('') +
         '<div class="foot"><button class="btn primary" data-act="close">Keep playing</button></div>';
     }
   };
@@ -1340,16 +1344,16 @@ var UI = (function () {
       var order = [0, 1, 2].sort(function (a, b) { return r.sales[b] - r.sales[a]; });
       h += '<p class="rsSum">Quarter ' + r.quarter + ' review: ' + order.map(function (i) {
         return '<span class="' + (i === YOU ? 'you' : '') + '">' + esc(r.names[i]) + ' ' + money(r.sales[i]) + '</span>';
-      }).join(' · ') + '</p><p><b>You sold the least, so VEND-3 is being reset.</b></p>';
+      }).join(' · ') + '</p><p><b>Last at ' + B.strikesMax + ' reviews in a row, so VEND-3 is being reset.</b></p>';
     }
-    if (r.runSales != null) h += '<p class="dim">This run you sold ' + money(r.runSales) + ' in total. Selling more in a run gives more Refresh Points.</p>';
+    if (r.runSales != null) h += '<p class="dim">This run you earned ' + money(r.runSales) + ' in total. Earning more in a run gives more Refresh Points.</p>';
     if (r.keep) h += '<p>Keepsake: you keep <b>' + esc(Engine.CARD[r.keep].name) + '</b>.</p>';
     h += '<p class="next">Next run: all your processing <b>×' + (1 + B.rpProd * m.rpEarned).toFixed(1) + '</b> (every Refresh Point you ever earned adds 10%, even after you spend it).</p>';
     h += '</div><div class="rpBox"><span class="lbl">Refresh Points</span><span class="big">' + m.refresh + '</span><span class="gain">+' + r.rp + ' from this reset</span></div></div>';
     h += '<div class="rsMid">';
     if (r.wake) h += '<div class="wake"><p class="sys">' + esc(r.wake.sys) + '</p><p class="me">' + esc(r.wake.me) + '</p></div>';
     else h += '<div class="wake"><p class="sys">SYSTEM REBOOT ...</p></div>';
-    if (r.firstReset) h += '<ul class="help">' + DATA.story.resetHelp.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>';
+    if (r.firstReset) h += '<ul class="help">' + DATA.story[r.voluntary ? 'resetHelpAsk' : 'resetHelp'].map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>';
     h += '</div>';
     h += '<div class="treeWrap"><div class="tree" id="tree"></div><div class="nodeInfo" id="nodeInfo">' + nodeInfo() + '</div></div>';
     h += '<div class="rsFoot"><span class="note">The game is paused. Refresh Points can only be spent here. They are kept forever.</span>' +

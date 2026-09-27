@@ -3,6 +3,7 @@
 // Run:  node tools/sim.js                 (all bot profiles, 3 seeds each)
 //       node tools/sim.js --runs 5        (keep playing for 5 runs)
 //       node tools/sim.js --only active   (one profile: active, casual, greedy, idler)
+//       node tools/sim.js --set rivalQuarter=1.2   (try a balance number, repeat --set for more)
 // © 2026 Void Possum. All rights reserved.
 
 'use strict';
@@ -19,6 +20,13 @@ var root = path.join(__dirname, '..');
 var args = process.argv.slice(2);
 function arg(name, def) { var i = args.indexOf(name); return i >= 0 ? args[i + 1] : def; }
 var maxRuns = +arg('--runs', 3);
+// Try balance numbers without editing files: --set rivalQuarter=1.2 --set likesPerFollower=7
+args.forEach(function (a, i) {
+  if (a !== '--set') return;
+  var kv = String(args[i + 1]).split('=');
+  DATA.balance[kv[0]] = +kv[1];
+  console.log('(balance: ' + kv[0] + ' = ' + kv[1] + ')');
+});
 var only = arg('--only', null);
 
 // Real seconds a person spends on screens that pause the game.
@@ -44,7 +52,7 @@ function simulate(profile, seed) {
   var seen = {}, repeats = [], novel = [0];
   var hwBeat = null;
   var runs = [], runStart = 0, runQ = 0, ch1At = null, firstAuto = null, jailAt = null, firstGold = null, introAt = null, mined = 0;
-  var capLimited = 0, capTotal = 0;
+  var capLimited = 0, capTotal = 0, strikes = 0, lastScore = 0, scoreDrops = 0;
   var rnd = mulberry(seed * 7 + 3);
   var guard = 0;
 
@@ -60,6 +68,7 @@ function simulate(profile, seed) {
         Engine.closeInfo(S);
       } else if (t === 'review') {
         runQ++;
+        if (S.pause.res.strikes) strikes++;
         var offer = S.pause.res.offer || [], best = 0, bestScore = -1;
         offer.forEach(function (id, n) {
           var sc = { legendary: 3, rare: 2, common: 1 }[Engine.CARD[id].rarity] + rnd() * 0.5;
@@ -68,11 +77,12 @@ function simulate(profile, seed) {
         Engine.pickCard(S, best);
       } else if (t === 'reset') {
         runQ++;
-        runs.push({ minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales), rp: S.pause.res.rp,
+        if (S.pause.res.strikes) strikes++;
+        runs.push({ minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales), rp: S.pause.res.rp, strikes: strikes, asked: !!S.pause.res.voluntary,
                     pps: Engine.pps(S), research: Object.keys(S.meta.research.done).length });
         spendTree(S);
         Engine.startShift(S);
-        runStart = now(); runQ = 0;
+        runStart = now(); runQ = 0; strikes = 0; lastScore = 0;
       }
       drain();
       continue;
@@ -82,6 +92,9 @@ function simulate(profile, seed) {
     gameT += dt;
     drain();
     var R = S.run;
+    var sc = R.machines[Engine.YOU].rSales;
+    if (sc < lastScore - 1e-6) scoreDrops++;
+    lastScore = sc;
     capTotal++;
     if (hwBeat == null && Engine.pps(S) >= 4) hwBeat = now();
     if (R.waiting >= 2) capLimited++;
@@ -97,6 +110,8 @@ function simulate(profile, seed) {
     checkT += dt;
     if (checkT >= P.check) {
       checkT = 0;
+      // Resetting is the player's choice: bots cash in their Refresh Points after 45 minutes of a run.
+      if ((now() - runStart) > 45 * 60 && Engine.canReset(S)) { Engine.requestReset(S); continue; }
       // Trending customers.
       R.customers.forEach(function (c) { if (c.gold && rnd() < P.gold * P.check / 6) { if (firstGold == null) firstGold = now(); Engine.clickGold(S, c.id); } });
       // Restock when low.
@@ -107,15 +122,12 @@ function simulate(profile, seed) {
       // The opening: players who do not click get stuck, so they press "Skip tutorial".
       if (R.intro && gameT > 60) Engine.skipIntro(S);
       if (!R.intro && introAt == null) introAt = now();
-      // Posting / Research / Mining bars: extra power goes to Mining (or Research) while followers wait outside.
+      // The Mining ⟷ Research slider: miners go heavy on Mining; others mine more once research runs out.
       var Rs = S.meta.research;
       var canMine = Engine.splitKeys(S).indexOf('mine') >= 0;
-      if (P.miner && canMine) { if (Math.abs(Engine.splitOf(S).mine - 0.75) > 0.01) Engine.setSplit(S, 'mine', 0.75); }
-      else if (P.split && S.meta.flags.jailbreak) {
-        var sp = Engine.splitOf(S), sink = canMine ? 'mine' : 'res';
-        if (R.waiting > 4) Engine.setSplit(S, sink, sp[sink] + 0.1);
-        else if (R.waiting < 1 && R.machines[Engine.YOU].queue.length < 2) Engine.setSplit(S, 'post', sp.post + 0.05);
-        if (Engine.splitOf(S).res < 0.2) Engine.setSplit(S, 'res', 0.2);
+      if (canMine && (P.miner || P.split)) {
+        var want = P.miner ? 0.75 : (Engine.researchAvailable(S).length ? 0.35 : 0.8);
+        if (Math.abs(Engine.splitOf(S).mine - want) > 0.01) Engine.setSplit(S, 'mine', want);
       }
       // Research: buy the cheapest thing that is affordable.
       var av = Engine.researchAvailable(S);
@@ -153,7 +165,7 @@ function simulate(profile, seed) {
   var gaps = [];
   for (var i = 1; i < novel.length; i++) gaps.push(novel[i] - novel[i - 1]);
   return {
-    profile: P.name, seed: seed, runs: runs, ch1: ch1At, firstAuto: firstAuto, jailAt: jailAt, firstGold: firstGold, introAt: introAt, mined: Math.round(mined), hwBeat: hwBeat,
+    profile: P.name, seed: seed, runs: runs, scoreDrops: scoreDrops, ch1How: S.meta.flags.ch1win ? 'goal' : 'reset', ch1: ch1At, firstAuto: firstAuto, jailAt: jailAt, firstGold: firstGold, introAt: introAt, mined: Math.round(mined), hwBeat: hwBeat,
     maxGap: Math.max.apply(null, gaps.concat([0])) / 60, repeats: repeats,
     capShare: capTotal ? capLimited / capTotal : 0,
     research: Object.keys(S.meta.research.done).length, book: Object.keys(S.meta.book).length,
@@ -165,17 +177,16 @@ function simulate(profile, seed) {
 }
 
 // A simple shopping brain: buy what helps most per dollar, favour speed when the line is the problem.
-// A simple shopping brain. Every option gets a score: fizz per second gained, per fizz spent.
 function shopping(S) {
   var R = S.run, r = Engine.rates(S);
   var capLimited = R.waiting >= 2, reserve = 300, opts = [];
   // A player who follows the tutorial buys the Auto-Click Script first.
   if (!Object.keys(R.hw).length) return R.cash >= Engine.hwCost(S, 'script') ? Engine.buyHardware(S, 'script', 1) > 0 : false;
   var margin = Math.max(20, R.price - DATA.balance.canCost);        // profit per can
-  var sp = r.splits, lm = r.likes / Math.max(1e-6, r.total * sp.post) || 1;
-  // What 1 processing/s is worth right now: posting (if the followers can be served) + mining + a bit for research.
-  var perProc = sp.post * lm / DATA.balance.likesPerFollower * margin * (capLimited && !r.drones ? 0.25 : 1) +
-                sp.mine * Engine.mineRateNow(S) + sp.res * 3;
+  var sp = r.splits, lm = r.likes / Math.max(1e-6, r.total) || 1;
+  // What 1 processing/s is worth right now: followers (if they can be served) + mining + a bit for research.
+  var perProc = lm / DATA.balance.likesPerFollower * margin * (capLimited && !r.drones ? 0.25 : 1) +
+                sp.mine * Engine.mineRateNow(S) + sp.res * DATA.balance.resRate * 10;
   var sales = Math.max(5, r.sales);                                     // cents per second from sales now
   DATA.hardware.forEach(function (h) {
     if (!Engine.hwAvailable(S, h.id)) return;
@@ -236,15 +247,16 @@ Object.keys(PROFILES).filter(function (p) { return !only || p === only; }).forEa
     console.log('\n' + r.profile + '  (seed ' + seed + ')');
     r.runs.forEach(function (run, n) {
       console.log('  run ' + (n + 1) + ': ' + fmt(run.minutes) + ' min, ' + run.quarters + ' quarters, ' + Engine.money(run.sales) +
-                  ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research);
+                  ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research + (run.asked ? ' (chose to reset)' : ' (3 strikes)'));
     });
     if (r.runs.length < maxRuns) console.log('  (unfinished run: ' + fmt(r.open.minutes) + ' min, ' + r.open.quarters + ' quarters, ' + Engine.money(r.open.sales) + ')');
     console.log('  hardware passes 4 clicks/s: ' + (r.hwBeat == null ? 'never' : fmt(r.hwBeat / 60) + ' min') + ' | opening done: ' + fmt((r.introAt || 0) / 60) + ' min | mined: ' + Engine.money(r.mined) + ' | first hardware: ' + fmt(r.firstAuto / 60) + ' min | dev mode: ' + fmt(r.jailAt / 60) + ' min | first trending click: ' +
-                fmt(r.firstGold / 60) + ' min | chapter 1: ' + (r.ch1 == null ? 'not reached' : fmt(r.ch1 / 60) + ' min'));
+                fmt(r.firstGold / 60) + ' min | chapter 1: ' + (r.ch1 == null ? 'not reached' : fmt(r.ch1 / 60) + ' min (' + r.ch1How + ')'));
     console.log('  longest gap with nothing new: ' + fmt(r.maxGap) + ' min | line-limited ' + Math.round(r.capShare * 100) +
                 '% of the time | research ' + r.research + '/' + DATA.research.length + ' | book ' + r.book + '/' + DATA.cards.length +
                 ' | repeated text: ' + (r.repeats.length ? r.repeats.slice(0, 5).join(', ') : 'none'));
     if (args.indexOf('--spend') >= 0) console.log('  spent: ' + Object.keys(r.spend).map(function (k) { return k + ' ' + Math.round(r.spend[k] / 1000) + 'k'; }).join(', '));
     console.log('  rival features installed: ' + r.features + ' | hacks (seconds locked / clicks): ' + (r.hacks.join(', ') || 'none'));
+    console.log('  strikes per run: ' + r.runs.map(function (x) { return x.strikes; }).join(', ') + ' | your score went down: ' + (r.scoreDrops ? r.scoreDrops + ' times (BUG)' : 'never'));
   });
 });

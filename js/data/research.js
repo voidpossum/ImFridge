@@ -1,5 +1,5 @@
 // I'M FRIDGE — research. Opens after Developer Mode is found.
-// The Research bar on your card makes research points. Spend them on these, at the top of the Shop.
+// Your processing power makes research points (after Developer Mode). Spend them on these, at the top of the Shop.
 // Research is KEPT FOREVER, even when you are reset.
 // `unlock`: makes a machine upgrade or a Shop item available to buy with money.
 // `fx`: a permanent bonus.   `req`: research that must be done first.
@@ -9,9 +9,9 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 DATA.research = [
-  // Always the first one: it teaches research and opens the Mining bar.
+  // Always the first one: it teaches research and opens the Mining ⟷ Research slider.
   { id: 'r_mining', name: 'SodaCoin Wallet', cost: 40, icon: 'coin',
-    desc: 'Unlocks the Mining bar: turn processing power straight into money. Mined money does not count at the review.',
+    desc: 'Unlocks the Mining slider: turn processing power straight into money. Mined money counts at the review.',
     first: 'A crypto wallet. For a vending machine. I am told this is normal now.' },
 
   // Machine upgrades (then bought with money)

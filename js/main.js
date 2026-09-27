@@ -120,11 +120,11 @@
       ['Influencer', function () { S.run.goldT = 0; }],
       ['Quirk L', function () { S.run.machines[0].fx = null; S.run.machines[0].quirkT = 0; }],
       ['Quirk R', function () { S.run.machines[2].fx = null; S.run.machines[2].quirkT = 0; }],
-      ['Hack me', function () { var M = S.run.machines[0]; if (!Engine.hasFeat(M, 'hack')) M.features.push('hack'); M.hackUsed = false; S.run.qDay = Math.max(1, S.run.qDay); S.run.machines[1].qSales = M.qSales * 2 + 50; }],
+      ['Hack me', function () { var M = S.run.machines[0]; if (!Engine.hasFeat(M, 'hack')) M.features.push('hack'); M.hackUsed = false; S.run.qDay = Math.max(1, S.run.qDay); S.run.machines[1].rSales = M.rSales * 2 + 1600; }],
       ['Crypto R', function () { var M = S.run.machines[2]; if (!Engine.hasFeat(M, 'crypto')) M.features.push('crypto'); M.saySoon = 'crypto'; }],
       ['Carpet+', function () { var u = S.run.upgrades; u.carpet = Math.min(5, (u.carpet | 0) + 1); }],
-      ['Win now', function () { S.run.machines[1].qSales += 1000; endDay(B.daysPerQuarter - 1); }],
-      ['Lose now', function () { S.run.machines[1].qSales = 0; endDay(B.daysPerQuarter - 1); }]
+      ['Win now', function () { var Y = S.run.machines[1]; Y.rSales = Math.max(Y.rSales, S.run.machines[0].rSales, S.run.machines[2].rSales) + 1000; endDay(B.daysPerQuarter - 1); }],
+      ['Lose now', function () { var Y = S.run.machines[1]; Y.rSales = Math.min(Y.rSales, S.run.machines[0].rSales, S.run.machines[2].rSales) - 1; endDay(B.daysPerQuarter - 1); }]
     ];
     var info = document.createElement('span');
     d.appendChild(info);
@@ -157,7 +157,7 @@
         m.research.points = 140; m.book = { c_icecream: 1 };
         R.upgrades = { sign: 4, carpet: 3, coin: 3, slots: 2, tubes: 2, grape: 1 };
         R.drinks = ['cola', 'lemon', 'orange', 'grape'];
-        R.hw = { script: 5, ram: 2, drone: 3 }; R.split = { post: 0.55, res: 0.3, mine: 0.15 }; R.cash = 184.5; R.quarter = 3;
+        R.hw = { script: 5, ram: 2, drone: 3 }; R.split = { res: 0.7, mine: 0.3 }; R.strikes = 1; R.cash = 184.5; R.quarter = 3;
         R.machines[0].features = ['crypto', 'pricewar']; R.machines[2].features = ['crypto']; R.machines[2].bumps = 3;
         R.machines[0].up = { coin: 2, sign: 1 }; R.machines[2].up = { coin: 3, sign: 2, cool: 2, slots: 1 };
         if (demo === 'bling') {

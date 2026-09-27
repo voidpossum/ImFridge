@@ -9,6 +9,17 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.2.0 in progress (2026-09-27): "one number goes up" economy rework
+Plan approved by Void Possum (research: Cookie Clicker, Spaceplan, Gnorp Apologue, Tower Wizard, FACEMINER).
+- **Everything is money.** Cans, clicks, mining and tips all count. The card bars show money earned **this run** and never reset (`M.rSales`); small text shows the quarter (`qSales`). Cans sold are counted (`M.cans`, `meta.totalCans`). One helper: `score(S, amt)` in `js/engine.js`.
+- **No Posting bar.** Processing power always brings likes (followers). After Developer Mode it also makes research; after SodaCoin Wallet one slider splits that part: Mining ⟷ Research (`split = {res, mine}`, `B.resRate`). A click also earns money right away (`clickCash`, `B.clickCash`).
+- **Reviews:** last place = a strike, 3 in a row = reset (`B.strikesMax`). A rival that is last gets updated + a feature (crypto, price war, hack) as before. Not last clears strikes.
+- **Cozy standard mode:** a strong run can go on forever; resetting is the player's choice (pause menu, from quarter 2: `Engine.canReset`). No rubber-banding (`rivalCopy` = 0). A **hard mode** with rubber-banding is an idea for later (Void Possum). Achievements like FACEMINER's (no reset, no strike) also later.
+- **Chapter 1** ends at the first reset OR when you earn `B.ch1Goal` in one run (`ch1win` screen + mail). Model day moved to quarter 5 (`B.modelDayQuarter`).
+- **Tubes** come up from under the path into the machine feet (rivals: both feet, always; you: Pneumatic Tubes level 1–3). Capsules rise on refills (`fill` event for rivals). Customers tab explains drones (online orders) and tubes (refills).
+- Save v6 (split → {res, mine}, strikes, cans). Tested with a fake v5 save in Node.
+- Sim: `--set key=value`; bots reset by choice after 45 min of a run; report shows strikes, "score went down: never", how Chapter 1 was finished.
+
 ## 0.1.9 (2026-09-27)
 - Click a speech bubble or a tip to close it (a closed tip stays away until the next tip step).
 - Stone park sign removed.

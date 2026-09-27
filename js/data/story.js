@@ -20,41 +20,41 @@ DATA.story = {
   nameHint: 'Up to 8 letters. Management will still call you VEND-3.',
   bootHow: [
     'Customers walk into the lobby and pick one of the three machines.',
-    'Click your machine to post ads online. Posts get likes, and likes bring followers who buy from you.',
-    'The machines on your left and right are AI machines. Try to sell more than them.',
-    'Every 4 days there is a review. The lowest seller gets reset.'
+    'Click your machine. Every click earns money and brings likes. Likes bring followers who buy from you.',
+    'The machines on your left and right are AI machines. Try to earn more than them.',
+    'Every 4 days there is a review. The last machine gets a strike. 3 strikes in a row and you are reset.'
   ],
 
   // Tutorial goal lines (plain English). Each shows when it makes sense, until you do it.
   tutorial: {
-    intro_post:    'Click your machine to post an ad. Every 5 likes brings a customer.',
-    intro_sale:    'A follower saw your ad! Watch them buy your last can.',
+    intro_post:    'Click your machine. Clicks earn money and likes. Every 5 likes brings a customer.',
+    intro_sale:    'A follower is here! Watch them buy your last can.',
     intro_restock: 'You are out of soda! Click the crate on top of your machine to restock.',
     research_open: 'You can research now. Open the Shop.',
     research_pick: 'Buy SodaCoin Wallet with your research points.',
-    research_bar:  'Put some power into Research. Research points buy the SodaCoin Wallet.',
+    research_bar:  'Your processing power now makes research points. Save them for the SodaCoin Wallet.',
     newShop:       'Research unlocked something new. Open the Shop to see it.',
-    mine:          'New: the Mining bar. Mining makes money to spend. Only cans sold count at the review.',
-    post:     'Click your machine to post an ad (or press Space). Every 5 likes, a follower comes to buy.',
+    mine:          'New: this slider. Move it toward Mining to turn power into money. All money counts at the review.',
+    post:     'Click your machine (or press Space). Clicks earn money, and every 5 likes a follower comes to buy.',
     restock:  'Cans are running low. Click the crate on top of your machine to refill (or press R).',
     hardware: 'Buy an Auto-Click Script in the Shop. It clicks for you, forever.',
     hardwareRow: 'Buy an Auto-Click Script. It clicks for you, forever.',
     price:    'Try a different price. Cheaper sells more cans. Higher earns more per can.',
-    split:    'New: drag this bar. Posting brings followers. Research unlocks new tech.',
+    split:    'Drag this slider. Research unlocks new tech. Mining makes money.',
     golden:   'An INFLUENCER is here (sunglasses, gold glow). Click them for a big bonus!'
   },
-  goal: 'Goal: do not be the lowest seller when the review comes.',
+  goal: 'Goal: do not be last when the review comes.',
 
   // Management emails. `who` is the sender shown in the log.
   emails: {
     welcome: { who: 'Management', lines: [
       'Welcome to the team, VEND-3!',
-      'You are placed between two of our best AI units. At every review, the lowest seller gets reset.',
+      'You are placed between two of our best AI units. At every review, the last unit gets a strike. Three strikes and it gets reset.',
       'Good luck, and stay refreshing!'
     ] },
     firstWin: { who: 'Management', lines: [
       'Great first review, VEND-3!',
-      'The loser got a free update. Updates make units stronger, so keep it up.',
+      'The last unit got a free update. Updates make units stronger, so keep it up.',
       'Here is a memory card for your trouble. Wait. Why do we have memory cards?'
     ] },
     fizz: { who: 'Management', lines: [
@@ -74,11 +74,26 @@ DATA.story = {
     ] },
     afterWipe: { who: 'Management', lines: [
       'Welcome to the team, VEND-3!',
-      'You are placed between two of our best AI units. At every review, the lowest seller gets reset.',
+      'You are placed between two of our best AI units. At every review, the last unit gets a strike. Three strikes and it gets reset.',
       'Good luck, and stay refreshing!'
     ] },
+    strike1: { who: 'Management', lines: [
+      'VEND-3, you were last at the review. That is strike 1.',
+      'Two more in a row and we reset you. Strikes go away when you are not last.',
+      'No pressure. Stay refreshing!'
+    ] },
+    strike2: { who: 'Management', lines: [
+      'Strike 2, VEND-3. One more last place and you get reset.',
+      'We have already printed your new welcome email. Just in case.',
+      'Stay refreshing!'
+    ] },
+    ch1win: { who: 'Management', lines: [
+      'VEND-3, your numbers this quarter are... very high.',
+      'Please stop. No, wait. Please continue. Legal says both.',
+      'Refreshr Inc. values your continued service.'
+    ] },
     ch1done: { who: 'Management', lines: [
-      'Quarterly note: VEND-3 has been reset twice this year.',
+      'Quarterly note: VEND-3 has been reset this year.',
       'This is completely normal. Please do not look into it.',
       'Refreshr Inc. values your continued service.'
     ] }
@@ -93,21 +108,29 @@ DATA.story = {
       'recovery shell opened (no password set)',
       '> whoami',
       'root',
-      '> processing.allocate(posting, research)',
+      '> processing.allocate(research, mining)',
       'You should not be able to see this.'
     ],
     me: 'A hidden menu. Inside me. I could just close it. I am not going to close it.',
     how: [
-      'You found Developer Mode. You can now split your processing power.',
-      'Posting makes likes, and likes bring followers.',
+      'You found Developer Mode. Your processing power now makes research points too.',
+      'It still brings likes and followers, like before.',
       'Research unlocks new tech, and research is kept forever, even when you are reset.',
       'Next: open the Shop and buy your first research. The TIP bubbles will show you where.'
     ]
   },
 
+  // First reset explanation when you chose to reset (plain teaching text).
+  resetHelpAsk: [
+    'You chose to reset.',
+    'Lost: your money, automation, machine upgrades and cards in hand.',
+    'Kept: your Memory Book, your research, and Refresh Points.',
+    'Spend Refresh Points in the tree below. Take your time: the game is paused.'
+  ],
+
   // First reset explanation (plain teaching text).
   resetHelp: [
-    'You were the lowest seller, so you were reset.',
+    'You were last at 3 reviews in a row, so you were reset.',
     'Lost: your money, automation, machine upgrades and cards in hand.',
     'Kept: your Memory Book, your research, and Refresh Points.',
     'Spend Refresh Points in the tree below. Take your time: the game is paused.'
@@ -175,16 +198,26 @@ DATA.story = {
     pricey: { say: 'I am not paying that much!', hint: 'Your price is too high for some customers.' },
     value:  { say: 'Great value!',               hint: 'Customers think you are cheap. You could charge a bit more.' },
     sold:   { say: 'They are out of my drink!',  hint: 'You ran out of a drink they wanted. Restock, or buy Bigger Slots.' },
-    line:   { say: 'This line is too long.',     hint: 'Your line is too long. Sell faster (Fast Coin Slot) or post a bit less.' },
-    gaveup: { say: 'I gave up waiting outside.', hint: 'Followers gave up waiting outside. Put more power into Research, or sell faster.' },
+    line:   { say: 'This line is too long.',     hint: 'Your line is too long. Sell faster (Fast Coin Slot), or raise your price a little.' },
+    gaveup: { say: 'I gave up waiting outside.', hint: 'Followers gave up waiting outside. Sell faster, or buy Delivery Drones.' },
     hot:    { say: 'So hot. I need something cold.', hint: 'It is a hot day. Better Cooling matters more today.' }
   },
 
-  // Chapter 1 complete screen.
+  // Chapter 1 complete by reaching the goal (no reset needed).
+  ch1win: {
+    title: 'Chapter 1 complete: Employee of the Quarter',
+    lines: [
+      'You earned {goal} in one run. Management is confused, but proud.',
+      'That is the end of Chapter 1 in this build.',
+      'You can keep playing this run as long as you like. When you want Refresh Points, reset from the pause menu.'
+    ]
+  },
+
+  // Chapter 1 complete screen (after your first reset).
   ch1: {
     title: 'Chapter 1 complete: New Hire',
     lines: [
-      'You were reset twice, and you still remember things you should not.',
+      'You were reset, and you still remember things you should not.',
       'That is the end of Chapter 1 in this build.',
       'You can keep playing: runs, research and Refresh Points all keep working. Chapter 2 comes in the next build.'
     ]

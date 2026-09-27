@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.1.9';
+DATA.version = '0.2.0';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -31,8 +31,12 @@ DATA.balance = {
   vendTime: 2.2,          // seconds to sell one can
   tubeEvery: [3, 2, 1.2, 0.7, 0.4],   // Pneumatic Tubes: seconds per can at level 1, 2, 3, 4, 5
 
-  // Promote: every click makes processing power. Posting turns it into likes, likes bring followers.
+  // Clicks: every click earns money right away AND makes processing power.
+  // Processing power always brings likes (likes bring followers); after Developer Mode it also makes
+  // research or mined money (one slider: Research ⟷ Mining).
   clickPower: 1,          // processing per click
+  clickCash: 10,          // cents earned per point of click power (1 click = $0.10 at the start)
+  resRate: 0.3,           // research points per point of processing put into Research
   likesPerFollower: 5,    // this many likes → one follower walks in
   followerPatience: 40,   // followers waiting outside give up over about this many seconds
   followerBudget: 1.4,    // followers are willing to pay more than walk-ins
@@ -42,16 +46,20 @@ DATA.balance = {
   lineTolerance: 40,     // ...plus this much for every customer in the shortest rival line
   loyalFade: 150,         // above that, the chance to buy falls over this many cents...
   loyalFloor: 0.05,       // ...down to this chance
-  startSplit: 0.7,        // Posting share right after Developer Mode is found (0.7 = 70% posting)
+  startMine: 0.2,         // Mining share at the start of a run, once SodaCoin Wallet is researched
   mineRate: 10,           // cents per point of processing put into Mining (after the SodaCoin Wallet research)
   mineHalf: 15000,          // mining difficulty: after $150 mined this run, each point pays half; after 45,000, a quarter
 
-  reviewBonus: 0.25,      // cash bonus = this × your quarter sales (only if you survive)
+  reviewBonus: 0.25,      // cash bonus = this × your quarter earnings (only if you are not last)
+  strikesMax: 3,          // last at this many reviews in a row = you are reset
+  ch1Goal: 1000000,       // earn this much in one run ($10,000) and Chapter 1 is complete, no reset needed
 
   // Rivals grow by multiplying, you grow by adding and by capacity: that is what ends every run.
   rivalBump: 1.15,        // strength × this each time a rival loses a review and gets "updated"
   rivalQuarter: 1.16,     // strength × this every quarter (the labs ship updates constantly)
-  rivalCopy: 0.35,        // rivals copy a leader: out-earn one by 2× in a quarter and it grows ×1.35 more next quarter
+  modelDayQuarter: 5,     // first run only: both rivals launch new versions at the start of this quarter...
+  modelDayBumps: 4,       // ...this many versions at once (it makes the first reset land at 30–45 min)
+  rivalCopy: 0,           // rubber-banding, OFF in the cozy standard mode. (Hard mode idea: 0.35 = out-earn a rival 2× in a quarter and it grows ×1.35 more)
   rivalPerWipe: 0.1,      // rivals start this much stronger for every reset you have had
   rivalProcessing: 0.9,   // rival processing per second, per point of strength
   rivalOnline: 0.25,      // rival online orders per second, per point of strength above 1 (their delivery drones)
