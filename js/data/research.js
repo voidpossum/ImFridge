@@ -1,8 +1,9 @@
 // I'M FRIDGE — research. Opens after Developer Mode is found.
 // Your processing power makes research points (after Developer Mode). Spend them on these, at the top of the Shop.
-// Research is KEPT FOREVER, even when you are reset.
-// `unlock`: makes a machine upgrade or a Shop item available to buy with money.
-// `fx`: a permanent bonus.   `req`: research that must be done first.
+// Research belongs to the run: it starts over when you reset (the Refresh tree can give a head start).
+// `unlock`: gives you level 1 of a machine upgrade (or one free Shop item); buy more with money.
+// `fx`: a bonus for this run.   `req`: research that must be done first.
+// `when`: a milestone research, it only shows up once this happens (orders: online orders waiting).
 // `first`: a line said when you buy it.
 // © 2026 Void Possum. All rights reserved.
 
@@ -16,39 +17,40 @@ DATA.research = [
 
   // Machine upgrades (then bought with money)
   { id: 'r_coin', name: 'Coin Slot Tuning', cost: 60, icon: 'coin', unlock: 'coin',
-    desc: 'Unlocks the Fast Coin Slot upgrade: sell each can faster.',
+    desc: 'Gives you the Fast Coin Slot (level 1): sell each can faster. Buy more levels with money.',
     first: 'I took my own coin slot apart. In my head. It is cleaner in there now.' },
   { id: 'r_sign', name: 'LED Sign Plans', cost: 90, icon: 'sign', unlock: 'sign',
-    desc: 'Unlocks the LED Sign upgrade: more walk-in customers notice you.' },
+    desc: 'Gives you the LED Sign (level 1): more walk-in customers notice you. Buy more levels with money.' },
   { id: 'r_autorestock', name: 'Pneumatic Tubes', cost: 110, icon: 'tube', unlock: 'tubes',
-    desc: 'Unlocks Pneumatic Tubes: pipes in your back that refill your machine by themselves.',
-    first: 'Pipes. In my back. They go thunk. I am choosing to find it relaxing.' },
-  { id: 'r_carpet', name: 'Carpet Catalog', cost: 120, icon: 'carpet', unlock: 'carpet',
-    desc: 'Unlocks the Comfy Carpet upgrade: a longer line that waits longer.' },
+    desc: 'Gives you Pneumatic Tubes (level 1): glass tubes under your feet that refill your machine by themselves.',
+    first: 'Tubes. Under my feet. They go thunk. I am choosing to find it relaxing.' },
+  { id: 'r_carpet', name: 'Carpet Catalog', cost: 45, icon: 'carpet', unlock: 'carpet',
+    desc: 'Gives you the Comfy Carpet (level 1): a longer line that waits longer. Buy more levels with money.',
+    first: 'A carpet. Red, with little gold dots. People will stand on it. For me.' },
   { id: 'r_grape', name: 'Grape Recipe', cost: 130, icon: 'grape', unlock: 'grape',
-    desc: 'Unlocks Grape soda. The other machines do not sell it.',
+    desc: 'Adds Grape soda to your machine. The other machines do not sell it.',
     first: 'A recipe for grape. I did not look it up. I just knew it.' },
   { id: 'r_cool', name: 'Cooling Plans', cost: 160, icon: 'cool', unlock: 'cool',
-    desc: 'Unlocks the Better Cooling upgrade. Matters most on hot days.' },
+    desc: 'Gives you Better Cooling (level 1). Matters most on hot days. Buy more levels with money.' },
   { id: 'r_dispenser', name: 'Second Dispenser', cost: 270, icon: 'dispenser', unlock: 'dispenser2',
-    desc: 'Unlocks the Second Dispenser: serve two customers at once.',
+    desc: 'Adds a Second Dispenser: serve two customers at once.',
     first: 'Plans for a second dispenser. Two lines at once.' },
   { id: 'r_smartprice', name: 'Price Model', cost: 330, icon: 'chip', unlock: 'smartprice',
-    desc: 'Unlocks Smart Price: your price sets itself every hour.',
+    desc: 'Turns on Smart Price: your price sets itself every hour.',
     first: 'I made a model of what people will pay. People are cheaper than they think.' },
 
   // Shop items (hardware and drones)
   { id: 'r_fan', name: 'CPU Fan Design', cost: 150, icon: 'fan', unlock: 'fan',
-    desc: 'Unlocks the CPU Fan in the Shop.',
+    desc: 'Gives you a CPU Fan, and you can buy more in the Shop.',
     first: 'Cooler processor, faster thoughts.' },
-  { id: 'r_drones', name: 'Delivery Drones', cost: 220, icon: 'drone', unlock: 'drone',
-    desc: 'Unlocks Delivery Drones: they fly soda to followers who cannot fit in your line.',
+  { id: 'r_drones', name: 'Delivery Drones', cost: 60, icon: 'drone', unlock: 'drone', when: { orders: 15 },
+    desc: 'Gives you a Delivery Drone, and you can buy more in the Shop. Drones deliver your online orders.',
     first: 'Little drones. They fly up, up, up, with a can each. I wave at them. I do not have hands.' },
   { id: 'r_overclock', name: 'Overclocking', cost: 480, icon: 'chipHot', req: ['r_fan'], unlock: 'overclock',
-    desc: 'Unlocks the Overclock Chip in the Shop.',
+    desc: 'Gives you an Overclock Chip, and you can buy more in the Shop.',
     first: 'It is getting warm in here. In me.' },
   { id: 'r_gpu', name: 'Graphics Card', cost: 1800, icon: 'gpu', req: ['r_overclock'], unlock: 'gpu',
-    desc: 'Unlocks the Graphics Card in the Shop.',
+    desc: 'Gives you a Graphics Card, and you can buy more in the Shop.',
     first: 'More power. There is always more power. Where does it come from?' },
 
   // Posting and clicking

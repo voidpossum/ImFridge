@@ -115,7 +115,7 @@ DATA.story = {
     how: [
       'You found Developer Mode. Your processing power now makes research points too.',
       'It still brings likes and followers, like before.',
-      'Research unlocks new tech, and research is kept forever, even when you are reset.',
+      'Research unlocks new tech for this run. Each research gives you the new part right away.',
       'Next: open the Shop and buy your first research. The TIP bubbles will show you where.'
     ]
   },
@@ -123,16 +123,16 @@ DATA.story = {
   // First reset explanation when you chose to reset (plain teaching text).
   resetHelpAsk: [
     'You chose to reset.',
-    'Lost: your money, automation, machine upgrades and cards in hand.',
-    'Kept: your Memory Book, your research, and Refresh Points.',
+    'Lost: your money, research, automation, machine upgrades and cards in hand.',
+    'Kept: your Memory Book and Refresh Points.',
     'Spend Refresh Points in the tree below. Take your time: the game is paused.'
   ],
 
   // First reset explanation (plain teaching text).
   resetHelp: [
     'You were last at 3 reviews in a row, so you were reset.',
-    'Lost: your money, automation, machine upgrades and cards in hand.',
-    'Kept: your Memory Book, your research, and Refresh Points.',
+    'Lost: your money, research, automation, machine upgrades and cards in hand.',
+    'Kept: your Memory Book and Refresh Points.',
     'Spend Refresh Points in the tree below. Take your time: the game is paused.'
   ],
 
@@ -198,8 +198,8 @@ DATA.story = {
     pricey: { say: 'I am not paying that much!', hint: 'Your price is too high for some customers.' },
     value:  { say: 'Great value!',               hint: 'Customers think you are cheap. You could charge a bit more.' },
     sold:   { say: 'They are out of my drink!',  hint: 'You ran out of a drink they wanted. Restock, or buy Bigger Slots.' },
-    line:   { say: 'This line is too long.',     hint: 'Your line is too long. Sell faster (Fast Coin Slot), or raise your price a little.' },
-    gaveup: { say: 'I gave up waiting outside.', hint: 'Followers gave up waiting outside. Sell faster, or buy Delivery Drones.' },
+    line:   { say: 'This line is too long.',     hint: 'They saw your long line and did not join. Sell faster (Fast Coin Slot), or raise your price a little.' },
+    gaveup: { say: 'I waited too long.',          hint: 'They stood in your line and got tired. Sell faster (Fast Coin Slot, Second Dispenser), or get the Comfy Carpet (people wait longer).' },
     hot:    { say: 'So hot. I need something cold.', hint: 'It is a hot day. Better Cooling matters more today.' }
   },
 

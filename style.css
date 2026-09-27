@@ -218,6 +218,7 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
 #scene { display: block; image-rendering: pixelated; image-rendering: crisp-edges; cursor: default; }
 #scene.pointer { cursor: pointer; }
 #bubbles { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+#ordersSpot { position: absolute; padding: 0; background: none; border: 0; cursor: pointer; }
 
 #tvText {
   position: absolute;
