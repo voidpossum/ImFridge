@@ -558,11 +558,15 @@ var Engine = (function () {
     var R = S.run;
     R.thoughts.push({ t: R.t, k: kind });
     if (R.thoughts.length > 400) R.thoughts.shift();
+    R.qThoughts = R.qThoughts || {};                       // this quarter's reviews (reset at every review)
+    R.qThoughts[kind] = (R.qThoughts[kind] | 0) + 1;
     if (c) { c.icon = kind; c.iconD = drink || null; c.iconT = 2.2; }
   }
 
+  // windowSec = 'quarter': everything customers thought since the last review.
   function thoughtsSummary(S, windowSec) {
     var R = S.run, out = {}, since = R.t - (windowSec || 120);
+    if (windowSec === 'quarter') { for (var k in R.qThoughts || {}) out[k] = R.qThoughts[k]; return out; }
     R.thoughts.forEach(function (th) { if (th.t >= since) out[th.k] = (out[th.k] || 0) + 1; });
     return out;
   }
@@ -1144,6 +1148,7 @@ var Engine = (function () {
       if (!S.meta.flags.firstWin) { S.meta.flags.firstWin = 1; mail(S, 'firstWin'); }
     }
     ms.forEach(function (M) { M.qSales = 0; });
+    R.qThoughts = {};
     R.quarter++;
     R.qDay = 0;
   }

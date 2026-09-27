@@ -710,9 +710,9 @@ var UI = (function () {
     thoughtT -= 0.1;
     if (thoughtT <= 0) {
       thoughtT = 2;
-      var th = Engine.thoughtsSummary(S, 60);
+      var th = Engine.thoughtsSummary(S, 'quarter');
       var keys = Object.keys(th).filter(function (k) { return THOUGHT_SHORT[k]; }).sort(function (a, b) { return th[b] - th[a]; }).slice(0, 3);
-      setHTML(el.thoughts, '<span class="thLabel" data-tip="What your customers thought in the last minute. Click one to learn more.">Customer<br>reviews</span>' +
+      setHTML(el.thoughts, '<span class="thLabel" data-tip="What your customers thought this quarter. They start fresh at every review. Click one to learn more.">Customer<br>reviews Q' + S.run.quarter + '</span>' +
         (keys.length ? keys.map(function (k) {
         return '<button class="th' + (k === 'value' ? ' ok' : '') + '" data-open="customers" data-tip="' + esc(DATA.story.thoughts[k].say + '\n' + DATA.story.thoughts[k].hint) + '">' +
           '<img src="' + thoughtIcon(k) + '" alt=""><b>' + th[k] + '</b><span class="tx">' + THOUGHT_SHORT[k] + '</span></button>';
