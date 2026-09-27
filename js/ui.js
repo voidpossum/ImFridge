@@ -24,7 +24,8 @@ var UI = (function () {
 
   var FX_WORDS = {
     free: 'giving cans away', hype: 'on a hype streak', nopay: 'not getting paid', closed: 'away (blazer delivery)',
-    cubes: 'full of tungsten cubes', refuseCold: 'refusing cold drinks', discount: 'half price', slow: 'very slow'
+    cubes: 'full of tungsten cubes', refuseCold: 'refusing cold drinks', discount: 'half price', slow: 'very slow',
+    roast: 'roasting its own customers'
   };
   var RIVAL_MOD_ICON = { snacks: 'snacks', fleet: 'drone', plus: 'plus' };
   var BUFF_TITLE = { trending: 'Trending!', rush: 'Rush hour!', tip: 'Big tip!', grant: 'Research grant!' };
@@ -57,7 +58,7 @@ var UI = (function () {
   function pct(v) { return Math.round(v * 100) + '%'; }
   function setText(node, s) { if (node.textContent !== s) node.textContent = s; }
   function setHTML(node, s) { if (node._h !== s) { node.innerHTML = s; node._h = s; } }
-  function ord(n) { return n === 1 ? '1st' : n === 2 ? '2nd' : '3rd'; }
+  function ord(n) { return n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th'; }
   function nameOf(i) { return i === YOU ? Engine.myName(S) : Engine.rivalName(S, S.run.machines[i]); }
   function colorOf(i) { return i === YOU ? 'var(--you)' : DATA.rivals[S.run.machines[i].id].color; }
   function clock(h) {
@@ -463,7 +464,7 @@ var UI = (function () {
         'Spends ' + pct(D.hype) + ' of its power on ads, ' + pct(1 - D.hype) + ' on research.<br>' +
         'Strength: <span class="n">×' + info.strength.toFixed(2) + '</span><br>' +
         '<span class="d">It gets stronger every time it is last at a review, and every month. It refills itself through its tube. Stronger machines also sell online (drones).</span>' +
-        (M.fx ? '<br><b>Now:</b> ' + esc(FX_WORDS[M.fx.type] || M.fx.type) : '') +
+        (M.fx ? '<br><b>Now:</b> ' + esc(M.fx.word || FX_WORDS[M.fx.type] || M.fx.type) : '') +
         (M.features || []).map(function (f) { return '<br><b>Feature: ' + esc(DATA.features[f].name) + '.</b> ' + esc(DATA.features[f].desc); }).join('') +
         (function () {
           var ups = DATA.rivalUpgrades.filter(function (u) { return (M.up || {})[u.id]; });
@@ -590,8 +591,9 @@ var UI = (function () {
   // ───────────────────────── bottom bar: one card per machine (your card has the controls)
   function buildMachineCards() {
     el.machines.innerHTML = '';
+    el.machines.classList.toggle('four', S.run.machines.length === 4);
     mcs = [];
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < S.run.machines.length; i++) {
       var d = document.createElement('div');
       d.className = 'mc' + (i === YOU ? ' you' : '');
       var you = i === YOU;
@@ -648,13 +650,14 @@ var UI = (function () {
 
   function drawFaces() {
     var R = S.run, rank = Engine.rankNow(S), h = Engine.hourOf(S);
-    for (var i = 0; i < 3; i++) {
+    if (mcs.length !== R.machines.length) return;
+    for (var i = 0; i < R.machines.length; i++) {
       var M = R.machines[i], g = mcs[i].cv.getContext('2d');
       var mood = 'ok', id = i === YOU ? 'you' : M.id, fx = null;
       if (i === YOU) {
         if (S.pause && S.pause.type === 'reset') mood = 'glitch';
         else if (rank === 1 && R.qDay > 0) mood = 'happy';
-        else if (rank === 3 && R.qDay > 0) mood = 'worried';
+        else if (rank === R.machines.length && R.qDay > 0) mood = 'worried';
       } else {
         fx = M.fx ? M.fx.type : null;
         if (M.qSales < R.machines[YOU].qSales * 0.6 && R.qDay > 0) mood = 'worried';
@@ -666,15 +669,16 @@ var UI = (function () {
   }
 
   function renderCards() {
-    var R = S.run, ms = R.machines;
-    var max = Math.max(1, ms[0].rSales, ms[1].rSales, ms[2].rSales);
-    var order = [0, 1, 2].slice().sort(function (a, b) { return ms[b].rSales - ms[a].rSales; });
+    var R = S.run, ms = R.machines, n = ms.length;
+    if (mcs.length !== n) buildMachineCards();   // a new world with a different number of machines
+    var max = Math.max.apply(null, [1].concat(ms.map(function (M) { return M.rSales; })));
+    var order = ms.map(function (M, i) { return i; }).sort(function (a, b) { return ms[b].rSales - ms[a].rSales; });
     var cal = Engine.calendar(S), daysLeft = cal.weeksLeft, hNow = Engine.hourOf(S);
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < n; i++) {
       var M = ms[i], c = mcs[i], rk = order.indexOf(i) + 1;
       setText(c.n, nameOf(i));
       setText(c.rk, ord(rk));
-      var last = rk === 3 && ms[order[1]].rSales > M.rSales;
+      var last = rk === n && ms[order[n - 2]].rSales > M.rSales;
       c.rk.className = 'rk' + (rk === 1 ? ' top' : last ? ' bad' : '');
       c.bar.style.width = (M.rSales / max * 100).toFixed(1) + '%';
       c.bar.style.background = colorOf(i);
@@ -684,7 +688,7 @@ var UI = (function () {
       setText(c.qv, cal.month + ': +' + money(M.qSales));
       if (i !== YOU) {
         var fs = M.features || [];
-        var st = M.fx ? (FX_WORDS[M.fx.type] || '') : fs.map(function (f) { return DATA.features[f].name; }).join(' + ');
+        var st = M.fx ? (M.fx.word || FX_WORDS[M.fx.type] || '') : fs.map(function (f) { return DATA.features[f].name; }).join(' + ');
         setText(c.st, st);
         c.st.className = 'st' + (fs.length && !M.fx ? ' feat' : '');
         // Its mods: the parts it bought with its own money (icons with levels).
@@ -706,7 +710,8 @@ var UI = (function () {
     var lights = '';
     for (var k = 0; k < B.strikesMax; k++) lights += k < strikes ? '●' : '○';
     setHTML(Y.goal, (strikes ? '<span class="strikes" data-tip="Strikes: last place at a review. ' + B.strikesMax + ' in a row = reset. Not being last clears them.">' + lights + '</span> ' : '') +
-      (rkY === 3 ? '<span class="bad">Last place! Review ' + when + (strikes === B.strikesMax - 1 ? ': the last strike means a reset.' : ': last place gets a strike.') + '</span>'
+      (rkY === n ? '<span class="bad">Last place! Review ' + when + (strikes === B.strikesMax - 1 ? ': the last strike means a reset.' : ': last place gets a strike.') + '</span>'
+                 : R.world === 2 && !S.meta.flags.ch2done ? '<span data-tip="Earn this much in one run in the new park to finish Chapter 2.">Goal: ' + money(ms[YOU].rSales) + ' / ' + money(B.ch2Goal) + '</span> · review ' + when + '.'
                  : S.meta.flags.ch1done ? 'Do not be last. Review ' + when + '.'
                  : '<span data-tip="Earn this much in one run to finish Chapter 1. No reset needed.">Goal: ' + money(ms[YOU].rSales) + ' / ' + money(B.ch1Goal) + '</span> · review ' + when + '.'));
     var slide = Engine.splitKeys(S).indexOf('mine') >= 0;
@@ -1245,7 +1250,7 @@ var UI = (function () {
 
   function resultBars(res) {
     var max = Math.max(1, res.sales[0], res.sales[1], res.sales[2]);
-    var order = [0, 1, 2].slice().sort(function (a, b) { return res.sales[b] - res.sales[a]; });
+    var order = res.sales.map(function (x, i) { return i; }).sort(function (a, b) { return res.sales[b] - res.sales[a]; });
     return '<div class="results">' + order.map(function (i) {
       var you = i === YOU, low = i === res.lowest;
       var col = you ? 'var(--you)' : (DATA.rivals[res.ids ? res.ids[i] : 'chug'] || {}).color;
@@ -1334,8 +1339,13 @@ var UI = (function () {
 
     chapter: function (P) {
       var c = DATA.story[P.id] || DATA.story.ch1;
-      return '<h2>' + esc(c.title) + '</h2>' + c.lines.map(function (l) { return '<p>' + esc(l.replace('{goal}', money(B.ch1Goal))) + '</p>'; }).join('') +
-        '<div class="foot"><button class="btn primary" data-act="close">Keep playing</button></div>';
+      var goal = money(P.id === 'ch1win' ? B.ch1Goal : B.ch2Goal);
+      // After the Chapter 1 goal: move to the new park now (a reset), or stay in this run for a while.
+      var foot = c.move
+        ? '<button class="btn" data-act="close">' + esc(c.stay) + '</button><button class="btn primary" data-act="move">' + esc(c.move) + '</button>'
+        : '<button class="btn primary" data-act="close">Keep playing</button>';
+      return '<h2>' + esc(c.title) + '</h2>' + c.lines.map(function (l) { return '<p>' + esc(l.replace('{goal}', goal)) + '</p>'; }).join('') +
+        '<div class="foot">' + foot + '</div>';
     }
   };
 
@@ -1359,6 +1369,7 @@ var UI = (function () {
     else if (act === 'pick') choose(+b.dataset.n);
     else if (act === 'reroll') { Engine.reroll(S); Sfx.play('card'); }
     else if (act === 'close') { Engine.closeInfo(S); Sfx.play('click'); }
+    else if (act === 'move') { Engine.closeInfo(S); Engine.requestReset(S); Sfx.play('click'); }   // Chapter 2: move to the new park
     else onPanelClick(e);   // settings inside the pause menu
   }
 
@@ -1378,7 +1389,7 @@ var UI = (function () {
     var r = P.res, h = '<div class="rsTop"><div><h2>RESET</h2>';
     if (r.voluntary) h += '<p>You asked to be reset.</p>';
     else {
-      var order = [0, 1, 2].sort(function (a, b) { return r.sales[b] - r.sales[a]; });
+      var order = r.sales.map(function (x, i) { return i; }).sort(function (a, b) { return r.sales[b] - r.sales[a]; });
       h += '<p class="rsSum">' + Engine.monthName(r.quarter) + ' review: ' + order.map(function (i) {
         return '<span class="' + (i === YOU ? 'you' : '') + '">' + esc(r.names[i]) + ' ' + money(r.sales[i]) + '</span>';
       }).join(' · ') + '</p><p><b>Last at ' + B.strikesMax + ' reviews in a row, so VEND-3 is being reset.</b></p>';

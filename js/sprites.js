@@ -381,7 +381,8 @@ var Sprites = (function () {
   var LOOKS = {
     you:   { main: '#d9544b', light: '#ef7a68', dark: '#a8362f', deep: '#7a2226', accent: '#ffd24a', glow: '#ffb0a0', label: 'VEND-3' },
     chug:  { main: '#3fbf98', light: '#6fe0bc', dark: '#27876c', deep: '#1a5e4c', accent: '#b8ffe8', glow: '#7fffd0', label: 'CHUG' },
-    clawd: { main: '#e0895a', light: '#f5a87c', dark: '#a85a38', deep: '#7a3e26', accent: '#ffe0c8', glow: '#ffc49a', label: 'CLAWD' }
+    clawd: { main: '#e0895a', light: '#f5a87c', dark: '#a85a38', deep: '#7a3e26', accent: '#ffe0c8', glow: '#ffc49a', label: 'CLAWD' },
+    grog:  { main: '#3c3c48', light: '#5c5c6c', dark: '#26262e', deep: '#16161c', accent: '#f4f4f4', glow: '#ff7a3a', label: 'GROG' }
   };
 
   // info: { id, stock, cap, drinks, face, fx, vending:[drinks], lanes, up, hat, t, ver, hw, heat }
@@ -469,6 +470,14 @@ var Sprites = (function () {
         for (var li = 0; li < n2; li++) R(ctx, x0 + MW - 4, y0 + 30 + li * 2, 2, 1, (Math.floor(t * (3 + info.pps)) + li) % 3 ? '#3a7a4a' : P.green);
       }
       if (info.up.sign) sign(ctx, x0, y0, info);
+    }
+    // Grog: a small antenna (it posts about itself); flames on the roof in spicy mode
+    if (info.id === 'grog') {
+      R(ctx, x0 + 36, y0 - 7, 1, 7, P.steel3); R(ctx, x0 + 34, y0 - 9, 5, 2, '#f4f4f4');
+      if (info.fx === 'hype') for (var fl = 0; fl < 6; fl++) {
+        var fh = 3 + ((fl * 5 + Math.floor(t * 9)) % 4);
+        R(ctx, x0 + 3 + fl * 7, y0 - fh, 4, fh, fl % 2 ? '#ff7a3a' : '#ffb03a'); R(ctx, x0 + 4 + fl * 7, y0 - fh + 1, 2, 2, '#ffe08a');
+      }
     }
     // rival sign: a row of bulbs on top, in its own colour; they run from level 3
     if (info.id !== 'you' && U.sign) marquee(ctx, x0, y0, U.sign >= 3 ? t : 0, U.sign, U.sign >= 5 ? null : L.glow);
@@ -584,6 +593,7 @@ var Sprites = (function () {
     if (fxm === 'closed') { text(ctx, 'BRB', x + 12, y + 4, col); return; }
     if (fxm === 'slow') { var dots = Math.floor(t * 3) % 4; for (var d = 0; d < dots; d++) R(ctx, x + 12 + d * 4, y + 6, 2, 2, col); return; }
     if (fxm === 'nopay') { text(ctx, '$?', x + 14, y + 4, col); return; }
+    if (id === 'grog') { grogFace(ctx, x, y, info, blink); return; }
     var happy = mood === 'happy' || fxm === 'hype' || fxm === 'free';
     // eyes
     if (blink || mood === 'sleepy') { R(ctx, L - 1, ey + 3, 4, 1, col); R(ctx, Rr - 1, ey + 3, 4, 1, col); }
@@ -604,6 +614,48 @@ var Sprites = (function () {
     if (id === 'clawd' && (mood === 'worried' || fxm)) { var sy = y + 1 + Math.floor(t * 4) % 3; R(ctx, x + 32, sy, 2, 3, '#8fd8ff'); R(ctx, x + 32, sy, 1, 1, '#ffffff'); }
     if (mood === 'sleepy') text(ctx, 'Z', x + 30, y + 1 - Math.floor(t * 2) % 2, col);
   }
+  // Grog: pixel sunglasses and a smirk. Spicy mode (hype): flame eyes. Roast: a laughing mouth.
+  function grogFace(ctx, x, y, info, blink) {
+    var t = info.t, fxm = info.fx, c = '#f4f4f4', hot = '#ff7a3a';
+    if (fxm === 'hype') {
+      [9, 22].forEach(function (ex, i) {
+        var f = Math.floor(t * 8 + i) % 2;
+        R(ctx, x + ex, y + 5, 5, 3, hot); R(ctx, x + ex + 1, y + 3 - f, 3, 2, P.gold1); R(ctx, x + ex + 2, y + 2 - f, 1, 1, P.gold0);
+      });
+      R(ctx, x + 12, y + 10, 12, 1, c); R(ctx, x + 22, y + 9, 2, 1, c);
+      return;
+    }
+    R(ctx, x + 6, y + 3, 24, 1, c);                                              // sunglasses
+    R(ctx, x + 7, y + 4, 9, 4, c); R(ctx, x + 20, y + 4, 9, 4, c);
+    R(ctx, x + 8, y + 5, 7, 2, '#1a1a22'); R(ctx, x + 21, y + 5, 7, 2, '#1a1a22');
+    if (!blink) { R(ctx, x + 9, y + 5, 2, 1, '#8a8a9a'); R(ctx, x + 22, y + 5, 2, 1, '#8a8a9a'); }
+    if (fxm === 'roast' || fxm === 'free' || info.face === 'happy') { R(ctx, x + 13, y + 9, 10, 1, c); R(ctx, x + 14, y + 10, 8, 2, hot); R(ctx, x + 14, y + 12, 8, 1, c); }
+    else if (info.face === 'worried' || fxm === 'nopay') { R(ctx, x + 14, y + 10, 8, 1, c); }
+    else { R(ctx, x + 14, y + 10, 7, 1, c); R(ctx, x + 21, y + 9, 2, 1, c); }   // smirk
+  }
+
+  // A big cardboard box: the spot for a machine that arrives later.
+  function box(ctx, cx) {
+    var x0 = cx - 25, y0 = 108, w = 50, h = 92;
+    R(ctx, x0, y0 + h, w + 2, 3, 'rgba(40,20,40,0.32)');
+    R(ctx, x0 - 1, y0 - 1, w + 2, h + 1, P.ink);
+    R(ctx, x0, y0, w, h, '#c8955a');
+    R(ctx, x0, y0, w, 2, '#e0b27a'); R(ctx, x0 + w - 6, y0, 6, h, '#a87440'); R(ctx, x0 + w - 6, y0, 1, h, '#8a5c30');
+    R(ctx, x0, y0 + 10, w - 6, 1, '#a87440');
+    R(ctx, x0 + 18, y0, 8, h, '#d8c090'); R(ctx, x0 + 18, y0, 1, h, '#b8a070'); R(ctx, x0 + 25, y0, 1, h, '#b8a070');   // packing tape
+    R(ctx, x0, y0 + 4, w - 6, 5, '#d8c090');
+    [x0 + 5, x0 + 32].forEach(function (ax) {   // "this side up"
+      R(ctx, ax + 2, y0 + 14, 1, 1, '#3a2418'); R(ctx, ax + 1, y0 + 15, 3, 1, '#3a2418'); R(ctx, ax, y0 + 16, 5, 1, '#3a2418'); R(ctx, ax + 1, y0 + 17, 3, 5, '#3a2418');
+    });
+    R(ctx, x0 + 4, y0 + 30, 12, 14, '#f6ecd8'); R(ctx, x0 + 4, y0 + 30, 12, 2, P.red);   // fragile
+    R(ctx, x0 + 7, y0 + 34, 6, 3, P.red); R(ctx, x0 + 9, y0 + 37, 2, 4, P.red); R(ctx, x0 + 7, y0 + 41, 6, 1, P.red);
+    var sy = y0 + 54;                                                                        // SOON stamp
+    R(ctx, x0 + 5, sy, 34, 13, P.red); R(ctx, x0 + 6, sy + 1, 32, 11, '#c8955a'); R(ctx, x0 + 7, sy + 2, 30, 9, P.red); R(ctx, x0 + 8, sy + 3, 28, 7, '#c8955a');
+    text(ctx, 'SOON', x0 + 14, sy + 4, P.red);
+    R(ctx, x0 + 28, y0 + 30, 14, 10, '#fffaf0'); for (var l = 0; l < 3; l++) R(ctx, x0 + 30, y0 + 32 + l * 2, 10 - l * 3, 1, '#8a86a0');
+    R(ctx, x0 + 2, y0 + h - 3, w - 8, 1, '#a87440');
+  }
+
   // Crypto mining = gold coin with a spinning fan; hacking = skull; price war = scissors and a minus sign.
   function featBadge(ctx, x, y, feat, t) {
     R(ctx, x - 1, y - 1, 11, 13, P.ink); R(ctx, x, y, 9, 11, '#1b1826');
@@ -717,7 +769,7 @@ var Sprites = (function () {
     P: P, R: R, text: text, textShadow: textShadow, textWidth: textWidth, dither: dither,
     person: person, bubble: bubble, heart: heart, can: can,
     machine: machine, machineLights: machineLights, face: face, LOOKS: LOOKS,
-    crate: crate, drone: drone, tv: tv, plant: plant,
+    crate: crate, drone: drone, tv: tv, plant: plant, box: box,
     MW: MW, MH: MH, MTOP: MTOP, palette: palette, personSprite: personSprite
   };
 })();

@@ -12,7 +12,7 @@ var Scene = (function () {
   var cv, ctx, scale = 1, W = WW, H = WH, ox = 0, oy = 0;
   var parts = [], prints = [], printT = 0;
   var mouse = { x: -9999, y: -9999 };
-  var lastSale = -9, flashT = 0, shakeT = 0, bumpFlash = {}, faceMood = {}, emotes = [null, null, null];
+  var lastSale = -9, flashT = 0, shakeT = 0, bumpFlash = {}, faceMood = {}, emotes = [];
   var lightsAt = -9;
   var squashAt = -9, caps = [];   // your machine squashes when clicked; capsules run up the refill tubes   // when the opening ended (the ceiling lights flicker on)
   var reduced = false;
@@ -135,6 +135,16 @@ var Scene = (function () {
     }
   }
 
+  // Art export (tools/export.html): draw the park without the trees, or only the trees, on a clear canvas.
+  var layer = {};
+  function exportLayer(S, t, which) {
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H); ctx.translate(ox, oy);
+    if (which === 'trees') { var h = Engine.hourOf(S); trunk(40, 198, 1); trunk(446, 198, -1); blossoms(h); }
+    else { layer.noTrees = which === 'park'; drawPark(S, t); layer = {}; }
+    ctx.restore();
+  }
+  function worldData(S) { return DATA.worlds[S.run.world || 1]; }
+  function lampXs(S) { return S.run.world === 2 ? worldData(S).slots : [LAMP_X]; }
   function drawPark(S, t) {
     var run = S.run, h = Engine.hourOf(S);
     var vx0 = -ox - 2, vx1 = W - ox + 2, vy0 = -oy - 2;
@@ -209,18 +219,26 @@ var Scene = (function () {
       if (seeded(gx + 3) < 0.35) R(ctx, gx + 4, gt + 1, 1, 1, '#ffd0e0');
     }
     // trees: trunks now, blossoms later (they hang over everything)
-    trunk(40, 198, 1); trunk(446, 198, -1);
-    blossoms(h);
+    if (!layer.noTrees) { trunk(40, 198, 1); trunk(446, 198, -1); blossoms(h); }
     // lamp post, bench, recycle bins
+    var wd = worldData(S);
+    if (run.world === 2) {
+      // The new park: a lamp behind each of your side slots, a big box on the left (a machine that arrives later).
+      wd.slots.forEach(function (x) { lampPost(x); });
+      Sprites.box(ctx, wd.box);
+      Sprites.plant(ctx, 104, 198, Math.min(24, (S.meta.runs - 1) * 3));
+    } else {
     lampPost(414);
     R(ctx, 64, 180, 48, 4, P.ink); R(ctx, 65, 180, 46, 2, '#b07a50'); R(ctx, 65, 176, 46, 3, '#8a5a3a');
     R(ctx, 68, 184, 3, 12, '#3a2a2a'); R(ctx, 105, 184, 3, 12, '#3a2a2a');
     Sprites.plant(ctx, 372, 198, Math.min(24, (S.meta.runs - 1) * 3));
     recycleBin(118, 198, '#3a7ad0'); recycleBin(130, 198, '#e8e8e8');
     recycleBin(346, 198, '#e8e8e8'); recycleBin(358, 198, '#3a7ad0');
+    }
     // the concrete base the machines stand on
-    R(ctx, 140, 196, 200, 2, '#d8d4cc'); R(ctx, 140, 198, 200, 6, '#9a968e'); R(ctx, 140, 204, 200, 1, '#5e5a54');
-    for (var pb = 140; pb < 340; pb += 25) R(ctx, pb, 198, 1, 6, '#7e7a72');
+    var px0 = run.world === 2 ? 108 : 140, px1 = run.world === 2 ? 444 : 340;
+    R(ctx, px0, 196, px1 - px0, 2, '#d8d4cc'); R(ctx, px0, 198, px1 - px0, 6, '#9a968e'); R(ctx, px0, 204, px1 - px0, 1, '#5e5a54');
+    for (var pb = px0; pb < px1; pb += 25) R(ctx, pb, 198, 1, 6, '#7e7a72');
     // the stone path
     var wet = run.weather === 'rain';
     R(ctx, vx0, 205, vx1 - vx0, H - oy + 4 - 205, wet ? '#6e6a70' : '#8e8880');
@@ -452,7 +470,7 @@ var Scene = (function () {
     var hov = hoverTarget(S);
     tubes(run, t, dt);
     var infos = [];
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < run.machines.length; i++) {
       infos.push(machineInfo(S, i, t));
       if (i === Engine.YOU) youDraw(hov === 'you', t, function (g) { Sprites.machine(g, Engine.MX[Engine.YOU], infos[Engine.YOU]); });
       else Sprites.machine(ctx, Engine.MX[i], infos[i]);
@@ -462,7 +480,7 @@ var Scene = (function () {
         Sprites.textShadow(ctx, 'UPDATED', Engine.MX[i] - 13, 96, P.white);
       }
     }
-    for (var em = 0; em < 3; em++) {
+    for (var em = 0; em < run.machines.length; em++) {
       var E = emotes[em];
       if (E && t < E.until) {
         var ey = (em === Engine.YOU ? 88 : 104) - (reduced ? 0 : Math.round(Math.sin(t * 5) * 1));
@@ -500,17 +518,17 @@ var Scene = (function () {
       ctx.fillStyle = 'rgba(20,16,56,' + a.toFixed(3) + ')';
       ctx.fillRect(vx0 - 4, vy0 - 4, W + 8, H + 8);
       ctx.globalCompositeOperation = 'lighter';
-      lampGlow(a, LAMP_X);
+      lampXs(S).forEach(function (lx) { lampGlow(a, lx); });
       ctx.fillStyle = 'rgba(255,217,138,' + Math.min(0.9, a * 1.6).toFixed(3) + ')';
       WIN.forEach(function (w, wi) { if (wi % 3) ctx.fillRect(w.x, w.y, 1, 1); });
-      for (var m = 0; m < 3; m++) {
+      for (var m = 0; m < run.machines.length; m++) {
         var L = Sprites.LOOKS[infos[m].id];
         glow(Engine.MX[m] - 4, 150, 46, hexA(L.glow, a * 0.5));
         glow(Engine.MX[m], 212, 30, hexA(L.glow, a * 0.35));
       }
       glow(TV.x + TV.w / 2, TV.y + TV.h / 2, 60, 'rgba(110,180,255,' + (a * 0.25).toFixed(3) + ')');
       ctx.globalCompositeOperation = 'source-over';
-      for (var m2 = 0; m2 < 3; m2++) {
+      for (var m2 = 0; m2 < run.machines.length; m2++) {
         if (m2 === Engine.YOU) youDraw(hov === 'you', t, function (g) { Sprites.machineLights(g, Engine.MX[Engine.YOU], infos[Engine.YOU], a); });
         else Sprites.machineLights(ctx, Engine.MX[m2], infos[m2], a);
       }
@@ -594,7 +612,7 @@ var Scene = (function () {
   function tubeBottom() { return H - oy + 4; }
   function tubes(run, t, dt) {
     var bot = tubeBottom();
-    for (var mi = 0; mi < 3; mi++) {
+    for (var mi = 0; mi < run.machines.length; mi++) {
       var n = tubeCount(run, mi);
       for (var i = 0; i < n; i++) {
         var x = tubeX(mi, i);
@@ -794,5 +812,5 @@ var Scene = (function () {
   }
 
   return { init: init, resize: resize, draw: draw, hit: hit, onEvent: onEvent, toScreen: toScreen, tvRect: tvRect,
-           setReduced: setReduced, hoverTarget: hoverTarget, size: function () { return { W: W, H: H, scale: scale, ox: ox, oy: oy }; } };
+           setReduced: setReduced, hoverTarget: hoverTarget, exportLayer: exportLayer, size: function () { return { W: W, H: H, scale: scale, ox: ox, oy: oy }; } };
 })();

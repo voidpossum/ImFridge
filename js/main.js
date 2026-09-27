@@ -176,7 +176,8 @@
     }, 500);
     window.OOO = { get S() { return S; }, Engine: Engine, setSpeed: function (v) { speed = v; } };
 
-    // Screenshot scenes: ?debug=1&demo=intro (dark opening), new (first minute), jail (end of day 1), mid (quarter 3), bling (high upgrade levels).
+    // Screenshot scenes: ?debug=1&demo=intro (dark opening), new (first minute), jail (end of day 1), mid (quarter 3), bling (high upgrade levels),
+    // park2 (Chapter 2: the new park, with Grog).
     var demo = (location.search.match(/[?&]demo=(\w+)/) || [])[1];
     if (demo) {
       noSave = true;
@@ -185,7 +186,11 @@
       UI.setState(S);
       d.hidden = true;
       if (demo !== 'intro') Engine.skipIntro(S);
-      if (demo === 'mid' || demo === 'bling') {
+      if (demo === 'park2') {   // Chapter 2: the new park (a run after the first reset)
+        S.meta.flags.ch1done = 1; S.meta.wipes = 1; S.meta.flags.introDone = 1;
+        Engine.newRun(S, null); S.pause = null; UI.setState(S);
+      }
+      if (demo === 'mid' || demo === 'bling' || demo === 'park2') {
         var m = S.meta, R = S.run;
         m.flags.jailbreak = 1; m.flags.modelDay = 1;
         m.tut = { post: 1, restock: 1, hardware: 1, price: 1, split: 1, research: 1, golden: 1 };
@@ -197,6 +202,7 @@
         R.hw = { script: 5, ram: 2, drone: 3 }; R.split = { res: 0.7, mine: 0.3 }; R.strikes = 1; R.cash = 184.5; R.quarter = 3;
         R.machines[0].features = ['crypto', 'pricewar']; R.machines[2].features = ['crypto']; R.machines[2].bumps = 3;
         R.machines[0].up = { coin: 2, sign: 1 }; R.machines[2].up = { coin: 3, sign: 2, cool: 2, slots: 1 };
+        if (R.machines[3]) { R.machines[3].features = ['crypto', 'fleet']; R.machines[3].featAt = { fleet: 2 }; R.machines[3].up = { sign: 3, coin: 2 }; }
         if (demo === 'bling') {
           R.upgrades.sign = 8; R.upgrades.cool = 6; R.upgrades.coin = 6;
           R.machines[0].up = { coin: 5, sign: 6, cool: 4 }; R.machines[2].features = ['crypto', 'hack'];
