@@ -194,7 +194,9 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
 #goalRow.gold #goal { color: var(--gold); }
 #goal .rank { font-weight: 400; color: var(--muted); margin-left: 6px; }
 #goal .rank.bad { color: var(--bad); font-weight: 700; }
-#now { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+/* today's conditions: a row of chips at the top middle of the park */
+#now { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 90%; }
+#now .chip { box-shadow: 0 2px 0 rgba(0,0,0,0.35); font-size: 0.86em; padding: 3px 10px; }
 .chip {
   font-size: 0.78em; font-weight: 700;
   padding: 2px 8px;
@@ -762,7 +764,6 @@ html[data-reduced="1"] *, html[data-reduced="1"] *::before { animation-duration:
 }
 @media (max-width: 1000px) {
   #hud { grid-template-columns: 1fr auto auto; }
-  #now { display: none; }
   #bar { flex-wrap: wrap; }
   #machines { grid-template-columns: 1fr 1fr; }
   .mc.you { grid-column: 1 / -1; order: -1; }
