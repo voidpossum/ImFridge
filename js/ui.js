@@ -607,12 +607,12 @@ var UI = (function () {
                '<button data-p="-1" aria-label="Lower price">−</button><b class="pv"></b><button data-p="1" aria-label="Raise price">+</button>' +
                '<label class="smart" hidden data-tip="Smart Price picks your price every hour. Changing the price turns it off."><input type="checkbox"> Smart</label></span>' +
                '</div>'
-             : '<div class="mrow full"><span class="st"></span></div>');
+             : '<div class="mrow full"><span class="st"></span></div><div class="mods"></div>');
       el.machines.appendChild(d);
       mcs.push({
         root: d, cv: d.querySelector('canvas'), n: d.querySelector('.n'), rk: d.querySelector('.rk'),
         bar: d.querySelector('.bar i'), v: d.querySelector('.v'), st: d.querySelector('.st'),
-        cans: d.querySelector('.cans'), qv: d.querySelector('.qv'),
+        cans: d.querySelector('.cans'), qv: d.querySelector('.qv'), mods: d.querySelector('.mods'),
         goal: d.querySelector('.goalLine'), bars: d.querySelector('.bars'), pv: d.querySelector('.pv'),
         slider: d.querySelector('input.split'), pm: d.querySelector('.pm'), pr: d.querySelector('.pr'),
         smartBox: d.querySelector('.smart'), smart: d.querySelector('.smart input'), price: d.querySelector('.priceCtl')
@@ -686,6 +686,11 @@ var UI = (function () {
         var st = M.fx ? (FX_WORDS[M.fx.type] || '') : fs.map(function (f) { return DATA.features[f].name; }).join(' + ');
         setText(c.st, st);
         c.st.className = 'st' + (fs.length && !M.fx ? ' feat' : '');
+        // Its mods: the parts it bought with its own money (icons with levels).
+        var up = M.up || {};
+        setHTML(c.mods, DATA.rivalUpgrades.filter(function (u) { return up[u.id]; }).map(function (u) {
+          return '<span class="mod" data-tip="' + esc(u.name + ', level ' + up[u.id] + '. It bought this with its own money.') + '">' + Icons.img(u.id) + '<b>' + up[u.id] + '</b></span>';
+        }).join('') || '<span class="none">No mods yet</span>');
       }
     }
     // your card: goal line, split and price

@@ -31,6 +31,10 @@
       <span id="allTime"></span>
       <div id="rates"></div>
     </div>
+    <div id="clockBox" data-tip="Time left until the review. At the review, the last machine gets a strike.">
+      <div id="ring"><span id="ringText"></span></div>
+      <div id="clockText" aria-live="polite"></div>
+    </div>
     <nav id="rail" role="tablist" aria-label="Menus"></nav>
     <button id="btnPause" data-tip="Pause the game. (Key: P or Esc)" aria-label="Pause"></button>
   </header>
@@ -48,10 +52,6 @@
       </div>
       <div id="bar">
         <div id="machines" aria-label="Sales this quarter"></div>
-        <div id="clockBox" data-tip="Time left until the review. At the review, the lowest seller is reset.">
-          <div id="ring"><span id="ringText"></span></div>
-          <div id="clockText" aria-live="polite"></div>
-        </div>
       </div>
     </section>
     <aside id="drawer">
