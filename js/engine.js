@@ -982,9 +982,13 @@ var Engine = (function () {
     Y.price = p;
     var folOK = loyalChance(S, 240 * B.followerBudget);
     Y.price = saved;
-    var demand = traffic * walk / wsum + (R.rate.followersEMA || 0) * Math.max(0, folOK);
+    var folRate = R.rate.followersEMA || 0;
+    var demand = traffic * walk / wsum + folRate * Math.max(0, folOK);
     var sold = Math.min(capacity(S), demand);
-    return sold * (pay / wsum - unit);
+    // Customers who say no buy from a rival, and that helps the rival at the review. Count it against this price.
+    var rivalP = Math.min(effPrice(S, 0), effPrice(S, 2));
+    var toRivals = (traffic * (1 - walk / wsum) + folRate * (1 - Math.max(0, folOK))) * rivalP;
+    return sold * (pay / wsum - unit) - toRivals;
   }
 
   function smartPrice(S) {
