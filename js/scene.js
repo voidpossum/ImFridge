@@ -14,7 +14,7 @@ var Scene = (function () {
   var mouse = { x: -9999, y: -9999 };
   var lastSale = -9, flashT = 0, shakeT = 0, bumpFlash = {}, faceMood = {}, emotes = [null, null, null];
   var lightsAt = -9;
-  var squashAt = -9, caps = [];   // your machine squashes when clicked; capsules run down the tubes   // when the opening ended (the ceiling lights flicker on)
+  var squashAt = -9, caps = [];   // your machine squashes when clicked; capsules run up the refill tubes   // when the opening ended (the ceiling lights flicker on)
   var reduced = false;
   var CRATE = { x: DATA.world.machineX[1] - 9, y: 94, w: 18, h: 14 };   // the crate sits on top of your machine
   var YOU_BOX = { x: 217, y: 108, w: 46, h: 92 };
@@ -565,26 +565,43 @@ var Scene = (function () {
     ctx.drawImage(youCv, Math.round(cx - dw / 2), Math.round(by - (by - A.top) * sy), dw, dh);
   }
 
-  // Pneumatic tubes: pipes from above into the back of your machine. One more pipe per level (up to 3).
+  // Refill tubes: glass tubes come up from under the path into the machine feet. Capsules with cans
+  // shoot up them. Rivals always have one (they refill themselves); yours come with Pneumatic Tubes.
+  // Tubes sit under the machine feet (left foot, right foot); a third one goes in the middle.
+  function tubeCount(run, mi) {
+    if (mi === Engine.YOU) return Math.min(3, run.upgrades.tubes | 0);
+    return 2;
+  }
+  var TUBE_AT = [-20, 17, -2];   // x of each tube, from the machine centre (the feet are at -19 and +18)
+  function tubeX(mi, i) { return Engine.MX[mi] + TUBE_AT[i]; }
+  function tubeBottom() { return H - oy + 4; }
   function tubes(run, t, dt) {
-    var lv = run.upgrades.tubes | 0;
-    if (!lv) { caps.length = 0; return; }
-    var n = Math.min(3, lv), top = TV.y + TV.h - 2, bot = 112;
-    for (var i = 0; i < n; i++) {
-      var x = tubeX(i);
-      R(ctx, x - 1, top, 5, bot - top, P.ink);
-      ctx.fillStyle = 'rgba(200,230,240,0.55)'; ctx.fillRect(x, top, 3, bot - top);
-      R(ctx, x, top, 1, bot - top, 'rgba(255,255,255,0.7)');
-      for (var yy = Math.ceil(top / 24) * 24; yy < bot; yy += 24) R(ctx, x - 1, yy, 5, 2, P.steel2);   // clamps
+    var bot = tubeBottom();
+    for (var mi = 0; mi < 3; mi++) {
+      var n = tubeCount(run, mi);
+      for (var i = 0; i < n; i++) {
+        var x = tubeX(mi, i);
+        R(ctx, x - 1, 201, 1, bot - 201, P.ink); R(ctx, x + 3, 201, 1, bot - 201, P.ink);
+        ctx.fillStyle = 'rgba(200,230,240,0.5)'; ctx.fillRect(x, 201, 3, bot - 201);
+        R(ctx, x, 201, 1, bot - 201, 'rgba(255,255,255,0.75)');
+        R(ctx, x - 2, 200, 7, 2, P.steel2); R(ctx, x - 2, 202, 7, 1, P.ink);        // collar under the machine
+        R(ctx, x - 2, 205, 7, 2, P.steel3);                                          // where it goes into the ground
+        for (var yy = 216; yy < bot; yy += 16) R(ctx, x - 1, yy, 5, 1, P.steel2);   // clamps
+      }
     }
     for (var c = caps.length - 1; c >= 0; c--) {
       var C = caps[c];
-      C.y += 140 * dt;
-      if (C.y > bot - 4) { caps.splice(c, 1); continue; }
+      C.y -= 150 * dt;
+      if (C.y < 203) { caps.splice(c, 1); continue; }
+      if (C.y > bot) continue;
       R(ctx, C.x, Math.round(C.y), 3, 5, C.c); R(ctx, C.x, Math.round(C.y), 3, 1, '#ffffff');
     }
   }
-  function tubeX(i) { return Engine.MX[Engine.YOU] + 11 + i * 6; }
+  function capsule(S, mi, drink, delay) {
+    var n = tubeCount(S.run, mi);
+    if (!n || caps.length > 24) return;
+    caps.push({ x: tubeX(mi, Math.floor(Math.random() * n)), y: tubeBottom() + (delay || 0), c: DATA.drinks[drink] ? DATA.drinks[drink].color : P.red });
+  }
 
   // Everything dark except a pool of light on your machine (and the crate when it matters).
   function spotlight(a, t) {
@@ -699,12 +716,8 @@ var Scene = (function () {
       case 'buy': case 'hw': case 'doubler':
         sparks(MX[1], 140, P.gold1, 14); sparks(MX[1], 140, P.white, 8);
         break;
-      case 'tube':
-        if (caps.length < 14) {
-          var lvT = Math.min(3, S.run.upgrades.tubes | 0) || 1;
-          caps.push({ x: tubeX(Math.floor(Math.random() * lvT)), y: TV.y + TV.h, c: DATA.drinks[e.drink] ? DATA.drinks[e.drink].color : P.red });
-        }
-        break;
+      case 'tube': capsule(S, Engine.YOU, e.drink, 0); break;
+      case 'fill': for (var fc = 0; fc < (reduced ? 1 : 3); fc++) capsule(S, e.machine, e.drink, fc * 9); break;
       case 'drones':
         for (var dn = 0; dn < Math.min(e.n, reduced ? 1 : 3); dn++) {
           if (parts.length > 85) break;

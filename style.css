@@ -103,6 +103,16 @@ b, strong { font-weight: 700; }
 .mc .st.feat { color: var(--bad); font-weight: 700; }
 .mc .goalLine { grid-column: 1 / -1; font-size: 0.78em; color: var(--muted); margin-top: 3px; }
 .mc .goalLine .bad { font-weight: 700; }
+.mc .sub { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: space-between; font-size: 0.72em; color: var(--muted); font-family: var(--mono); white-space: nowrap; overflow: hidden; }
+.mc .sub .qv { color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
+.strikes { color: var(--bad); font-family: var(--mono); letter-spacing: 2px; font-weight: 800; }
+.patch.strike { background: #3a1a22; border-left-color: var(--bad); }
+.patch.strike b { color: var(--bad); }
+.bars.slide { gap: 3px; }
+.slideLab { display: flex; justify-content: space-between; gap: 8px; }
+.slideLab .b-res { color: var(--blue); }
+.slideLab .b-mine { color: var(--gold); }
+.bars.slide input.split { width: 100%; box-sizing: border-box; background: linear-gradient(to right, var(--gold) 0 var(--p), var(--blue) var(--p) 100%); }
 .ctlRow { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
 .bars { flex: 1 1 190px; display: flex; flex-direction: column; gap: 2px; font-size: 0.74em; font-weight: 700; min-width: 170px; }
 .brow { display: flex; align-items: center; gap: 6px; width: 100%; box-sizing: border-box; cursor: pointer; }
@@ -389,7 +399,7 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
 #allTime { display: block; font-family: var(--mono); font-size: 0.72em; color: var(--muted); text-align: right; }
 #rates .mined { color: var(--gold); }
 .clickPop { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); font: 800 15px/1 var(--mono);
-            color: #fff; text-shadow: 0 2px 0 #2a1c2c, 0 0 6px rgba(255, 107, 138, 0.8); animation: popUp 0.9s ease-out forwards; }
+            color: #ffe07a; text-shadow: 0 2px 0 #2a1c2c, 0 0 6px rgba(255, 107, 138, 0.8); animation: popUp 0.9s ease-out forwards; }
 @keyframes popUp { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -48px; } }
 :root[data-reduced="1"] .clickPop { animation: popFade 0.9s linear forwards; }
 @keyframes popFade { from { opacity: 1; } to { opacity: 0; } }
