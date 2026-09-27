@@ -50,6 +50,29 @@
   }
 
   // ── park items ─────────────────────────────────────────────────
+  // A snack machine you own (instead of a food truck): chips, sandwiches, candy bars behind glass.
+  function snackMachine(g, cx, t) {
+    var x0 = cx - 21, y0 = 118, w = 42, h = 82;
+    R(g, x0 + 2, y0 + h, w, 3, 'rgba(40,20,40,0.3)');
+    R(g, x0 - 1, y0 - 1, w + 2, h + 1, P.ink);
+    R(g, x0, y0, w, h, '#f2c040'); R(g, x0 + 1, y0 + 2, 2, h - 8, '#ffe07a'); R(g, x0 + w - 4, y0, 4, h, '#c89020');
+    R(g, x0 + 3, y0 + 3, w - 10, 7, '#1b1826'); T(g, 'SNACKS', x0 + 5, y0 + 4, '#ffe07a');
+    R(g, x0 + 3, y0 + 12, 28, 56, '#dcf0f2');
+    var cols = [['#e0483f', '#ffd24a'], ['#4a78d0', '#fffaf0'], ['#6cd48a', '#2a5a34'], ['#a58ad8', '#fff0a0']];
+    for (var r = 0; r < 4; r++) {
+      var ry = y0 + 14 + r * 13;
+      for (var k = 0; k < 4; k++) {
+        var c = cols[(r + k) % 4];
+        if (r === 1) { R(g, x0 + 5 + k * 6, ry + 4, 5, 5, '#e8b48a'); R(g, x0 + 5 + k * 6, ry + 6, 5, 1, '#6cd48a'); }   // sandwiches
+        else { R(g, x0 + 5 + k * 6, ry + 1, 5, 8, c[0]); R(g, x0 + 6 + k * 6, ry + 3, 3, 2, c[1]); }                      // bags and bars
+      }
+      R(g, x0 + 4, ry + 10, 26, 1, '#9197a8');
+    }
+    R(g, x0 + 33, y0 + 12, 5, 30, '#c89020'); R(g, x0 + 34, y0 + 14, 3, 4, '#1b1826');
+    for (var b = 0; b < 4; b++) R(g, x0 + 34, y0 + 21 + b * 4, 3, 2, '#fffaf0');
+    R(g, x0 + 4, y0 + 71, 26, 7, P.ink); R(g, x0 + 5, y0 + 72, 24, 5, '#15121c');
+    T(g, 'V3', x0 + 33, y0 + 48, '#d9544b');   // it is yours
+  }
   function bench(g, x, y) {   // x = left, y = ground
     R(g, x, y - 20, 40, 3, P.ink); R(g, x + 1, y - 19, 38, 1, '#b07a50');
     R(g, x, y - 15, 40, 4, P.ink); R(g, x + 1, y - 14, 38, 2, '#b07a50'); R(g, x + 1, y - 12, 38, 1, '#8a5a3a');
@@ -134,7 +157,8 @@
   }
 
   // ── the Big Park background ────────────────────────────────────
-  function bigPark(g, WW, WH, t, eve) {
+  function bigPark(g, WW, WH, t, eve, o) {
+    o = o || { tv: 276, plinths: [[150, 300], [420, 570]] };
     var sky = eve ? ['#3a3a7a', '#c86a8a', '#ffb07a'] : ['#6ab4f0', '#a8d8f8', '#e8f4f8'];
     for (var b = 0; b < 14; b++) {
       var k = b / 13, c = k < 0.55 ? mixc(sky[0], sky[1], k / 0.55) : mixc(sky[1], sky[2], (k - 0.55) / 0.45);
@@ -153,9 +177,9 @@
       x += w + (far ? -6 : 2);
     }
     // the big LED board in the middle
-    R(g, 290, 76, 3, 74, P.steel3); R(g, 427, 76, 3, 74, P.steel3);
-    Sprites.tv(g, 276, 36, 168, 40, t, eve);
-    T(g, 'WELCOME TO THE BIG PARK', 290, 50, '#8ad0f0');
+    R(g, o.tv + 14, 76, 3, 74, P.steel3); R(g, o.tv + 151, 76, 3, 74, P.steel3);
+    Sprites.tv(g, o.tv, 36, 168, 40, t, eve);
+    T(g, o.hello || 'WELCOME TO THE BIG PARK', o.tv + 14, 50, '#8ad0f0');
     // railing + hedge
     R(g, 0, 152, WW, 3, '#3a2418'); R(g, 0, 153, WW, 1, '#7a5238'); R(g, 0, 162, WW, 2, '#3a2418');
     for (var px = 0; px < WW; px += 36) { R(g, px, 148, 4, 26, '#3a2418'); R(g, px + 1, 148, 1, 24, '#7a5238'); }
@@ -171,7 +195,7 @@
       R(g, tx + 1, ty + 1, 30, 10, seeded(tx * 3 + row * 17) < 0.5 ? '#9a948c' : '#948e86'); R(g, tx + 1, ty + 1, 30, 1, '#aaa49c');
     }
     // two machine plinths
-    [[150, 300], [420, 570]].forEach(function (p) {
+    o.plinths.forEach(function (p) {
       R(g, p[0], 196, p[1] - p[0], 2, '#d8d4cc'); R(g, p[0], 198, p[1] - p[0], 6, '#9a968e'); R(g, p[0], 204, p[1] - p[0], 1, '#5e5a54');
     });
   }
@@ -365,6 +389,27 @@
     T(g, 'FOOD TRUCK', 20, 80, '#fffaf0'); T(g, 'BENCH', 104, 80, '#fffaf0'); T(g, 'FOUNTAIN', 166, 80, '#fffaf0'); T(g, 'BUS STOP', 240, 80, '#fffaf0'); T(g, 'RECYCLING', 322, 80, '#fffaf0'); T(g, 'LAMPS', 390, 80, '#fffaf0');
   }
 
+  // Version 2: everyone side by side on one screen (Void Possum's note). Same 480-wide park as Chapter 1.
+  function drawParkTight(t, full) {
+    var W = 480, g = setup(full ? 'tightFull' : 'tight', W, WH, 3);
+    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[128, 352]], hello: 'GROG MOVED IN' });
+    tree(g, 26, 199, 1, full); tree(g, 454, 199, -1, full);
+    var X = { chug: 159, you: 213, clawd: 267, grog: 321 };
+    if (full) { snackMachine(g, 92, t); bench(g, 26, 199); busStop(g, 380, 199); lamp(g, 364, 199, true); }
+    else { plot(g, 68, 199, 48, 'SNACKS $', t); plot(g, 8, 199, 50, 'BENCH $', t); plot(g, 364, 199, 90, 'BUS STOP $$', t); }
+    Sprites.machine(g, X.chug, { id: 'chug', stock: { cola: 6, lemon: 7, orange: 4 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: { sign: 2 }, feats: ['crypto', 'plus'] });
+    Sprites.machine(g, X.you, { id: 'you', name: 'VEND-3', stock: { cola: 10, lemon: 8, orange: 11, grape: 6 }, cap: 12, drinks: ['cola', 'lemon', 'orange', 'grape'], t: t, cold: 1.2, up: { sign: 3, cool: 2 }, hw: { fan: 1, ram: 1 }, pps: 3, lanes: 2 });
+    Sprites.machine(g, X.clawd, { id: 'clawd', stock: { cola: 7, lemon: 5, orange: 9 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: {}, feats: ['snacks'] });
+    grogMachine(g, X.grog, 'smirk', t, { feats: ['crypto'] });
+    if (full) { g.fillStyle = 'rgba(30,20,70,0.22)'; g.fillRect(0, 0, W, WH); }
+    person(g, 'office', 156, 213, t, { st: 'buy' }); person(g, 'kid', 161, 224, t);
+    person(g, 'boss', 210, 213, t, { st: 'buy' }); person(g, 'gym', 215, 223, t, { fol: 1 }); person(g, 'intern', 212, 233, t, { fol: 1 }); person(g, 'office', 214, 243, t);
+    person(g, 'intern', 265, 214, t, { st: 'buy' });
+    person(g, 'gym', 319, 213, t, { st: 'buy' }); person(g, 'office', 323, 224, t);
+    person(g, 'boss', 60, 250, t, { st: 'in', tx: 200 }); person(g, 'kid', 400, 250, t, { st: 'in', tx: 300 });
+    if (full) person(g, 'office', 92, 214, t, { sipT: 0.5, drink: 'cola', st: 'out', tx: 92 });
+  }
+
   var t = 3.3;
-  drawParkEmpty(t); drawParkFull(t); drawGrog(t); drawInside(t); drawItems(t);
+  drawParkTight(t, false); drawParkTight(t, true); drawParkEmpty(t); drawParkFull(t); drawGrog(t); drawInside(t); drawItems(t);
 })();
