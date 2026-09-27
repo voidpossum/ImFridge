@@ -115,7 +115,7 @@ var UI = (function () {
     el.tipBubble.addEventListener('click', function () { tipClosed = tipStep; el.tipBubble.hidden = true; });
     el.toasts.addEventListener('click', function (e) {
       var tn = e.target.closest('.toast');
-      if (tn) { tab = 'log'; fold(false); panelSig = ''; renderRail(); tn.remove(); }
+      if (tn) { tn.classList.add('out'); setTimeout(function () { tn.remove(); }, 200); }   // click = close (everything is in the Log tab too)
     });
     el.importFile.addEventListener('change', function () {
       var f = el.importFile.files[0];
@@ -176,7 +176,7 @@ var UI = (function () {
     el.drawer.classList.toggle('folded', !!on);
     // Your money sits at the top of the Shop panel; when the panel is folded away it goes back to the top bar.
     var money = $('money'), slot = $('moneySlot');
-    if (on) { if (money.parentNode !== $('hud')) $('hud').insertBefore(money, el.btnPause); }
+    if (on) { if (money.parentNode !== $('hud')) $('hud').insertBefore(money, el.rail); }
     else if (money.parentNode !== slot) slot.appendChild(money);
     Save.saveSettings(settings);
     if (api.relayout) api.relayout();

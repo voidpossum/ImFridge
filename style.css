@@ -59,15 +59,14 @@ b, strong { font-weight: 700; }
 
 /* ── top HUD ───────────────────────────────────────────── */
 #hud {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  display: flex;
   gap: 12px;
   align-items: center;
   padding: 6px 10px;
   background: var(--bg2);
   border-bottom: 2px solid var(--line);
 }
-#thoughts { display: flex; gap: 6px; align-items: center; min-width: 0; overflow: hidden; }   /* one line: chips shrink instead of wrapping */
+#thoughts { flex: 1; display: flex; gap: 6px; align-items: center; min-width: 0; overflow: hidden; }   /* one line: chips shrink instead of wrapping */
 .th {
   display: flex; align-items: center; gap: 5px;
   padding: 3px 9px 3px 5px;
@@ -171,7 +170,7 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
 
 #money { text-align: right; padding-left: 12px; border-left: 2px solid var(--line); min-width: 150px; }
 #cash { font: 800 1.6em/1.1 var(--mono); color: var(--gold); display: block; }
-#btnPause { width: 40px; height: 40px; display: grid; place-items: center; background: var(--panel2); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--shadow); cursor: pointer; }
+#btnPause { flex: none; width: 40px; height: 40px; display: grid; place-items: center; background: var(--panel2); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--shadow); cursor: pointer; margin-left: 4px; }
 #btnPause:hover { background: var(--panel3); }
 #btnPause:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow); }
 
@@ -261,7 +260,7 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
 
 #toasts { position: absolute; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 5; width: min(320px, 60%); pointer-events: none; }
 .toast {
-  pointer-events: auto;
+  pointer-events: auto; cursor: pointer;
   background: rgba(42, 34, 49, 0.96);
   border-left: 4px solid var(--gold);
   padding: 8px 12px;
@@ -345,8 +344,13 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
 #drawer { display: flex; min-height: 0; background: var(--bg2); border-left: 2px solid var(--line); }
 #panelWrap { width: var(--drawer); display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-right: 2px solid var(--line); }
 #drawer.folded #panelWrap { display: none; }
-#moneySlot #money { border-left: 0; padding: 8px 12px 7px; min-width: 0; background: var(--bg2); border-bottom: 2px solid var(--line); }
+/* your money at the top of the Shop panel: the amount on the left, "all time" on the right, rates spread below */
+#moneySlot #money { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 10px;
+  text-align: left; border-left: 0; padding: 8px 12px 7px; min-width: 0; background: var(--bg2); border-bottom: 2px solid var(--line); }
 #moneySlot #cash { font-size: 1.9em; }
+#moneySlot #allTime { text-align: right; }
+#moneySlot #rates { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; }
+#moneySlot #rates span { margin-left: 0; }
 #panelHead { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 2px solid var(--line); background: var(--panel2); }
 #panelHead h2 { margin: 0; font: 800 0.9em/1.2 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
 #btnFold { background: none; border: 2px solid var(--line); cursor: pointer; padding: 0 8px; font-weight: 800; color: var(--muted); }
@@ -356,19 +360,21 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
 #panel h3:first-child { margin-top: 0; }
 #panel .note { color: var(--muted); font-size: 0.86em; margin: 0 0 10px; }
 
-#rail { display: flex; flex-direction: column; gap: 2px; padding: 6px 4px; width: 52px; min-height: 0; }
+/* the menu buttons sit in the top bar, next to Pause, all the same size */
+#rail { flex: none; display: flex; gap: 4px; align-items: center; padding-left: 12px; border-left: 2px solid var(--line); }
 .tab {
   position: relative;
-  width: 44px; height: 44px;
+  width: 40px; height: 40px;
   display: grid; place-items: center;
-  background: transparent;
-  border: 2px solid transparent;
+  background: var(--panel2);
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 var(--shadow);
   cursor: pointer;
 }
 .tab .ico { opacity: 0.75; }
-.tab:hover { background: var(--panel); }
+.tab:hover { background: var(--panel3); }
 .tab:hover .ico { opacity: 1; }
-.tab.on { background: var(--panel); border-color: var(--line); }
+.tab.on { background: var(--panel3); border-color: var(--you); }
 .tab.on .ico { opacity: 1; }
 /* Start screen with the password */
 #gate { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: #140f18; }
@@ -763,7 +769,6 @@ html[data-reduced="1"] *, html[data-reduced="1"] *::before { animation-duration:
   .mc canvas { width: 57px; height: 21px; }
 }
 @media (max-width: 1000px) {
-  #hud { grid-template-columns: 1fr auto auto; }
   #bar { flex-wrap: wrap; }
   #machines { grid-template-columns: 1fr 1fr; }
   .mc.you { grid-column: 1 / -1; order: -1; }
@@ -776,7 +781,6 @@ html[data-reduced="1"] *, html[data-reduced="1"] *::before { animation-duration:
   #sceneBox { min-height: 300px; }
   #drawer { border-left: 0; border-top: 2px solid var(--line); flex-direction: column-reverse; }
   #panelWrap { width: auto; min-height: 60vh; border-right: 0; }
-  #rail { flex-direction: row; width: auto; flex-wrap: wrap; }
   #machines { grid-template-columns: 1fr; }
   .res { grid-template-columns: 90px 1fr 70px; }
   .res .tag { grid-column: 1 / -1; }
