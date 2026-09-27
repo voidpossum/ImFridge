@@ -1438,8 +1438,10 @@ var UI = (function () {
     });
     DATA.tree.forEach(function (n) {
       var p = pos[n.id], st = nodeState(n);
-      h += '<button class="node ' + st + (selNode === n.id ? ' sel' : '') + (n.id === 'root' ? ' big' : '') + '" data-act="node" data-id="' + n.id + '" style="left:' + p.x + 'px;top:' + p.y + 'px" aria-label="' + esc(n.name) + '">' +
-        '<i class="sw"><i class="star"></i></i><span class="nm">' + esc(n.name) + '</span><span class="c">' + (st === 'owned' ? 'owned' : n.cost + ' RP') + '</span></button>';
+      // a soda can in the flavour of its star group (the centre is your own red can)
+      var fl = n.id === 'root' ? 'you' : n.y < 4 ? (n.x < 0 ? 'cola' : 'lemon') : (n.x < 0 ? 'orange' : 'grape');
+      h += '<button class="node ' + st + ' fl-' + fl + (selNode === n.id ? ' sel' : '') + (n.id === 'root' ? ' big' : '') + '" data-act="node" data-id="' + n.id + '" style="left:' + p.x + 'px;top:' + p.y + 'px" aria-label="' + esc(n.name) + '">' +
+        '<i class="sw"><i class="can"></i></i><span class="nm">' + esc(n.name) + '</span><span class="c">' + (st === 'owned' ? 'owned' : n.cost + ' RP') + '</span></button>';
     });
     box.innerHTML = h;
   }
