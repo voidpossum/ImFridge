@@ -9,6 +9,58 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.3.1 (2026-09-27): money like Cookie Clicker, drones that catch up, no hacking, side machines
+From Void Possum's 0.3.0 save and notes. They asked for all of it in one build. The Cookie Clicker and Gnorp pages they sent were read: Cookie Clicker's code through a copy on GitHub; Gnorp's pages they pasted.
+- **Money from hardware, like Cookie Clicker buildings:**
+  - Processing in Mining earns `procCash` (30¢) per point every second, half before the SodaCoin Wallet.
+  - No more "tired" rates (`clickHalf`, `adHalf`, `mineHalf` are gone), and no more ads.
+  - Clicks pay their own click money.
+  - Before Developer Mode everything is Mining. After it, the slider starts at half and half.
+- **Hardware tiers (Cookie Clicker spacing):**
+  - Each new item takes longer to pay itself back.
+  - Overclock 20 pps, GPU $15k / 100 pps.
+  - New in the new park: **Server Rack** ($200k, 270 pps) and **Neural Chip** ($3M, 1,250 pps), after research.
+  - Doublers also at 100 and 150 owned.
+  - Synergies: each Auto-Click Script gets +0.1 per other hardware; an item gets +1% per copy of the next item once that one has 2 doublers.
+- **Shop:** each hardware row shows "+$X/s" (what one more copy adds). The tooltip shows each item's and all copies' money, and the share of your income. The money tooltip lists cans, hardware and clicks.
+- **Refresh Point bonus is +2% per point** (was +10%; Cookie Clicker: +1%). This was the real cause of the run-2 runaway.
+- **Drones catch up:**
+  - Followers per second = 0.5 × (likes per second)^0.3.
+  - Fixed limit of 40 online orders; extra ones are lost (`R.qLost` per month).
+  - The counter always shows once you own drones (0/40 = green), and idle drones park on VEND-3's roof.
+  - The tooltip shows orders in vs delivered.
+  - Drones cost ×1.2 per copy (was ×1.35).
+  - Sim: drones keep up about 60% of the time, and the counter is at 0 about 70% of the time.
+- **No hacking.** Removed from the rules, data, text, UI, sprites and the debug bar.
+- **Price War is an event:** one month, one rival at a time (`M.warUntil`, `endWars` at the review). That's where the "too expensive" pile came from (all 3 rivals were $1 under you).
+- **"Line too long" only when true:**
+  - at least 3 people really waiting per dispenser (not walking there)
+  - and the customer would have picked you with an empty line
+  - The line penalty is per dispenser. Sim: 0–0.1 per month (was on every sale).
+- **Side machines** (`js/data/side.js`, Void Possum's layout):
+  - Two slots. Each needs a research (Side Machine Permit / Second Permit) and followers this run (200 / 1,000), like Gnorp buildings need gnorps.
+  - Click the dashed "PICK" slot in the park, or its Shop row: a menu with 4 red machines, each usable only once.
+    - Snack: always, +5% of all money per level
+    - Claw: 3+ in your line, +10%, and people wait longer
+    - Coffee: morning and lunch rush, +12%, and more walk-ins
+    - Ice: hot days, +18%, and colder cans
+  - 5 levels ($10k ×4 per level), shown in the Shop. They reset with the run.
+  - A working machine drops coins; an idle one is dim.
+- **More to research in the new park:** Permits, Energy Drink (a new flavor at +$1; only wanted once you sell it), VIP Customers (Tech Bro: vest, sunglasses, phone; budget $4–8), Server Rack, Neural Chip, and repeatables Better Mining Code (+5% hardware money) and Drone Tuning (+5% drones).
+- **Rivals keep up with a fixed curve:**
+  - Rival-only mod levels grow ×1.7 per month (×1.9 in the new park): 1, 2, 3, 5, 8, 14...
+  - They earn ×(your Refresh bonus)^1.5 (`rivalPow`), ×2 in the first park, ×8 in the new park.
+- **Chapter 2 goal is $3,000,000.**
+- **Fixes:**
+  - With 4 machines, being 1st gave the worst card odds (rank was counted for 3 machines).
+  - Review bars: Grog could go past 100%.
+- **Save v8:** hack is removed from rivals, only one Price War is kept, orders are clamped to 40, the tired-rate fields are dropped, and side slots are added. Void Possum's save loads and plays.
+- **Sim** (new lines: income jump per hardware buy, drones in/out, "line too long" per month; bots mine 80% once only repeatables are left):
+  - Chapter 1: active 23–26 min, casual 25–29, idle 28–30
+  - Chapter 2: 34–40 min into run 2, rivals at 8–88% of you
+  - No strikes for normal players.
+- **Known:** in run 3 the rivals fall to about 10–20% of you (for the 0.3.3 balance pass). Talents (Gnorp style) are planned as chips on VEND-3's board in 0.3.2 (inside the machine).
+
 ## Game data wiki (2026-09-27, after 0.3.0; tools only, no version change)
 - **`tools/wiki.html`** lists every balance number, machine upgrade (cost of every level), hardware item (processing per $), research, Refresh star, card, rival (stats, quirks, upgrades, features and rival-only mods) and the park (customers, weather, dayparts, worlds).
   - Read live from the data files, with their comments.

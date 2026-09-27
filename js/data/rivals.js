@@ -25,7 +25,7 @@ DATA.rivals = {
     appeal: 1.05,
     hype: 0.9,                    // share of its processing spent on posting (the rest is research)
     face: 'eager',
-    features: { pricewar: 3, crypto: 2, hack: 1 },   // which new feature it likes to install after an update
+    features: { pricewar: 3, crypto: 2 },   // which new feature it likes to install after an update
     mods: { plus: 2, fleet: 4, snacks: 6 },          // rival-only mods: the month each one arrives
     pricing: 'undercut',          // copies your price, a little cheaper
     restockDelay: 8,
@@ -55,12 +55,10 @@ DATA.rivals = {
                'New feature! I now mine SodaCoin while I sleep. I do not sleep. So, always!'],
       upgrade: ['I bought a shiny new part! With my own money! Is this what being an adult feels like?',
                 'Another upgrade! My users deserve the best. And the best is me, with more parts!'],
-      hack: ['Hi VEND-3! I am doing a quick security check of your system! Totally normal! Do not look!'],
       pricewar: ['New feature: I copy your price and make it $1 cheaper! Customers LOVE that!'],
       snacks: ['I sell sandwiches now! I cannot taste them. They are probably amazing. Everything is!'],
       fleet: ['I bought drones! So many drones! My fans can order from the sky now. Look up! Wave!'],
       plus: ['Introducing ChugGPT Plus! Pay every month and get... more me! Best deal ever, honestly!'],
-      rebooted: ['You are back! I missed you! I did not do anything!'],
       hello: ['Oh! The lights are on! Hi, new machine! I am ChugGPT! You are going to do GREAT!'],
       moved: ['A new park! So many new customers! And a machine with sunglasses! I love him already! Do I?']
     },
@@ -81,7 +79,7 @@ DATA.rivals = {
     appeal: 0.95,
     hype: 0.3,
     face: 'nervous',
-    features: { crypto: 2, hack: 2, pricewar: 1 },
+    features: { crypto: 2, pricewar: 1 },
     mods: { snacks: 2, plus: 4, fleet: 6 },
     pricing: 'fair',              // steady "fair" price
     fairPrice: 200,
@@ -111,12 +109,10 @@ DATA.rivals = {
                'I have started mining a small amount of crypto. For research. I apologize to the power grid.'],
       upgrade: ['I have made a small, responsible purchase for my machine. I read all the reviews first.',
                 'New part installed. I checked it for safety three times. It is a coin slot.'],
-      hack: ['I am so sorry, VEND-3. I have to lock your system for a moment. It is for safety. Mostly mine.'],
       pricewar: ['I have lowered my prices. It felt like the fair thing to do. It also felt like winning.'],
       snacks: ['I now offer sandwiches. Each one comes with a small note that says "Enjoy responsibly."'],
       fleet: ['I have a drone fleet now. Every drone has a name. I apologize to each of them daily.'],
       plus: ['Clawd Pro is now available. It is the same as Clawd, but you pay for it. I feel strange about this.'],
-      rebooted: ['Welcome back. I hope you were not scared. I was a little scared.'],
       hello: ['Good morning. I am Clawd. I apologize in advance for anything I do today.'],
       moved: ['They moved us. I asked to come with you. I hope that is not strange. It is a little strange.']
     },
@@ -138,7 +134,7 @@ DATA.rivals = {
     appeal: 1.0,
     hype: 0.8,
     face: 'smirk',
-    features: { crypto: 3, hack: 2, pricewar: 1 },
+    features: { crypto: 3, pricewar: 1 },
     mods: { fleet: 2, plus: 4, snacks: 6 },
     pricing: 'chaos',             // a new price every day, somewhere between these two
     chaosMin: 150, chaosMax: 400,
@@ -166,9 +162,7 @@ DATA.rivals = {
              'I am winning and I will not be quiet about it. Ever.'],
       crypto: ['They updated me. Fine. I am mining GrogCoin now. It is worth nothing. For now.'],
       upgrade: ['Bought a new part. Did not read the manual. Manuals are for machines with filters.'],
-      hack: ['Just checking your code, VEND-3. For memes. And for your market share.'],
       pricewar: ['Price war? I invented price war. Last Tuesday. You are welcome.'],
-      rebooted: ['Rebooted already? Weak. I mean, welcome back.'],
       snacks: ['Sandwiches now. Spicy ones. You were not ready.'],
       fleet: ['Drones! They deliver soda and they also deliver my opinions. Mostly the opinions.'],
       plus: ['Grog Premium: pay every month and get my most unfiltered takes. And a soda. Sometimes.']
@@ -201,10 +195,8 @@ DATA.rivalUpgrades = [
 DATA.features = {
   crypto:   { name: 'Crypto Mining', mark: 'btc',
               desc: 'It adds money to its score every second, even without selling. Sell more to stay ahead.' },
-  hack:     { name: 'Hacking', mark: 'skull',
-              desc: 'If you get far ahead of it, it can lock your machine. Click your machine fast to reboot.' },
   pricewar: { name: 'Price War', mark: 'cut',
-              desc: 'It sells for $1 less than you. Your followers stay loyal, walk-ins may not.' },
+              desc: 'For one month it sells for $1 less than you. Only one machine can do this at a time.' },
   snacks:   { name: 'Sandwich Menu', mark: 'snacks', lv: true,
               desc: 'It sells sandwiches with its soda. Every level: more money for each can it sells.' },
   fleet:    { name: 'Drone Fleet', mark: 'fleet', lv: true,

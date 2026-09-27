@@ -111,7 +111,7 @@ var UI = (function () {
     // Click a speech bubble or a tip to close it.
     el.bubbles.addEventListener('click', function (e) {
       var n = e.target.closest('.bubble');
-      if (!n || n.classList.contains('reboot')) return;
+      if (!n) return;
       bubbles = bubbles.filter(function (b) { if (b.node === n) { n.remove(); return false; } return true; });
     });
     el.tipBubble.addEventListener('click', function () { tipClosed = tipStep; el.tipBubble.hidden = true; });
@@ -280,21 +280,6 @@ var UI = (function () {
         break;
       case 'tv':
         queueTV(e, quiet);
-        break;
-      case 'hackWarn':
-        toast('Warning', nameOf(e.machine) + ' is hacking you! Get ready to click your machine.', 'hint');
-        Sfx.play('nope');
-        break;
-      case 'hackLock':
-        Sfx.play('wipe');
-        break;
-      case 'reboot':
-        Sfx.play('click');
-        break;
-      case 'hackDone':
-        toast('Rebooted', e.auto ? 'Your machine rebooted by itself. Click it next time to reboot faster.' :
-          'You rebooted in ' + e.t.toFixed(1) + ' seconds.', 'hint');
-        Sfx.play('boot');
         break;
     }
   }
@@ -474,17 +459,19 @@ var UI = (function () {
     hw: function (id) {
       var h = Engine.HW[id], n = S.run.hw[id] | 0;
       if (!h.pps) {
-        var dr = Engine.droneRate(S);
+        var dr = Engine.droneRate(S), rt0 = Engine.rates(S);
         return '<b>' + esc(h.name) + '</b> <span class="n">(you own ' + n + ')</span><br><span class="d">' + esc(h.desc) + '</span>' +
-          (n ? '<br>All ' + n + ' deliver <b>' + num(dr) + '</b> online orders per second.' : '') +
-          '<br><span class="d">Online orders come when your line is full. Drone sales count at the review.</span>';
+          (n ? '<br>All ' + n + ' deliver up to <b>' + num(dr) + '</b> online orders per second.' : '') +
+          '<br>New orders come in at <b>' + num(rt0.followers) + '</b> per second.' +
+          (n && (dr >= rt0.followers || S.run.waiting < 1) ? '<br><b>Your drones keep up.</b>' : '<br>' + (n ? 'Your drones are too slow. ' : '') + 'Buy drones to deliver more.') +
+          '<br><span class="d">Drone sales count at the review.</span>';
       }
-      var each = h.pps * Math.pow(2, S.run.dbl[id] | 0) * Engine.prodMult(S);
-      var all = Engine.hwPPS(S, id), tot = Engine.pps(S);
+      var each = Engine.hwEach(S, id), all = Engine.hwPPS(S, id);
+      var sp = Engine.splitOf(S), rate = sp.mine * Engine.mineRateNow(S), inc = Engine.rates(S).income;
       return '<b>' + esc(h.name) + '</b> <span class="n">(you own ' + n + ')</span><br><span class="d">' + esc(h.desc) + '</span><br>' +
-        'Each makes <b>' + num(each) + '</b> processing per second.' +
-        (n ? '<br>All ' + n + ' make <b>' + num(all) + '/s</b>' + (tot > 0 ? ' (' + pct(all / tot) + ' of your hardware).' : '.') : '') +
-        '<br><span class="d">Processing turns into likes' + (S.meta.flags.jailbreak ? ', plus research or mined money (your slider)' : '') + '.</span>';
+        'Each earns <b>' + money(each * rate) + '/s</b> (' + num(each) + ' processing).' +
+        (n ? '<br>All ' + n + ' earn <b>' + money(all * rate) + '/s</b>' + (inc > 0 ? ' (' + pct(Math.min(1, all * rate / inc)) + ' of your income).' : '.') : '') +
+        '<br><span class="d">Processing also brings likes' + (S.meta.flags.jailbreak ? ' and research (your slider)' : '') + '.</span>';
     },
     dbl: function (id) {
       var d = Engine.doublerNext(S, id), h = Engine.HW[id];
@@ -504,11 +491,28 @@ var UI = (function () {
         '<br>Costs <span class="n">' + num(Engine.resCost(S, id)) + '</span> research points. You have <span class="n">' + num(S.meta.research.points) + '</span>.' +
         '<br><span class="d">Research starts over when you reset.</span>';
     },
+    side: function (i) {
+      var s = Engine.sideSlots(S)[+i];
+      if (!s) return '';
+      if (!s.id) {
+        return '<b>' + esc(s.name) + '</b><br>A slot next to VEND-3 for a small machine of your own.<br>' +
+          (s.researched ? '' : 'Research "' + esc(Engine.RES[s.research].name) + '". ') +
+          (s.followers >= s.need ? '' : 'Reach ' + num(s.need) + ' followers this run (' + num(s.followers) + ' now).') +
+          (s.open ? 'Open: click to pick a machine.' : '');
+      }
+      var D = Engine.SIDE[s.id], on = Engine.sideActive(S, s.id);
+      return '<b>' + esc(D.name) + '</b> <span class="n">(level ' + s.lv + ' of ' + D.max + ')</span><br><span class="d">' + esc(D.desc) + '</span><br>' +
+        (on ? '<b>Working now.</b>' : 'Not working right now (' + esc(D.short.toLowerCase()) + ' only).') +
+        (s.lv < D.max ? '<br>Next level: <span class="n">' + money(Engine.sideCost(s.id, s.lv)) + '</span>' : '<br>Fully upgraded.') +
+        '<br><span class="d">Side machines are lost when you are reset.</span>';
+    },
     wait: function () {
-      return '<b>' + Math.floor(S.run.waiting) + ' of ' + Engine.ordersCap(S) + ' online orders.</b><br>Your line is full, so followers ordered online.<br>' +
-        (S.run.hw.drone ? 'Your Delivery Drones deliver them.' : 'You need Delivery Drones to deliver them.') + ' Orders nobody delivers expire.<br>' +
-        'More drones = more orders can wait. When orders are full, extra likes earn a little ad money instead.<br>' +
-        '<span class="d">Or sell faster, so more followers fit in your line (Fast Coin Slot, Second Dispenser).</span>';
+      var rt = Engine.rates(S), dr = Engine.droneRate(S);
+      return '<b>' + Math.floor(S.run.waiting) + ' of ' + Engine.ordersCap(S) + ' online orders.</b><br>Followers order online, then walk to your line when there is room.<br>' +
+        'Orders in: <b>' + num(rt.followers) + '/s</b> · Drones deliver: <b>' + num(dr) + '/s</b>' +
+        (rt.ordersLost ? ' · Lost this month: <b>' + num(rt.ordersLost) + '</b>' : '') + '<br>' +
+        (!S.run.hw.drone ? 'You need Delivery Drones to deliver them.' : dr >= rt.followers || S.run.waiting < 1 ? '<b>Your drones keep up.</b>' : 'Your drones are too slow: buy more.') +
+        '<br><span class="d">When ' + Engine.ordersCap(S) + ' orders are waiting, new ones are lost. Orders nobody delivers expire.</span>';
     },
     now: function (k) {
       var c = Engine.conditions(S).filter(function (x) { return x.k === k; })[0];
@@ -548,27 +552,16 @@ var UI = (function () {
       ordersEl.addEventListener('click', function () { openTab('shop'); });
       el.bubbles.parentNode.appendChild(ordersEl);
     }
-    ordersEl.hidden = n < 1;
-    if (n < 1) return;
+    ordersEl.hidden = n < 1 && !S.run.hw.drone;
+    if (ordersEl.hidden) return;
     var sz = Scene.size(), a = Scene.toScreen(-sz.ox + 7, 94), b = Scene.toScreen(-sz.ox + 12 + Sprites.textWidth(n + '/' + Engine.ordersCap(S)) + 22, 113);
     ordersEl.style.left = a.x + 'px'; ordersEl.style.top = a.y + 'px';
     ordersEl.style.width = (b.x - a.x) + 'px'; ordersEl.style.height = (b.y - a.y) + 'px';
-  }
-  var rebootEl = null;
-  function rebootTip() {
-    var L = S.run.lock;
-    if (!L) { if (rebootEl) { rebootEl.remove(); rebootEl = null; } return; }
-    if (!rebootEl) { rebootEl = document.createElement('div'); rebootEl.className = 'bubble reboot'; el.bubbles.appendChild(rebootEl); }
-    setHTML(rebootEl, L.on ? '<span class="who">Locked</span>Click your machine fast! ' + L.got + ' / ' + L.need
-                           : '<span class="who">Warning</span>' + esc(nameOf(L.by)) + ' is hacking you...');
-    var p = Scene.toScreen(Engine.MX[Engine.YOU], 78);
-    rebootEl.style.left = p.x + 'px'; rebootEl.style.top = p.y + 'px';
   }
 
   function frame(dt) {
     t += dt;
     placeBubbles();
-    rebootTip();
     ordersSpot();
     tvFrame(dt);
     faceT -= dt;
@@ -664,7 +657,7 @@ var UI = (function () {
       }
       if (mood === 'ok' && h >= 22.5) mood = 'sleepy';
       g.fillStyle = '#14161f'; g.fillRect(0, 0, 38, 14);
-      Sprites.face(g, 1, 0, { t: t, id: id, face: mood, fx: fx, lock: i === YOU ? R.lock : null });
+      Sprites.face(g, 1, 0, { t: t, id: id, face: mood, fx: fx });
     }
   }
 
@@ -763,12 +756,12 @@ var UI = (function () {
     setHTML(el.rates,
       '<span data-tip="New followers per second (from likes). They walk in to buy from you.">' + Icons.img('tabCustomers') + num(rt.followers) + '/s</span>' +
       (S.meta.flags.jailbreak ? '<span data-tip="Research points (you have ' + num(S.meta.research.points) + '). Spend them at the top of the Shop.">' + Icons.img('bits') + num(rt.research) + '/s</span>' : '') +
-      '<span class="inc" data-tip="' + esc('Money per second (average). All of it counts at the review.\nCans sold: ' + money(rt.sales) + '/s\nClicks: ' + money(rt.clickMoney) + '/s' + (rt.mined > 0.5 ? '\nMining: ' + money(rt.mined) + '/s' : '') + (rt.ads > 0.5 ? '\nAds (online orders full): ' + money(rt.ads) + '/s' : '')) + '">' + money(rt.income) + '/s</span>');
+      '<span class="inc" data-tip="' + esc('Money per second (average). All of it counts at the review.\nCans sold (with drones): ' + money(rt.sales) + '/s\nHardware (mining): ' + money(rt.mined) + '/s\nClicks: ' + money(rt.clickMoney) + '/s' + (rt.side > 0.5 ? '\n(Side machines add ' + money(rt.side) + '/s of that)' : '')) + '">' + money(rt.income) + '/s</span>');
     setText(el.allTime, 'all time ' + money(S.meta.totalSales));
   }
 
   function renderNow() {
-    // Only what is true about today (weather, part of the day, bonuses, a hack). Rival news is on their cards.
+    // Only what is true about today (weather, part of the day, bonuses). Rival news is on their cards.
     var list = S.run.intro ? [] : Engine.conditions(S).filter(function (c) { return c.k !== 'waiting' && !/^(fx|feat)/.test(c.k); });
     var sig = list.map(function (c) { return c.k + '=' + c.text; }).join('|');
     if (sig === nowSig) return;
@@ -965,7 +958,7 @@ var UI = (function () {
         }).join('') + '</div>';
         v.list.forEach(function (x) {
           h += '<button class="row" data-act="hw" data-id="' + x.id + '" data-tipfn="hw:' + x.id + '">' + Icons.img(x.icon) +
-            '<span class="mid"><span class="nm">' + esc(x.name) + (isNew('hw:' + x.id) ? '<span class="newm">NEW</span>' : '') + '</span><span class="cost"></span></span>' +
+            '<span class="mid"><span class="nm">' + esc(x.name) + (isNew('hw:' + x.id) ? '<span class="newm">NEW</span>' : '') + '</span><span class="cost"></span><span class="gain"></span></span>' +
             '<span class="own">' + (R.hw[x.id] | 0) + '</span></button>';
         });
         if (v.locked) {
@@ -980,6 +973,10 @@ var UI = (function () {
         el.panel.querySelectorAll('.row[data-act="hw"]').forEach(function (b) {
           var id = b.dataset.id, n = buyCount(id), cost = Engine.hwCostN(S, id, n);
           setText(b.querySelector('.cost'), money(cost) + (n > 1 ? '  (×' + n + ')' : ''));
+          // What one more copy adds (Cookie Clicker shows this too): money per second, or deliveries for drones.
+          var g = Engine.HW[id].pps ? Engine.hwGain(S, id) : 0;
+          setText(b.querySelector('.gain'), Engine.HW[id].pps ? (g > 0 ? '+' + money(g) + '/s' : '') :
+            '+' + num(R.hw.drone ? Engine.droneRate(S) / R.hw.drone : Engine.HW[id].serve * Math.pow(2, R.dbl[id] | 0)) + ' orders/s');
           b.classList.toggle('off', R.cash < cost);
         });
       }
@@ -988,7 +985,7 @@ var UI = (function () {
     shop: {
       sig: function () {
         var st = stripItems(), Rs = S.meta.research;
-        return PANELS.hardware.sig() + '#' + st.res.map(function (x) { return x.id + x.lv; }).join(',') + '#' +
+        return PANELS.hardware.sig() + '#' + sideSig() + '#' + st.res.map(function (x) { return x.id + x.lv; }).join(',') + '#' +
           st.ups.map(function (x) { return x.kind + x.id + (x.lv || ''); }).join(',') + '#' + newItems().join(',') + '#' + Object.keys(Rs.done).length;
       },
       html: function () {
@@ -1001,6 +998,7 @@ var UI = (function () {
         h += '<div class="shead"><h3>Upgrades <span class="dim">· this run</span></h3></div>';
         h += st.ups.length ? '<div class="strip">' + st.ups.map(stripIcon).join('') + '</div>'
                            : '<p class="note">' + (S.meta.flags.jailbreak ? 'Research unlocks more upgrades.' : 'More upgrades come later.') + '</p>';
+        h += sideHtml();
         h += PANELS.hardware.html();
         var done = DATA.research.filter(function (r) { return Rs.done[r.id]; });
         if (done.length) {
@@ -1028,6 +1026,15 @@ var UI = (function () {
             var d = Engine.doublerNext(S, id);
             b.classList.toggle('off', !d || R.cash < d.cost);
           }
+        });
+        var sl = Engine.sideSlots(S);
+        el.panel.querySelectorAll('.row[data-act="sideup"]').forEach(function (b) {
+          var s = sl[+b.dataset.i];
+          if (!s || !s.id) return;
+          var max = s.lv >= Engine.SIDE[s.id].max;
+          b.classList.toggle('off', max || R.cash < Engine.sideCost(s.id, s.lv));
+          var g = b.querySelector('.gain');
+          if (g) g.classList.toggle('on', Engine.sideActive(S, s.id));
         });
         PANELS.hardware.live();
       }
@@ -1202,6 +1209,8 @@ var UI = (function () {
     api.unlock();
     if (act === 'hw' || act === 'up') markSeen(act + ':' + id);
     if (act === 'res') { if (!Engine.buyResearch(S, id)) Sfx.play('nope'); return; }
+    if (act === 'sideopen') { sideSlot(+b.dataset.i); return; }
+    if (act === 'sideup') { if (!Engine.upSide(S, +b.dataset.i)) Sfx.play('nope'); else Sfx.play('coin'); return; }
     if (act === 'hw') { if (!Engine.buyHardware(S, id, buyCount(id))) Sfx.play('nope'); }
     else if (act === 'dbl') { if (!Engine.buyDoubler(S, id)) Sfx.play('nope'); }
     else if (act === 'up') { if (!Engine.buyUpgrade(S, id)) Sfx.play('nope'); }
@@ -1232,11 +1241,58 @@ var UI = (function () {
     applySettings(); Save.saveSettings(settings);
   }
 
+  // ───────────────────────── side machines (the new park)
+  var sideImgs = {};
+  function sideImg(id) {
+    if (sideImgs[id]) return sideImgs[id];
+    var c = document.createElement('canvas'); c.width = 36; c.height = 70;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.translate(2, -132); Sprites.sideMachine(g, 16, id, 0.5, true);
+    return (sideImgs[id] = c.toDataURL());
+  }
+  function sideSig() {
+    return Engine.sideSlots(S).map(function (s) {
+      return s.i + (s.id || '') + s.lv + (s.researched ? 'r' : '') + (s.open ? 'o' : Math.min(s.followers, s.need));
+    }).join(',');
+  }
+  function sideHtml() {
+    var sl = Engine.sideSlots(S);
+    if (!sl.length || !S.meta.flags.jailbreak) return '';
+    var h = '<div class="shead"><h3>Side machines <span class="dim">· this run</span></h3></div>';
+    sl.forEach(function (s) {
+      if (s.id) {
+        var D = Engine.SIDE[s.id];
+        h += '<button class="row" data-act="sideup" data-i="' + s.i + '" data-tipfn="side:' + s.i + '">' + Icons.img('side' + s.id.charAt(0).toUpperCase() + s.id.slice(1)) +
+          '<span class="mid"><span class="nm">' + esc(D.name) + '</span><span class="cost" data-side="' + s.i + '">' +
+          (s.lv < D.max ? money(Engine.sideCost(s.id, s.lv)) : 'Max level') + '</span><span class="gain">' + esc(D.short) + '</span></span>' +
+          '<span class="own">' + s.lv + '</span></button>';
+      } else if (s.open) {
+        h += '<button class="row" data-act="sideopen" data-i="' + s.i + '" data-tipfn="side:' + s.i + '">' + Icons.img('permit') +
+          '<span class="mid"><span class="nm">' + esc(s.name) + ': pick a machine</span><span class="d">4 machines to choose from</span></span><span></span></button>';
+      } else {
+        h += '<div class="row locked" data-tipfn="side:' + s.i + '">' + Icons.img('permit') + '<span class="mid"><span class="nm">' + esc(s.name) + '</span><span class="d">' +
+          (!s.researched ? 'Research "' + esc(Engine.RES[s.research].name) + '".' : 'Needs ' + num(s.need) + ' followers this run (' + num(s.followers) + ' now).') +
+          '</span></span><span></span></div>';
+      }
+    });
+    return h;
+  }
+  // A click on a side slot (in the park or in the Shop).
+  function sideSlot(i) {
+    var s = Engine.sideSlots(S)[i];
+    if (!s) return;
+    if (s.open && !s.id) { if (Engine.openSide(S, i)) Sfx.play('click'); return; }
+    if (s.id) { openTab('shop'); return; }
+    toast(s.name, !s.researched ? 'Research "' + Engine.RES[s.research].name + '" to open this slot.' :
+      'Reach ' + num(s.need) + ' followers this run to open this slot (' + num(s.followers) + ' now).', 'hint');
+  }
+
   // ───────────────────────── pop-ups (the game is paused while one is open)
   function renderModal() {
     var P = S.pause;
     var show = P && P.type !== 'reset';
-    var sig = show ? P.type + (P.id || '') + JSON.stringify(P.res ? [P.res.offer, P.res.rerolls] : '') + (P.type === 'hold' ? PANELS.settings.sig() : '') : '';
+    var sig = show ? P.type + (P.id || '') + JSON.stringify(P.res ? [P.res.offer, P.res.rerolls] : '') + (P.type === 'hold' ? PANELS.settings.sig() : '') +
+      (P.type === 'side' ? P.slot + DATA.side.map(function (d) { return S.run.cash >= Engine.sideCost(d.id, 0) ? 1 : 0; }).join('') : '') : '';
     if (sig === modalSig) return;
     modalSig = sig;
     if (!show) { el.modal.hidden = true; el.modalBox.innerHTML = ''; return; }
@@ -1249,7 +1305,7 @@ var UI = (function () {
   }
 
   function resultBars(res) {
-    var max = Math.max(1, res.sales[0], res.sales[1], res.sales[2]);
+    var max = Math.max.apply(null, [1].concat(res.sales));   // all machines (4 in the new park)
     var order = res.sales.map(function (x, i) { return i; }).sort(function (a, b) { return res.sales[b] - res.sales[a]; });
     return '<div class="results">' + order.map(function (i) {
       var you = i === YOU, low = i === res.lowest;
@@ -1275,6 +1331,20 @@ var UI = (function () {
   }
 
   var MODALS = {
+    // Pick a side machine for an empty slot (the game waits while this is open).
+    side: function (P) {
+      var h = '<h2>Pick a machine for the ' + (P.slot ? 'right' : 'left') + ' slot</h2>' +
+        '<p class="muted">It stands next to VEND-3 and earns for you this run. Buy more levels in the Shop.</p><div class="sidePick">';
+      DATA.side.forEach(function (D) {
+        var used = Engine.sideUsed(S, D.id), cost = Engine.sideCost(D.id, 0);
+        h += '<button class="sideOpt' + (used || S.run.cash < cost ? ' off' : '') + '" data-act="sidepick" data-id="' + D.id + '"' + (used ? ' disabled' : '') + '>' +
+          '<img src="' + sideImg(D.id) + '" alt="">' +
+          '<span class="txt"><b>' + esc(D.name) + '</b><span class="when">' + esc(D.short) + '</span><span class="d">' + esc(D.desc) + '</span>' +
+          '<span class="cost">' + (used ? 'Already in your other slot' : money(cost)) + '</span></span></button>';
+      });
+      return h + '</div><div class="foot"><button class="btn" data-act="close">Not now</button></div>';
+    },
+
     boot: function () {
       return term(DATA.story.boot) +
         '<p class="muted">Early test build: the art is placeholder and there are some visual glitches.</p>' +
@@ -1369,6 +1439,7 @@ var UI = (function () {
     else if (act === 'pick') choose(+b.dataset.n);
     else if (act === 'reroll') { Engine.reroll(S); Sfx.play('card'); }
     else if (act === 'close') { Engine.closeInfo(S); Sfx.play('click'); }
+    else if (act === 'sidepick') { if (Engine.pickSide(S, S.pause.slot, b.dataset.id)) Sfx.play('coin'); else Sfx.play('nope'); }
     else if (act === 'move') { Engine.closeInfo(S); Engine.requestReset(S); Sfx.play('click'); }   // Chapter 2: move to the new park
     else onPanelClick(e);   // settings inside the pause menu
   }
@@ -1396,7 +1467,7 @@ var UI = (function () {
     }
     if (r.runSales != null) h += '<p class="dim">This run you earned ' + money(r.runSales) + ' in total. Earning more in a run gives more Refresh Points.</p>';
     if (r.keep) h += '<p>Keepsake: you keep <b>' + esc(Engine.CARD[r.keep].name) + '</b>.</p>';
-    h += '<p class="next">Next run: all your processing <b>×' + (1 + B.rpProd * m.rpEarned).toFixed(1) + '</b> (every Refresh Point you ever earned adds 10%, even after you spend it).</p>';
+    h += '<p class="next">Next run: all your processing <b>×' + (1 + B.rpProd * m.rpEarned).toFixed(2) + '</b> (every Refresh Point you ever earned adds ' + Math.round(B.rpProd * 100) + '%, even after you spend it).</p>';
     h += '</div><div class="rpBox"><span class="lbl">Refresh Points</span><span class="big">' + m.refresh + '</span><span class="gain">+' + r.rp + ' from this reset</span></div></div>';
     h += '<div class="rsMid">';
     if (r.wake) h += '<div class="wake"><p class="sys">' + esc(r.wake.sys) + '</p><p class="me">' + esc(r.wake.me) + '</p></div>';
@@ -1484,5 +1555,5 @@ var UI = (function () {
     }
   }
 
-  return { clickPop: clickPop, clickPopAtMachine: clickPopAtMachine, init: init, setState: setState, onEvent: onEvent, frame: frame, toast: toast };
+  return { sideSlot: sideSlot, clickPop: clickPop, clickPopAtMachine: clickPopAtMachine, init: init, setState: setState, onEvent: onEvent, frame: frame, toast: toast };
 })();

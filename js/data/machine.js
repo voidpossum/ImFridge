@@ -43,6 +43,11 @@ DATA.machine = [
     fx: [{ k: 'drink', v: 'grape' }],
     first: 'Grape. Purple. Somebody used to love this. I think it was me.' },
 
+  { id: 'energy', name: 'New Flavor: Energy Drink', base: 50000, grow: 1, max: 1, icon: 'energy', research: 'r_energy',
+    desc: 'Adds Energy Drink. It sells for $1 more than your price. Gym people, bosses and Tech Bros love it.',
+    fx: [{ k: 'drink', v: 'energy' }],
+    first: 'Energy Drink. It tastes like a battery. People love it. I think I understand people less now.' },
+
   { id: 'dispenser2', name: 'Second Dispenser', base: 25000, grow: 1, max: 1, icon: 'dispenser', research: 'r_dispenser',
     desc: 'Serve two customers at the same time.',
     fx: [{ k: 'lanes', v: 1 }],

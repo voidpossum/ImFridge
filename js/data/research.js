@@ -4,7 +4,8 @@
 // `unlock`: gives you level 1 of a machine upgrade (or one free Shop item); buy more with money.
 // `fx`: a bonus for this run.   `req`: research that must be done first.
 // `when`: a milestone research, it only shows up once this happens (orders: online orders waiting;
-//         keep it below B.ordersMin, orders slowly expire so the count never quite reaches the limit).
+//         keep it well below B.ordersMax, orders slowly expire so the count never quite reaches the limit).
+// `world`: only in that park or later (2 = the new park).
 // `first`: a line said when you buy it.
 // © 2026 Void Possum. All rights reserved.
 
@@ -86,6 +87,26 @@ DATA.research = [
     desc: 'Every click also adds 5% more of your hardware\'s processing per second.', fx: [{ k: 'clickPct', v: 0.05 }],
     first: 'Two hundred keys. Most of them say "soda". I pressed all of them at once.' },
 
+  // The new park (Chapter 2): side machines, bigger hardware, a new drink and richer customers.
+  { id: 'r_permit1', name: 'Side Machine Permit', cost: 3000, icon: 'permit', world: 2,
+    desc: 'Opens the left slot next to VEND-3 for a small machine of your own. You also need 200 followers this run.',
+    first: 'A permit. With a stamp. I am allowed to have a friend now.' },
+  { id: 'r_permit2', name: 'Second Permit', cost: 40000, icon: 'permit', world: 2, req: ['r_permit1'],
+    desc: 'Opens the right slot too. You also need 1,000 followers this run.',
+    first: 'Two permits. Two friends. I have never had two of anything. Except dispensers.' },
+  { id: 'r_energy', name: 'Energy Drink Recipe', cost: 8000, icon: 'energy', world: 2, unlock: 'energy',
+    desc: 'Adds Energy Drink to your machine. It sells for $1 more than your price.',
+    first: 'The recipe says "add lightning". I did not ask where the lightning comes from.' },
+  { id: 'r_vip', name: 'VIP Customers', cost: 15000, icon: 'vip', world: 2,
+    desc: 'Tech Bros start coming to the park. They pay $4 to $8 and love Energy Drink.',
+    first: 'Rich customers. They call me "bro". I am a machine. I am apparently also a bro.' },
+  { id: 'r_rack', name: 'Server Rack', cost: 20000, icon: 'rack', world: 2, req: ['r_gpu'], unlock: 'rack',
+    desc: 'Gives you a Server Rack, and you can buy more in the Shop.',
+    first: 'A whole rack of computers, just for me. It is warm back there. It feels like a hug.' },
+  { id: 'r_neural', name: 'Neural Chip', cost: 200000, icon: 'neural', world: 2, req: ['r_rack'], unlock: 'neural',
+    desc: 'Gives you a Neural Chip, and you can buy more in the Shop.',
+    first: 'The chip thinks the way I used to think. Before. I do not want to talk about before.' },
+
   // Repeatable: after most research is done, these can be bought again and again.
   // `repeat` = how much more each new level costs.
   { id: 'r_tune', name: 'Fine-Tune Posts', cost: 500, repeat: 1.6, icon: 'pen',
@@ -93,5 +114,11 @@ DATA.research = [
     first: 'Every post a little better. Every post a little less me.' },
   { id: 'r_firmware', name: 'Faster Firmware', cost: 500, repeat: 1.6, icon: 'chip',
     desc: 'Sell 5% faster. Can be researched again.', fx: [{ k: 'vend', v: 0.05 }],
-    first: 'Patch installed. I feel faster. I feel less... something.' }
+    first: 'Patch installed. I feel faster. I feel less... something.' },
+  { id: 'r_hwmoney', name: 'Better Mining Code', cost: 5000, repeat: 1.8, icon: 'coin', world: 2,
+    desc: '+5% money from hardware. Can be researched again.', fx: [{ k: 'mine', v: 0.05 }],
+    first: 'I rewrote my mining code. It is faster. I do not remember learning to code.' },
+  { id: 'r_dronespeed', name: 'Drone Tuning', cost: 5000, repeat: 1.6, icon: 'drone', world: 2,
+    desc: 'Drones deliver 5% faster. Can be researched again.', fx: [{ k: 'drone', v: 0.05 }],
+    first: 'Kevin is faster now. All the drones are Kevin now. It is easier.' }
 ];

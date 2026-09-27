@@ -7,14 +7,14 @@ var Engine = (function () {
   'use strict';
 
   var B = DATA.balance, W = DATA.world;
-  var SAVE_VERSION = 7;
+  var SAVE_VERSION = 8;
   var YOU = 1;
   // Machine x positions of the current world. The same array is kept (the scene reads Engine.MX), only its contents change.
   var MX = W.machineX.slice();
   var MAX_CUSTOMERS = 30;
 
   function index(list) { var o = {}; list.forEach(function (x) { o[x.id] = x; }); return o; }
-  var CARD = index(DATA.cards), MACH = index(DATA.machine), HW = index(DATA.hardware);
+  var CARD = index(DATA.cards), MACH = index(DATA.machine), HW = index(DATA.hardware), SIDE = index(DATA.side || []);
   var RES = index(DATA.research), TREE = index(DATA.tree);
 
   // ───────────────────────── random numbers (seeded, so the simulator is repeatable)
@@ -85,7 +85,7 @@ var Engine = (function () {
 
   function freshQStats(S) {
     return { t0: S.meta.playTime, clicks: 0, secN: 0, sec: [], best10: 0, priceSum: 0, splitSum: 0, waitSum: 0, n: 0, sampleT: 0,
-             gold: 0, hacks: 0 };
+             gold: 0 };
   }
 
   function newGame(seed) {
@@ -150,6 +150,7 @@ var Engine = (function () {
     R.weather = rollWeather(S);
     setWorld(S);
     R.machines = worldOf(S).order.map(function (id, i) { return id === 'you' ? makeYou(S) : makeRival(S, id, i); });
+    R.side = [];   // your side machines (the new park): [{ id, lv }] per slot
     R.machines.forEach(function (M) { fillAll(S, M); });
     // Refresh tree head starts: research already done at the start (and the part it unlocks, level 1).
     DATA.tree.forEach(function (n) {
@@ -166,10 +167,7 @@ var Engine = (function () {
     return R;
   }
 
-  function startSplit(S) {
-    var mine = S.meta.research.done.r_mining ? B.startMine : 0;
-    return { res: 1 - mine, mine: mine };
-  }
+  function startSplit(S) { return { res: 1 - B.startMine, mine: B.startMine }; }
 
   function makeYou(S) {
     return { id: 'you', idx: YOU, x: MX[YOU], queue: [], lanes: [], stock: {}, qSales: 0, rSales: 0, cans: 0,
@@ -203,6 +201,8 @@ var Engine = (function () {
     if (c.daypart && (!ctx || ctx.daypart !== c.daypart)) return false;
     if (c.weather && R.weather !== c.weather) return false;
     if (c.cust && (!ctx || ctx.cust !== c.cust)) return false;
+    if (c.dayparts && (!ctx || c.dayparts.indexOf(ctx.daypart) < 0)) return false;
+    if (c.line_ge != null && R.machines[YOU].queue.length < c.line_ge) return false;
     return true;
   }
 
@@ -235,6 +235,12 @@ var Engine = (function () {
       if (!c) continue;
       for (j = 0; j < c.fx.length; j++) { f = c.fx[j]; if (f.k === k && condOk(S, f.c, ctx)) s += f.v; }
     }
+    var sd = R.side || [];
+    for (i = 0; i < sd.length; i++) {
+      var sm = sd[i], D = sm && SIDE[sm.id];
+      if (!D) continue;
+      for (j = 0; j < D.fx.length; j++) { f = D.fx[j]; if (f.k === k && condOk(S, f.c, ctx)) s += f.v * sm.lv; }
+    }
     return s;
   }
 
@@ -253,12 +259,27 @@ var Engine = (function () {
     return (B.clickPower + fx(S, 'click')) * (1 + fx(S, 'clickMult')) * prodMult(S) + fx(S, 'clickPct') * pps(S);
   }
 
-  function hwPPS(S, id) {
-    var R = S.run, n = R.hw[id] | 0;
-    return n && HW[id].pps ? n * HW[id].pps * Math.pow(2, R.dbl[id] | 0) * prodMult(S) : 0;
+  // Like Cookie Clicker: every copy makes the same amount, doublers double it, and there are two synergies:
+  // - each Auto-Click Script gets +0.1 for every other piece of hardware you own (Thousand Fingers)
+  // - once the next item has its 2nd doubler, this one gets +1% per copy of that next item
+  function hwEach(S, id) {
+    var R = S.run, h = HW[id];
+    if (!h.pps) return 0;
+    var extra = 0;   // Thousand Fingers: not doubled by the script's own doublers
+    if (id === 'script') DATA.hardware.forEach(function (o) { if (o.id !== 'script' && o.pps) extra += B.scriptPerHw * (R.hw[o.id] | 0); });
+    var up = hwNext(id), syn = up && (R.dbl[up.id] | 0) >= 2 ? 1 + B.hwSynergy * (R.hw[up.id] | 0) : 1;
+    return (h.pps * Math.pow(2, R.dbl[id] | 0) + extra) * syn * prodMult(S);
   }
-  // How many online orders can wait: about 30 seconds of what your drones deliver (at least ordersMin).
-  function ordersCap(S) { return Math.max(B.ordersMin, Math.round(droneRate(S) * B.ordersSeconds)); }
+  function hwNext(id) {
+    var list = DATA.hardware.filter(function (h) { return h.pps; });
+    for (var i = 0; i < list.length - 1; i++) if (list[i].id === id) return list[i + 1];
+    return null;
+  }
+  function hwPPS(S, id) { return (S.run.hw[id] | 0) * hwEach(S, id); }
+  // How many online orders can wait. Fixed, so drones can empty the pile when they keep up.
+  function ordersCap(S) { return B.ordersMax; }
+  // New followers per second: they grow with likes, but slower (so drones can keep up).
+  function folRate(S, likesPerSec) { return likesPerSec > 0 ? B.folK * Math.pow(likesPerSec, B.folExp) : 0; }
   // Delivery drones: followers served per second.
   function droneRate(S) {
     var R = S.run, n = R.hw.drone | 0;
@@ -272,7 +293,7 @@ var Engine = (function () {
   // Money from one click: a share of the click's power (trending influencers make it 7×).
   // Like mining and ads, click money gets less effective the more of it you made this run.
   function clickCash(S) {
-    return Math.round(clickPower(S) * B.clickCash / (1 + (S.run.clickRun || 0) / B.clickHalf) * (S.run.buffs.trending ? 7 : 1) * 100) / 100;
+    return Math.round(clickPower(S) * B.clickCash * (S.run.buffs.trending ? 7 : 1) * 100) / 100;
   }
   function likeMult(S) {
     var m = 1 + fx(S, 'likes');
@@ -286,18 +307,24 @@ var Engine = (function () {
     if (!S.meta.flags.jailbreak) return [];
     return S.meta.research.done.r_mining ? ['res', 'mine'] : ['res'];
   }
+  // Before Developer Mode everything is Mining. Before the SodaCoin Wallet the slider is hidden (half and half).
   function splitOf(S) {
     var R = S.run, sp = R.split;
-    if (!S.meta.flags.jailbreak) return { res: 0, mine: 0 };
+    if (!S.meta.flags.jailbreak) return { res: 0, mine: 1 };
     if (!sp || typeof sp !== 'object') sp = R.split = startSplit(S);
-    if (!S.meta.research.done.r_mining && sp.mine) { sp.res += sp.mine; sp.mine = 0; }
     return sp;
   }
   function splitNow(S) { return splitOf(S).mine; }
-  // Money per point of processing put into Mining. It drops as you mine more this run (SodaCoin difficulty).
-  function mineRateNow(S) { return B.mineRate * (1 + fx(S, 'mine')) / (1 + (S.run.minedRun || 0) / B.mineHalf); }
-  // Ads get less effective the more ad money you made this run (like mining), so processing alone cannot snowball.
-  function adRateNow(S) { return B.adCash / (1 + (S.run.adsRun || 0) / B.adHalf); }
+  // Money per point of hardware processing put into Mining. Always the same (half before the SodaCoin Wallet).
+  function mineRateNow(S) { return B.procCash * (1 + fx(S, 'mine')) * (S.meta.research.done.r_mining ? 1 : 0.5); }
+
+  // Side machines: +x% of all the money you earn while their condition is true (see data/side.js).
+  function boostK(S) { return (S.run.side && S.run.side.length) ? 1 + fx(S, 'boost', { daypart: daypartOf(S).id }) : 1; }
+  function boosted(S, amt) {
+    var k = boostK(S);
+    if (k > 1) S.run.rate.sideNow = (S.run.rate.sideNow || 0) + amt * (k - 1);
+    return amt * k;
+  }
 
   // Everything you earn counts: your score (the bar on your card), the run total and the all-time total.
   function score(S, amt) {
@@ -305,37 +332,21 @@ var Engine = (function () {
     Y.qSales += amt; Y.rSales += amt; R.sales += amt; S.meta.totalSales += amt;
   }
 
-  // Turn processing power into likes (→ followers), plus research or mined money.
-  function produce(S, amount) {
+  // Turn processing power into likes (→ followers), plus research, plus mined money (hardware only:
+  // a click pays its own click money instead).
+  function produce(S, amount, click) {
     var R = S.run, m = S.meta, spl = splitOf(S);
     var likes = amount * likeMult(S);
     var research = amount * spl.res * B.resRate;
-    var mined = amount * spl.mine * mineRateNow(S);
+    var mined = click ? 0 : boosted(S, amount * spl.mine * mineRateNow(S));
     if (mined > 0) {
       R.cash += mined; score(S, mined);
       R.rate.mineNow = (R.rate.mineNow || 0) + mined;
       R.minedBank = (R.minedBank || 0) + mined;
-      R.minedRun = (R.minedRun || 0) + mined;
       if (R.minedBank >= 50) { emit(S, { type: 'mine', amount: R.minedBank }); R.minedBank = 0; }
     }
     R.likes += likes; m.totalLikes += likes;
-    R.likeBank += likes;
-    // Every few likes = one follower. They come to your line; if it is full they order online.
-    // When the online orders are full too, the extra likes earn ad money instead (it counts like any money).
-    if (R.likeBank >= B.likesPerFollower) {
-      var n = Math.floor(R.likeBank / B.likesPerFollower);
-      R.likeBank -= n * B.likesPerFollower;
-      var toOrders = Math.min(n, Math.max(0, Math.floor(ordersCap(S) - R.waiting)));
-      R.waiting += toOrders;
-      R.followersRun += toOrders; m.totalFollowers += toOrders;
-      R.rate.followers += toOrders;
-      if (n > toOrders) {
-        var ad = (n - toOrders) * adRateNow(S);
-        R.adsRun = (R.adsRun || 0) + ad;
-        R.cash += ad; score(S, ad);
-        R.rate.adNow = (R.rate.adNow || 0) + ad;
-      }
-    }
+    R.likeNow = (R.likeNow || 0) + likes;   // → followers, in tick (see folRate)
     if (research > 0) addResearch(S, research);
     return { likes: likes, research: research, mined: mined };
   }
@@ -343,17 +354,8 @@ var Engine = (function () {
   // Player action: click your machine. Never fails. held = an auto-click from holding the button down.
   function promote(S, held) {
     if (S.pause) return null;
-    var L = S.run.lock;
-    if (L && L.on) {
-      if (held) return null;   // a hack reboot needs real clicks
-      L.got++;
-      if (S.run.st) { S.run.st.clicks++; S.run.st.secN++; }
-      emit(S, { type: 'reboot', got: L.got, need: L.need });
-      return { likes: 0, research: 0, cash: 0 };
-    }
-    var got = produce(S, clickPower(S));
-    got.cash = clickCash(S);
-    S.run.clickRun = (S.run.clickRun || 0) + got.cash;
+    var got = produce(S, clickPower(S), true);
+    got.cash = boosted(S, clickCash(S));
     S.run.cash += got.cash; score(S, got.cash);
     S.run.rate.clicks += 1; S.run.rate.clickNow += got.cash;
     var IN = S.run.intro;
@@ -408,11 +410,12 @@ var Engine = (function () {
     var Rs = S.meta.research, d = Rs.done;
     if (!d.r_mining) return [RES.r_mining];
     if (!d.r_carpet) return [RES.r_carpet];   // second: it changes how your spot looks, so new players see what research does
-    var normal = DATA.research.filter(function (r) { return !r.repeat; });
+    var here = function (r) { return !r.world || (S.run.world || 1) >= r.world; };   // new-park research only there
+    var normal = DATA.research.filter(function (r) { return !r.repeat && here(r); });
     var doneN = normal.filter(function (r) { return d[r.id]; }).length;
     var left = normal.filter(function (r) { return !d[r.id] && (r.req || []).every(function (q) { return d[q]; }) && whenMet(S, r); });
     var out = left.slice();
-    if (doneN >= 8 || !left.length) DATA.research.forEach(function (r) { if (r.repeat) out.push(r); });
+    if (doneN >= 8 || !left.length) DATA.research.forEach(function (r) { if (r.repeat && here(r)) out.push(r); });
     return out.sort(function (a, b) { return resCost(S, a.id) - resCost(S, b.id); });
   }
 
@@ -483,13 +486,14 @@ var Engine = (function () {
   function hasFeat(M, id) { return !!(M.features && M.features.indexOf(id) >= 0); }
   // How strong rival-only mods are: bigger in the new park, and they grow with your permanent power
   // (every Refresh Point you ever earned). Not with how well you do this run: that stays yours to win.
-  function rivalModK(S) { return (worldOf(S).rivalK || 1) * Math.sqrt(prodMult(S)); }
+  function rivalModK(S) { return (worldOf(S).rivalK || 1) * Math.pow(prodMult(S), B.rivalPow); }
   // Level of a rival-only mod (Sandwich Menu, Drone Fleet, Soda Plus): 0 = not installed.
-  // It starts at level 1 and grows a fixed step every month (a steady curve: rivals keep up, but never snowball).
+  // It starts at level 1 and grows ×modGrow every month (1, 2, 3, 4, 7, 11...): a fixed curve, like your hardware
+  // grows. Rivals keep up, but how well you do this run does not change it.
   function featLv(S, M, id) {
     if (!hasFeat(M, id)) return 0;
     var at = M.featAt && M.featAt[id] != null ? M.featAt[id] : S.run.quarter;
-    return 1 + B.featPerMonth * Math.max(0, S.run.quarter - at);
+    return Math.max(1, Math.round(Math.pow(worldOf(S).modGrow || B.modGrow, Math.max(0, S.run.quarter - at))));
   }
   // A rival earns money: it counts for the review, and part of it goes into its upgrade savings.
   // can: it was a can sold (not crypto money).
@@ -571,7 +575,6 @@ var Engine = (function () {
 
   function available(S, i) {
     var M = S.run.machines[i];
-    if (i === YOU && S.run.lock && S.run.lock.on) return false;
     return !(M.fx && (M.fx.type === 'closed' || M.fx.type === 'cubes'));
   }
 
@@ -589,10 +592,11 @@ var Engine = (function () {
   }
 
   // ───────────────────────── how a walk-in customer scores a machine
-  function scoreFor(S, i, c, ctx) {
+  // noLine: score it as if the line were empty (to check whether the line was the reason for a "no").
+  function scoreFor(S, i, c, ctx, noLine) {
     var R = S.run, M = R.machines[i];
     if (!available(S, i)) return 0;
-    if (M.queue.length >= lineMax(S, i)) return 0;
+    if (!noLine && M.queue.length >= lineMax(S, i)) return 0;
     var p = effPrice(S, i);
     if (p > c.budget * 1.45) return 0;
     var pf = Math.max(0.03, 1.5 - p / c.budget);
@@ -600,7 +604,7 @@ var Engine = (function () {
     if (!sf) return 0;
     var cold = coldOf(S, i);
     var cf = R.weather === 'hot' ? cold * cold : (R.weather === 'rain' ? Math.sqrt(cold) : cold);
-    var qf = 1 / (1 + 0.3 * M.queue.length);
+    var qf = noLine ? 1 : 1 / (1 + 0.3 * M.queue.length / lanesOf(S, M));   // two dispensers: the line counts half
     return appealOf(S, i, ctx) * pf * sf * cf * qf;
   }
 
@@ -689,8 +693,19 @@ var Engine = (function () {
 
   function pickType(S) {
     var dp = daypartOf(S), w = {};
-    for (var t in DATA.customers) w[t] = DATA.customers[t].w[dp.id] || 0;
+    for (var t in DATA.customers) {
+      var T = DATA.customers[t];
+      if (T.research && !S.meta.research.done[T.research]) continue;   // e.g. Tech Bros come after the VIP research
+      w[t] = T.w[dp.id] || 0;
+    }
     return pickWeighted(S, w) || 'office';
+  }
+
+  // Some drinks are only wanted once you sell them (Energy Drink): nobody asks for a drink they never saw.
+  function wantsNow(S, T) {
+    var w = {}, any = false;
+    for (var d in T.wants) if (!(DATA.drinks[d] && DATA.drinks[d].onlyIfSold) || S.run.drinks.indexOf(d) >= 0) { w[d] = T.wants[d]; any = true; }
+    return any ? w : { cola: 1 };
   }
 
   function baseCustomer(S, type) {
@@ -700,7 +715,7 @@ var Engine = (function () {
     S.meta.met[type] = 1;
     return {
       id: R.nextId++, type: type, reg: null, fol: -1, gold: false,
-      want: pickWeighted(S, T.wants), budget: between(S, T.budget[0], T.budget[1]),
+      want: pickWeighted(S, wantsNow(S, T)), budget: between(S, T.budget[0], T.budget[1]),
       x: door.x, y: door.y, tx: between(S, worldOf(S).lookMin, worldOf(S).lookMax), ty: y,
       spd: B.walkSpeed * T.speed * between(S, 0.9, 1.1),
       st: 'in', m: -1, t: 0, wait: 0, icon: null, iconT: 0, iconD: null, look: Math.floor(rand(S) * 1e6),
@@ -856,9 +871,17 @@ var Engine = (function () {
       var Y = R.machines[YOU];
       if (effPrice(S, YOU) > c.budget) think(S, c, 'pricey');
       else if (!(Y.stock[c.want] > 0)) think(S, c, 'sold', c.want);
-      else if (Y.queue.length >= 3) think(S, c, 'line');
+      else if (lineWasWhy(S, c, ctx, Math.sqrt(sc[pick]))) think(S, c, 'line');
       else if (R.weather === 'hot' && coldOf(S, YOU) < coldOf(S, pick) && rand(S) < 0.5) think(S, c, 'hot');
     }
+  }
+
+  // "Line too long" only when it is true: at least 3 people really waiting per dispenser (not walking there),
+  // and with an empty line this customer would have liked you best.
+  function lineWasWhy(S, c, ctx, pickScore) {
+    var Y = S.run.machines[YOU], waiting = 0;
+    Y.queue.forEach(function (id) { var q = findC(S, id); if (q && q.st === 'queue' && q.lane < 0) waiting++; });
+    return waiting >= 3 * lanesOf(S, Y) && scoreFor(S, YOU, c, ctx, true) > pickScore;
   }
 
   // ───────────────────────── player actions
@@ -1158,21 +1181,32 @@ var Engine = (function () {
     if (id) { if (have.indexOf(id) >= 0) return null; }
     else if (!have.some(function (f) { return !DATA.features[f].lv; })) id = 'crypto';   // the first update: self-defense
     else {
-      var w = {}, any = false;
-      for (var k in (D.features || {})) if (have.indexOf(k) < 0) { w[k] = D.features[k]; any = true; }
+      var w = {}, any = false, war = warOn(S);
+      for (var k in (D.features || {})) if (have.indexOf(k) < 0 && !(k === 'pricewar' && war)) { w[k] = D.features[k]; any = true; }
       if (!any) return null;
       id = pickWeighted(S, w);
     }
     var F = DATA.features[id];
     have.push(id);
     if (F.lv) { M.featAt = M.featAt || {}; M.featAt[id] = S.run.quarter; }
-    M.hackUsed = false;
     M.saySoon = id;
     delete S.run.liveKey['feat' + M.idx];
-    if (id === 'pricewar') rivalPricing(S, M);
+    if (id === 'pricewar') { M.warUntil = S.run.quarter + 1; rivalPricing(S, M); }
     stat(S, 'feature', M.id, id);
     return { id: id, name: F.name, desc: F.desc, who: rivalName(S, M),
              all: have.map(function (f) { return DATA.features[f].name; }) };
+  }
+
+  // Price War is an event: it lasts one month, and only one machine can run one at a time.
+  function warOn(S) { return S.run.machines.some(function (M) { return M.idx !== YOU && hasFeat(M, 'pricewar'); }); }
+  function endWars(S) {
+    S.run.machines.forEach(function (M) {
+      if (M.idx === YOU || !hasFeat(M, 'pricewar') || (M.warUntil || 0) > S.run.quarter) return;
+      M.features = M.features.filter(function (f) { return f !== 'pricewar'; });
+      delete M.warUntil;
+      rivalPricing(S, M);
+      liveLine(S, 'war', rivalName(S, M).toUpperCase() + ' ended its price war. Its price is back to normal.');
+    });
   }
 
   function bumpRival(S, M, silent) {
@@ -1185,6 +1219,61 @@ var Engine = (function () {
     log(S, 'Patch notes', name + ': ' + note.text, 'patch');
     emit(S, { type: 'bump', machine: M.idx, name: name, text: note.text, novel: true, silent: !!silent });
     return { name: name, text: note.text };
+  }
+
+  // ───────────────────────── side machines (the new park)
+  // Each slot opens with a research AND enough followers this run. Pick a machine (it costs its level-1 price),
+  // then buy levels in the Shop. They reset with the run.
+  function sideSlots(S) {
+    var wd = worldOf(S), R = S.run;
+    if (!wd.slots || !DATA.sideSlots) return [];
+    return DATA.sideSlots.map(function (d, i) {
+      var cur = (R.side || [])[i] || null, res = !!S.meta.research.done[d.research], fol = R.followersRun | 0;
+      return { i: i, x: wd.slots[i], name: d.name, research: d.research, researched: res, followers: fol, need: d.followers,
+               open: res && fol >= d.followers, id: cur ? cur.id : null, lv: cur ? cur.lv : 0 };
+    });
+  }
+  function sideCost(id, lv) { var D = SIDE[id]; return Math.round(D.base * Math.pow(D.grow, lv)); }
+  function sideUsed(S, id) { return (S.run.side || []).some(function (x) { return x && x.id === id; }); }
+  // Open the pick menu for an empty, open slot (it pauses the game like the pause menu).
+  function openSide(S, i) {
+    var sl = sideSlots(S)[i];
+    if (!sl || !sl.open || sl.id || S.pause) return false;
+    S.pause = { type: 'side', slot: i };
+    return true;
+  }
+  function pickSide(S, i, id) {
+    var sl = sideSlots(S)[i], D = SIDE[id], R = S.run;
+    if (!sl || !sl.open || sl.id || !D || sideUsed(S, id)) return false;
+    var c = sideCost(id, 0);
+    if (R.cash < c) return false;
+    R.cash -= c;
+    R.side = R.side || [];
+    R.side[i] = { id: id, lv: 1 };
+    if (S.pause && S.pause.type === 'side') S.pause = null;
+    S.meta.flags['side_' + id] = 1;
+    emit(S, { type: 'sideBuy', slot: i, id: id, lv: 1 });
+    sayOnce(S, 'sf_' + id, myName(S), D.first, { machine: YOU, kind: 'you' });
+    stat(S, 'side', id, 1);
+    return true;
+  }
+  function upSide(S, i) {
+    var R = S.run, cur = (R.side || [])[i];
+    if (!cur || S.pause) return false;
+    var D = SIDE[cur.id];
+    if (cur.lv >= D.max) return false;
+    var c = sideCost(cur.id, cur.lv);
+    if (R.cash < c) return false;
+    R.cash -= c;
+    cur.lv++;
+    emit(S, { type: 'sideBuy', slot: i, id: cur.id, lv: cur.lv });
+    stat(S, 'side', cur.id, cur.lv);
+    return true;
+  }
+  // Is this side machine's bonus working right now?
+  function sideActive(S, id) {
+    var D = SIDE[id], ctx = { daypart: daypartOf(S).id };
+    return D.fx.some(function (f) { return f.k === 'boost' && condOk(S, f.c, ctx); });
   }
 
   // ───────────────────────── reviews, cards, resets
@@ -1212,7 +1301,7 @@ var Engine = (function () {
       price: Math.round(st.priceSum / n * 100) / 100, split: Math.round(st.splitSum / n * 100) / 100,
       sales: sales, rank: rank, lost: !!lost, cash: Math.round(R.cash), pps: Math.round(pps(S) * 10) / 10,
       research: Object.keys(m.research.done).length, waiting: Math.round(st.waitSum / n * 10) / 10,
-      thoughts: thoughtsSummary(S, dur), gold: st.gold, hacks: st.hacks,
+      thoughts: thoughtsSummary(S, dur), gold: st.gold,
       rivals: R.machines.filter(function (M) { return M.idx !== YOU; }).map(function (M) {
         return { id: M.id, bumps: M.bumps, str: Math.round(rivalStrength(S, M) * 100) / 100, feature: (M.features || []).join('+') || null, up: M.up || {} };
       }),
@@ -1233,19 +1322,18 @@ var Engine = (function () {
       return a === YOU ? -1 : (b === YOU ? 1 : 0);
     });
     var lowest = order[0];
-    var rank = 3 - order.indexOf(YOU);
+    var rank = ms.length - order.indexOf(YOU);
     // Rivals copy whoever is ahead: the further you out-sell one, the faster it grows next quarter.
     ms.forEach(function (M, i) {
       if (i === YOU) return;
       var ratio = qs[YOU] / Math.max(1, qs[i]);
       if (ratio > 1) M.copy = (M.copy || 1) * Math.min(2.5, 1 + B.rivalCopy * Math.log(ratio) / Math.LN2);
     });
-    ms.forEach(function (M) { if (M.idx !== YOU) M.hackUsed = false; });
-    if (R.lock) R.lock = null;
     var res = { quarter: R.quarter, sales: sales, names: ms.map(function (M) { return M.idx === YOU ? myName(S) : rivalName(S, M); }),
                 ids: ms.map(function (M) { return M.id; }), lowest: lowest, rank: rank, quarterSales: qs.slice() };
     emit(S, { type: 'review', res: res, novel: true });
     snapQuarter(S, sales, rank, lowest === YOU);
+    endWars(S);
     if (lowest === YOU) {
       // Last place: a strike. Three in a row and Management resets you.
       R.strikes = (R.strikes | 0) + 1;
@@ -1274,6 +1362,7 @@ var Engine = (function () {
     }
     ms.forEach(function (M) { M.qSales = 0; });
     R.qThoughts = {};
+    R.qLost = 0;
     R.quarter++;
     // Rival-only mods arrive on a fixed schedule (the month is in DATA.rivals[id].mods).
     ms.forEach(function (M) {
@@ -1430,6 +1519,7 @@ var Engine = (function () {
     var P = S.pause;
     if (!P) return false;
     if (P.type === 'hold') return hold(S, false);
+    if (P.type === 'side') { S.pause = null; return true; }
     if (P.type === 'boot') { S.pause = null; mail(S, 'welcome'); return true; }
     if (P.type === 'chapter') { S.pause = null; return true; }
     if (P.type === 'jailbreak') {
@@ -1541,7 +1631,7 @@ var Engine = (function () {
     if (dp.id === 'night') out.push({ k: 'night', text: 'Night', detail: 'Only night-shift workers come by.' });
     if (R.buffs.trending) out.push({ k: 'trending', text: 'Trending', detail: 'Likes ×7 for ' + Math.ceil(R.buffs.trending.t) + ' more seconds.' });
     if (R.buffs.rush) out.push({ k: 'rush', text: 'Rush hour', detail: 'You sell twice as fast for ' + Math.ceil(R.buffs.rush.t) + ' more seconds.' });
-    if (R.waiting >= 3) out.push({ k: 'waiting', text: Math.floor(R.waiting) + ' online orders', detail: 'Your line is full, so followers ordered online. Delivery Drones deliver online orders. Orders nobody delivers expire.' });
+    if (R.waiting >= 3) out.push({ k: 'waiting', text: Math.floor(R.waiting) + ' online orders', detail: 'Followers order online. Delivery Drones deliver online orders. Orders nobody delivers expire.' });
     R.machines.forEach(function (M) {
       if (M.idx !== YOU && M.fx) out.push({ k: 'fx' + M.idx, text: DATA.rivals[M.id].name, detail: fxLine(S, M) });
       if (M.idx !== YOU) (M.features || []).forEach(function (f) {
@@ -1549,7 +1639,6 @@ var Engine = (function () {
         out.push({ k: 'feat' + M.idx + f, text: DATA.rivals[M.id].name + ': ' + F.name, detail: F.desc });
       });
     });
-    if (R.lock) out.push({ k: 'lock', text: R.lock.on ? 'LOCKED' : 'Being hacked', detail: DATA.story.hack.lock });
     return out;
   }
 
@@ -1636,8 +1725,9 @@ var Engine = (function () {
     R.rate.followersEMA = R.rate.followersEMA * (1 - a) + R.rate.followers / dt * a;
     R.rate.clicksEMA = R.rate.clicksEMA * (1 - a) + R.rate.clicks / dt * a;
     R.rate.clickEMA = (R.rate.clickEMA || 0) * (1 - a) + (R.rate.clickNow || 0) / dt * a;
-    R.rate.adEMA = (R.rate.adEMA || 0) * (1 - a) + (R.rate.adNow || 0) / dt * a;
-    R.rate.salesNow = 0; R.rate.followers = 0; R.rate.clicks = 0; R.rate.clickNow = 0; R.rate.adNow = 0;
+    R.rate.sideEMA = (R.rate.sideEMA || 0) * (1 - a) + (R.rate.sideNow || 0) / dt * a;
+    R.rate.sideNow = 0;
+    R.rate.salesNow = 0; R.rate.followers = 0; R.rate.clicks = 0; R.rate.clickNow = 0;
 
     // Play stats: sampled once a second.
     if (!R.st) R.st = freshQStats(S);
@@ -1662,8 +1752,22 @@ var Engine = (function () {
     // Bonuses run out.
     for (var bk in R.buffs) { R.buffs[bk].t -= dt; if (R.buffs[bk].t <= 0) delete R.buffs[bk]; }
 
-    // Online orders: followers who could not fit in your line ordered online. Drones deliver them;
-    // the rest come in when there is room in your line. Orders nobody delivers expire (lost sales, no complaint).
+    // New followers: likes per second (smoothed over a few seconds) → followers, growing slower than likes.
+    // They order online and walk to your line when there is room. Drones deliver the online orders.
+    // When the order list is full, new ones are lost (no complaint, but they count as lost this month).
+    var la = Math.min(1, dt / 3);
+    R.likeEMA = (R.likeEMA || 0) * (1 - la) + (R.likeNow || 0) / dt * la;
+    R.likeNow = 0;
+    R.folAcc = (R.folAcc || 0) + folRate(S, R.likeEMA) * dt;
+    if (R.folAcc >= 1) {
+      var nf = Math.floor(R.folAcc);
+      R.folAcc -= nf;
+      var toOrders = Math.min(nf, Math.max(0, Math.floor(ordersCap(S) - R.waiting)));
+      R.waiting += toOrders;
+      R.followersRun += toOrders; m.totalFollowers += toOrders;
+      R.rate.followers += nf;
+      if (nf > toOrders) { R.ordersLost = (R.ordersLost | 0) + nf - toOrders; R.qLost = (R.qLost | 0) + nf - toOrders; }
+    }
     var Y = R.machines[YOU];
     if (R.waiting > ordersCap(S)) R.waiting = ordersCap(S);   // (older saves could have hundreds)
     if (R.waiting > 0 && !intro) {
@@ -1680,31 +1784,13 @@ var Engine = (function () {
     if (!intro) R.spawnT -= dt;
     if (R.spawnT <= 0) {
       spawnWalkIn(S);
-      var rate = B.baseTraffic * dp.mult * DATA.weather[R.weather].traffic * (1 + fx(S, 'traffic')) * (R.buffs.rush ? 2 : 1);
+      var rate = B.baseTraffic * dp.mult * DATA.weather[R.weather].traffic * (1 + fx(S, 'traffic', { daypart: dp.id })) * (R.buffs.rush ? 2 : 1);
       R.spawnT = -Math.log(1 - rand(S) * 0.999) / rate;
     }
 
     // Trending customer.
     if (!intro) R.goldT -= dt;
     if (R.goldT <= 0) { spawnGold(S); R.goldT = goldInterval(S); }
-
-    // A hack: a short warning, then your machine is locked until you click it back to life.
-    if (R.lock) {
-      var LK = R.lock;
-      if (!LK.on) {
-        LK.warn -= dt;
-        if (LK.warn <= 0) { LK.on = true; LK.t = 0; if (R.st) R.st.hacks++; emit(S, { type: 'hackLock', machine: LK.by }); }
-      } else {
-        LK.t += dt;
-        if (LK.got >= LK.need || LK.t >= B.hackMax) {
-          stat(S, 'hack', Math.round(LK.t * 10) / 10, LK.got);
-          R.lock = null;
-          delete R.liveKey.hack;
-          emit(S, { type: 'hackDone', auto: LK.got < LK.need, t: LK.t });
-          rivalLine(S, R.machines[LK.by], 'rebooted', true);
-        }
-      }
-    }
 
     // Rivals: quirks, restocking, their own followers.
     R.machines.forEach(function (M) {
@@ -1753,13 +1839,6 @@ var Engine = (function () {
         rivalEarn(M, mined);
         M.mined = (M.mined || 0) + mined;
         if (M.mined >= 200) { M.mined -= 200; emit(S, { type: 'emote', machine: M.idx, kind: 'btc' }); }
-      }
-      if (hasFeat(M, 'hack') && !M.hackUsed && !R.lock && R.qDay >= 1 && Y.rSales > 1500 && Y.rSales >= B.hackLead * M.rSales) {
-        M.hackUsed = true;
-        R.lock = { by: M.idx, warn: B.hackWarn, on: false, got: 0, need: B.hackClicks, t: 0 };
-        liveLine(S, 'hack', rivalName(S, M).toUpperCase() + ' ' + DATA.story.hack.warn);
-        emit(S, { type: 'hackWarn', machine: M.idx });
-        emit(S, { type: 'emote', machine: M.idx, kind: 'skull' });
       }
       // Being passed, or being far ahead.
       var ahead = M.rSales > Y.rSales;
@@ -1891,7 +1970,7 @@ var Engine = (function () {
       if (alt >= 0) { var ap = effPrice(S, alt); rivalEarn(R.machines[alt], ap, true, S); emit(S, { type: 'sale', machine: alt, amount: ap, online: true }); }
       return -1;
     }
-    var pay = Math.round(effPrice(S, YOU) * (1 + fx(S, 'money', ctx)));
+    var pay = Math.round(boosted(S, effPrice(S, YOU) * (1 + fx(S, 'money', ctx))));
     var Y = R.machines[YOU], unit = B.canCost * restockMult(S);
     score(S, pay);
     R.cash += pay - unit;
@@ -1911,7 +1990,10 @@ var Engine = (function () {
     M.stock[d]--;
     c.drink = d; c.st = 'buy'; c.lane = laneIdx;
     var price = effPrice(S, M.idx);
-    if (M.idx === YOU) price *= 1 + fx(S, 'money', { daypart: daypartOf(S).id, cust: c.type });
+    if (M.idx === YOU) {
+      price += DATA.drinks[d].extra || 0;   // Energy Drink costs more
+      price = boosted(S, price * (1 + fx(S, 'money', { daypart: daypartOf(S).id, cust: c.type })));
+    }
     if (M.fx && M.fx.type === 'nopay') price = 0;
     c.pay = Math.round(price * 100) / 100;
     L.c = c.id;
@@ -2055,6 +2137,27 @@ var Engine = (function () {
       if (o.meta.flags && o.meta.flags.ch1done) o.meta.chapter = Math.max(o.meta.chapter || 1, 2);
       o.v = 7;
     }
+    if (o.v === 7) {
+      // 0.3.0 → 0.3.1: no more hacking; Price War is a one-month event (one rival at a time); a fixed
+      // online-order limit; money from processing no longer gets tired; side machine slots.
+      var R7 = o.run;
+      if (R7) {
+        delete R7.lock; delete R7.adsRun; delete R7.clickRun; delete R7.minedRun;
+        if (R7.waiting > B.ordersMax) R7.waiting = B.ordersMax;
+        if (!R7.side) R7.side = [];
+        var war = false;
+        (R7.machines || []).forEach(function (M) {
+          delete M.hackUsed;
+          if (!M.features) return;
+          M.features = M.features.filter(function (f) { return f !== 'hack'; });
+          if (M.features.indexOf('pricewar') >= 0) {
+            if (war) M.features = M.features.filter(function (f) { return f !== 'pricewar'; });
+            else { war = true; M.warUntil = R7.quarter || 1; }   // ends at the coming review
+          }
+        });
+      }
+      o.v = 8;
+    }
     return o;
   }
 
@@ -2103,20 +2206,31 @@ var Engine = (function () {
   function rates(S) {
     var R = S.run, p = pps(S), spl = splitOf(S), click = clickPower(S), mr = mineRateNow(S);
     var clicks = R.rate.clicksEMA || 0, total = p + clicks * click;
-    var sales = R.rate.salesEMA || 0, mined = R.rate.mineEMA || 0, clickMoney = R.rate.clickEMA || 0, ads = R.rate.adEMA || 0;
+    var sales = R.rate.salesEMA || 0, mined = R.rate.mineEMA || 0, clickMoney = R.rate.clickEMA || 0;
+    var fol = folRate(S, R.likeEMA || 0);
     return {
       pps: p, clickPower: click, clicks: clicks, total: total,
-      likes: total * likeMult(S), followers: total * likeMult(S) / B.likesPerFollower,
-      research: total * spl.res * B.resRate, mining: total * spl.mine * mr, splits: spl,
-      sales: sales, mined: mined, clickMoney: clickMoney, ads: ads, income: sales + mined + clickMoney + ads,
-      capacity: capacity(S), drones: droneRate(S), prod: prodMult(S)
+      likes: total * likeMult(S), followers: fol,
+      research: total * spl.res * B.resRate, mining: p * spl.mine * mr, splits: spl,
+      sales: sales, mined: mined, clickMoney: clickMoney, income: sales + mined + clickMoney,
+      capacity: capacity(S), drones: droneRate(S), prod: prodMult(S), ordersLost: R.qLost | 0, side: R.rate.sideEMA || 0, boost: boostK(S)
     };
+  }
+  // What one more copy of a hardware item would add, in money per second (at your current slider).
+  function hwGain(S, id) {
+    var R = S.run;
+    if (!HW[id].pps) return 0;
+    var before = pps(S);
+    R.hw[id] = (R.hw[id] | 0) + 1;
+    var after = pps(S);
+    R.hw[id]--;
+    return (after - before) * splitOf(S).mine * mineRateNow(S) * boostK(S);
   }
 
   // What one click gives right now (for the Post button).
   function perClick(S) {
     var c = clickPower(S), spl = splitOf(S);
-    return { processing: c, cash: clickCash(S), likes: c * likeMult(S), research: c * spl.res * B.resRate, mined: c * spl.mine * mineRateNow(S) };
+    return { processing: c, cash: clickCash(S), likes: c * likeMult(S), research: c * spl.res * B.resRate, mined: 0 };
   }
 
   function rivalInfo(S, i) {
@@ -2132,7 +2246,8 @@ var Engine = (function () {
     promote: promote, restock: restock, skipIntro: skipIntro, myName: myName, setName: setName, splitOf: splitOf, splitKeys: splitKeys, restockCost: restockCost, setPrice: setPrice, setSmart: setSmart, setSplit: setSplit,
     buyUpgrade: buyUpgrade, upgradeCost: upgradeCost, upgradeAvailable: upgradeAvailable,
     buyHardware: buyHardware, hwCost: hwCost, hwCostN: hwCostN, hwMaxAffordable: hwMaxAffordable, hwAvailable: hwAvailable,
-    hwPPS: hwPPS, pps: pps, doublerNext: doublerNext, buyDoubler: buyDoubler,
+    sideSlots: sideSlots, sideCost: sideCost, sideUsed: sideUsed, openSide: openSide, pickSide: pickSide, upSide: upSide, sideActive: sideActive, SIDE: SIDE, boostK: boostK,
+    hwPPS: hwPPS, hwEach: hwEach, hwGain: hwGain, folRate: folRate, pps: pps, doublerNext: doublerNext, buyDoubler: buyDoubler,
     buyResearch: buyResearch, researchAvailable: researchAvailable, resCost: resCost, resLevel: resLevel,
     droneRate: droneRate, prodMult: prodMult, clickPower: clickPower, clickCash: clickCash, ordersCap: ordersCap,
     pickCard: pickCard, reroll: reroll, closeInfo: closeInfo, hold: hold, clickGold: clickGold, stat: stat, loyalChance: loyalChance,

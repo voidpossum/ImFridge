@@ -62,12 +62,23 @@ var Scene = (function () {
     return null;
   }
 
-  // What is under the pointer? Trending customers first, then your machine, then the crate.
+  // Your side slots (the new park): the box of slot i.
+  function slotUnder(S, p) {
+    var sl = Engine.sideSlots(S);
+    for (var i = 0; i < sl.length; i++) {
+      if (!sl[i].researched) continue;
+      if (inBox(p, { x: sl[i].x - Sprites.SIDE_W / 2, y: 200 - Sprites.SIDE_H, w: Sprites.SIDE_W, h: Sprites.SIDE_H })) return sl[i];
+    }
+    return null;
+  }
+  // What is under the pointer? Trending customers first, then your machine, then the crate, then a side slot.
   function hit(S, e) {
     var p = toWorld(e), g = goldUnder(S, p);
     if (g) return { kind: 'gold', id: g.id };
     if (inBox(p, crateBox())) return { kind: 'crate' };
     if (inBox(p, YOU_BOX)) return { kind: 'you' };
+    var sl = slotUnder(S, p);
+    if (sl) return { kind: 'slot', i: sl.i };
     return null;
   }
   function hoverTarget(S) {
@@ -75,6 +86,7 @@ var Scene = (function () {
     if (goldUnder(S, mouse)) return 'gold';
     if (inBox(mouse, crateBox())) return 'crate';
     if (inBox(mouse, YOU_BOX)) return 'you';
+    if (slotUnder(S, mouse)) return 'slot';
     return null;
   }
 
@@ -430,7 +442,7 @@ var Scene = (function () {
       else if (h >= 22 && !M.queue.length) mood = 'sleepy';
       var st = Engine.youStats(S);
       return { id: 'you', stock: M.stock, cap: st.cap, drinks: run.drinks, up: run.upgrades, hw: run.hw, pps: Engine.pps(S),
-               lanes: st.lanes, hat: Engine.hasHat(S), face: mood, vending: vending, t: t, cold: st.cold, lock: run.lock || null,
+               lanes: st.lanes, hat: Engine.hasHat(S), face: mood, vending: vending, t: t, cold: st.cold,
                clickMe: S.meta.totalLikes < 12 && !S.pause && !(run.intro && run.intro.step !== 'post'), name: Engine.myName(S) };
     }
     var mood2 = run.intro ? 'sleepy' : faceMood[i] && t < faceMood[i].until ? faceMood[i].mood : 'ok';
@@ -465,6 +477,7 @@ var Scene = (function () {
     prints = prints.filter(function (p) { p.t += dt; return p.t < 8; });
 
     drawPark(S, t);
+    sideMachines(S, t, dt);
 
     // machines (yours squashes a little when clicked, and grows a little under the mouse)
     var hov = hoverTarget(S);
@@ -490,12 +503,19 @@ var Scene = (function () {
     youDraw(hov === 'you', t, function (g) { Sprites.crate(g, CRATE.x, CRATE.y, hov === 'crate'); });
     // online orders (followers who could not fit in your line): a drone counter at the left edge of the view.
     // A drone, so players see what delivers them.
+    // With drones it always shows, so you can watch it go down to 0 when your drones keep up.
     var wait = Math.floor(run.waiting);
-    if (wait >= 1) {
+    if (wait >= 1 || run.hw.drone) {
       var lab2 = wait + '/' + Engine.ordersCap(S), bw = Sprites.textWidth(lab2) + 22, bx = Math.round(-ox + 8);
-      R(ctx, bx - 1, 95, bw + 2, 17, P.ink); R(ctx, bx, 96, bw, 15, '#fff4e0');
-      Sprites.drone(ctx, bx + 9, 99, run.hw.drone ? t : 0, DATA.drinks.cola.color);
+      R(ctx, bx - 1, 95, bw + 2, 17, P.ink); R(ctx, bx, 96, bw, 15, wait < 1 ? '#e4f6dc' : '#fff4e0');
+      Sprites.drone(ctx, bx + 9, 99, run.hw.drone && wait >= 1 ? t : 0, wait >= 1 ? DATA.drinks.cola.color : null);
       Sprites.text(ctx, lab2, bx + 19, 101, run.hw.drone ? P.ink : P.red);
+    }
+    // Drones with nothing to deliver wait on VEND-3's roof, left and right of the crate (up to 2 are drawn).
+    if (run.hw.drone && wait < 1 && !run.intro) {
+      var rt = Engine.rates(S), dr = Engine.droneRate(S);
+      var parked = Math.min(2, Math.floor(run.hw.drone * Math.max(0, 1 - rt.followers / Math.max(1e-6, dr))));
+      for (var pk = 0; pk < parked; pk++) Sprites.drone(ctx, Engine.MX[Engine.YOU] + (pk ? 17 : -17), Sprites.MTOP - 4, 0, null);
     }
 
     // people, back to front
@@ -720,6 +740,23 @@ var Scene = (function () {
 
   // How many drones are in the sky right now (at most about 12 are drawn, so the sky stays readable).
   function dronesUp() { var n = 0; for (var i = 0; i < parts.length; i++) if (parts[i].k === 'drone') n++; return n; }
+  // Your side machines (or their empty slots) next to VEND-3. A working machine drops a coin now and then.
+  var sideT = 0;
+  function sideMachines(S, t, dt) {
+    var sl = Engine.sideSlots(S);
+    if (!sl.length) return;
+    sideT += dt;
+    var pop = sideT > 1.4;
+    if (pop) sideT = 0;
+    sl.forEach(function (s) {
+      if (s.id) {
+        var on = Engine.sideActive(S, s.id);
+        Sprites.sideMachine(ctx, s.x, s.id, t, on);
+        if (on && pop && !reduced && !S.pause) sparks(s.x, 176, P.gold1, 2);
+      } else if (s.researched) Sprites.sideSlot(ctx, s.x, t, s.open, s.open ? '' : Math.min(s.followers, s.need) + '/' + s.need);
+    });
+  }
+
   function sparks(x, y, color, n) {
     if (reduced) n = Math.ceil(n / 3);
     for (var i = 0; i < n; i++) parts.push({ k: 'spark', x: x, y: y, vx: (Math.random() - 0.5) * 60, vy: -Math.random() * 50 - 10, t: 0, life: 0.6 + Math.random() * 0.5, c: color });
@@ -754,6 +791,10 @@ var Scene = (function () {
       case 'buy': case 'hw': case 'doubler':
         sparks(MX[1], 140, P.gold1, 14); sparks(MX[1], 140, P.white, 8);
         break;
+      case 'sideBuy':
+        var sx0 = Engine.sideSlots(S)[e.slot];
+        if (sx0) { sparks(sx0.x, 160, P.gold1, 14); sparks(sx0.x, 160, P.white, 8); }
+        break;
       case 'tube': capsule(S, Engine.YOU, e.drink, 0); break;
       case 'fill': for (var fc = 0; fc < (reduced ? 1 : 3); fc++) capsule(S, e.machine, e.drink, fc * 9); break;
       case 'drones':
@@ -768,18 +809,6 @@ var Scene = (function () {
         break;
       case 'emote':
         if (!emotes[e.machine] || t > emotes[e.machine].until - 1) emotes[e.machine] = { kind: e.kind, until: t + 2.2 };
-        break;
-      case 'hackWarn':
-        emotes[1] = { kind: 'bang', until: t + 5 };
-        break;
-      case 'hackLock':
-        shakeT = 0.4; flashT = 0.3;
-        break;
-      case 'reboot':
-        sparks(MX[1], 124, P.green, 3);
-        break;
-      case 'hackDone':
-        sparks(MX[1], 124, P.green, 16); emotes[1] = { kind: 'happy', until: t + 2 };
         break;
       case 'bump':
         emotes[e.machine] = { kind: 'bang', until: t + 2 };

@@ -17,7 +17,7 @@ The design plan (chapters, systems, endings) was approved 2026-09-26.
 - **All rights reserved.** Never add an open-source license (MIT etc.). File headers say `© 2026 Void Possum. All rights reserved.`
 
 ## Map
-- `js/data/*.js`: all text and numbers (balance, cards, rivals, story, machine, hardware, research, tree, news)
+- `js/data/*.js`: all text and numbers (balance, cards, rivals, story, machine, hardware, research, tree, news, side = your side machines in the new park)
 - `js/engine.js`: rules. `js/scene.js` + `js/sprites.js`: canvas lobby (480×270). `js/ui.js`: DOM. `js/icons.js`: menu icons. `js/main.js`: loop, saving, `?debug=1` bar
 - `tools/devserver.py`: local server for browser testing (`.claude/launch.json`), saves canvas snapshots to the system temp folder
 - `tools/wiki.html`: the game data wiki (all upgrades, cards, rivals, balance; editable, exports a change list). Opened in the game with the Konami code (↑↑↓↓←→←→BA), no visible link. `tools/describe.js` builds its sections; `tools/gen-docs.js` writes the same as `docs/game-data.md`.

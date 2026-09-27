@@ -13,7 +13,7 @@ var vm = require('vm');
 
 var root = path.join(__dirname, '..');
 ['js/data/core.js', 'js/data/cards.js', 'js/data/rivals.js', 'js/data/story.js', 'js/data/machine.js',
- 'js/data/hardware.js', 'js/data/research.js', 'js/data/tree.js', 'js/data/news.js', 'js/engine.js'].forEach(function (f) {
+ 'js/data/hardware.js', 'js/data/research.js', 'js/data/tree.js', 'js/data/news.js', 'js/data/side.js', 'js/engine.js'].forEach(function (f) {
   vm.runInThisContext(fs.readFileSync(path.join(root, f), 'utf8'), { filename: f });
 });
 
@@ -28,6 +28,7 @@ args.forEach(function (a, i) {
   console.log('(balance: ' + kv[0] + ' = ' + kv[1] + ')');
 });
 var only = arg('--only', null);
+var CURVE = args.indexOf('--curve') >= 0;   // print every month: everyone's money this run
 
 // Real seconds a person spends on screens that pause the game.
 var READ = { boot: 25, review: 18, reset: 45, chapter: 15, jailbreak: 25, say: 2.5, mail: 6 };
@@ -42,6 +43,12 @@ var PROFILES = {
 
 var SPEND = {};
 function spend(k, v) { SPEND[k] = (SPEND[k] || 0) + v; }
+// Income right now (cents per second): hardware mining at this moment + average can sales + average click money.
+function incomeNow(S) {
+  var r = Engine.rates(S);
+  return r.mining + r.sales + r.clickMoney;
+}
+var JUMPS = { any: [], first: [] };   // how much one hardware buy raised the income (×)
 function simulate(profile, seed) {
   var P = PROFILES[profile];
   SPEND = {};
@@ -54,6 +61,8 @@ function simulate(profile, seed) {
   var ch1Rivals = '', ch2 = null;
   var runs = [], runStart = 0, runQ = 0, ch1At = null, firstAuto = null, jailAt = null, firstGold = null, introAt = null, mined = 0;
   var capLimited = 0, capTotal = 0, strikes = 0, lastScore = 0, scoreDrops = 0;
+  var droneT = 0, droneKeep = 0, droneZero = 0, dIn = 0, dOut = 0, lineN = 0, lineMonths = 0;
+  JUMPS = { any: [], first: [] };
   var rnd = mulberry(seed * 7 + 3);
   var guard = 0;
 
@@ -82,6 +91,15 @@ function simulate(profile, seed) {
       } else if (t === 'review') {
         runQ++;
         if (S.pause.res.strikes) strikes++;
+        var lastQ = S.meta.stats.q[S.meta.stats.q.length - 1];
+        if (lastQ && lastQ.thoughts) { lineN += lastQ.thoughts.line || 0; lineMonths++; }
+        if (CURVE) console.log('    run ' + (runs.length + 1) + ' month ' + S.pause.res.quarter + ' (' + fmt((now() - runStart) / 60) + ' min): ' +
+          S.run.machines.map(function (M) { return M.id + ' ' + Engine.money(M.rSales, true); }).join(', ') +
+          ' | pps ' + Math.round(Engine.pps(S)) + ', drones ' + (S.run.hw.drone | 0) + ', hw ' + JSON.stringify(S.run.hw) +
+          ', prod ×' + Engine.prodMult(S).toFixed(2) + ', mine ' + Engine.splitOf(S).mine.toFixed(2) + ', repeat ' +
+          DATA.research.filter(function (r) { return r.repeat && S.meta.research.done[r.id]; }).map(function (r) { return r.id + ' ' + S.meta.research.done[r.id]; }).join(' ') +
+          ', side ' + (S.run.side || []).filter(Boolean).map(function (x) { return x.id + x.lv; }).join(' ') + ' boost ×' + Engine.boostK(S).toFixed(2) +
+          ', income/s ' + Engine.money(incomeNow(S)));
         var offer = S.pause.res.offer || [], best = 0, bestScore = -1;
         offer.forEach(function (id, n) {
           var sc = { legendary: 3, rare: 2, common: 1 }[Engine.CARD[id].rarity] + rnd() * 0.5;
@@ -92,7 +110,8 @@ function simulate(profile, seed) {
         runQ++;
         if (S.pause.res.strikes) strikes++;
         runs.push({ world: S.run.world, minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales), rp: S.pause.res.rp, strikes: strikes, asked: !!S.pause.res.voluntary,
-                    pps: Engine.pps(S), research: Object.keys(S.meta.research.done).length });
+                    pps: Engine.pps(S), research: Object.keys(S.meta.research.done).length,
+                    side: (S.run.side || []).filter(Boolean).map(function (x) { return x.id + ' ' + x.lv; }).join(', '), hw: JSON.stringify(S.run.hw) });
         spendTree(S);
         Engine.startShift(S);
         runStart = now(); runQ = 0; strikes = 0; lastScore = 0;
@@ -111,6 +130,13 @@ function simulate(profile, seed) {
     capTotal++;
     if (hwBeat == null && Engine.pps(S) >= 4) hwBeat = now();
     if (R.waiting >= 2) capLimited++;
+    // Drones: once you own some, how often do they keep up, and how often is the order counter empty?
+    if ((R.hw.drone | 0) > 0 && !R.intro) {
+      var rr = Engine.rates(S);
+      droneT++; dIn += rr.followers; dOut += rr.drones;
+      if (rr.drones >= rr.followers) droneKeep++;
+      if (R.waiting < 1) droneZero++;
+    }
 
     // Clicking comes in bursts: a person is not always at the keyboard.
     busyT -= dt;
@@ -139,7 +165,7 @@ function simulate(profile, seed) {
       var Rs = S.meta.research;
       var canMine = Engine.splitKeys(S).indexOf('mine') >= 0;
       if (canMine && (P.miner || P.split)) {
-        var want = P.miner ? 0.75 : (Engine.researchAvailable(S).length ? 0.35 : 0.8);
+        var want = P.miner ? 0.75 : (Engine.researchAvailable(S).some(function (x) { return !x.repeat; }) ? 0.35 : 0.8);   // repeatables alone: mostly Mining
         if (Math.abs(Engine.splitOf(S).mine - want) > 0.01) Engine.setSplit(S, 'mine', want);
       }
       // Research: buy the cheapest thing that is affordable.
@@ -181,7 +207,9 @@ function simulate(profile, seed) {
     open: { minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales) },
     features: S.meta.stats.ev.filter(function (e) { return e[1] === 'feature'; }).length,
     spend: SPEND,
-    hacks: S.meta.stats.ev.filter(function (e) { return e[1] === 'hack'; }).map(function (e) { return e[2] + 's/' + e[3]; })
+    jumps: JUMPS,
+    drones: droneT ? { keep: droneKeep / droneT, zero: droneZero / droneT, inRate: dIn / droneT, outRate: dOut / droneT } : null,
+    linePerMonth: lineMonths ? lineN / lineMonths : 0
   };
 }
 
@@ -192,20 +220,21 @@ function shopping(S) {
   // A player who follows the tutorial buys the Auto-Click Script first.
   if (!Object.keys(R.hw).length) return R.cash >= Engine.hwCost(S, 'script') ? Engine.buyHardware(S, 'script', 1) > 0 : false;
   var margin = Math.max(20, R.price - DATA.balance.canCost);        // profit per can
-  var sp = r.splits, lm = r.likes / Math.max(1e-6, r.total) || 1;
-  // What 1 processing/s is worth right now: followers (if they can be served) + mining + a bit for research.
-  var perProc = lm / DATA.balance.likesPerFollower * margin * (capLimited && !r.drones ? 0.25 : 1) +
-                sp.mine * Engine.mineRateNow(S) + sp.res * DATA.balance.resRate * 10;
+  var sp = r.splits;
+  // What 1 processing/s is worth right now: mining money + a bit for research.
+  var perProc = sp.mine * Engine.mineRateNow(S) + sp.res * DATA.balance.resRate * 10;
   var sales = Math.max(5, r.sales);                                     // cents per second from sales now
+  // Drones are worth buying while more orders come in than they deliver.
+  var droneNeed = r.followers > r.drones * 0.9 && R.waiting > 2 ? 1 : 0.1;
   DATA.hardware.forEach(function (h) {
     if (!Engine.hwAvailable(S, h.id)) return;
     var c = Engine.hwCost(S, h.id), gain;
-    if (h.pps) gain = h.pps * Math.pow(2, R.dbl[h.id] | 0) * r.prod * perProc;
-    else gain = h.serve * Math.pow(2, R.dbl[h.id] | 0) * margin * (R.waiting > 2 ? 1 : 0.15);
+    if (h.pps) gain = (Engine.hwEach(S, h.id) + 0.1 * r.prod) * perProc;
+    else gain = h.serve * Math.pow(2, R.dbl[h.id] | 0) * margin * droneNeed;
     opts.push({ kind: 'hw', id: h.id, cost: c, value: gain / c });
     var d = Engine.doublerNext(S, h.id);
     if (d && d.unlocked) {
-      var dg = h.pps ? Engine.hwPPS(S, h.id) * perProc : Engine.droneRate(S) * margin * (R.waiting > 2 ? 1 : 0.15);
+      var dg = h.pps ? Engine.hwPPS(S, h.id) * perProc : Engine.droneRate(S) * margin * droneNeed;
       opts.push({ kind: 'dbl', id: h.id, cost: d.cost, value: dg / d.cost });
     }
   });
@@ -221,12 +250,38 @@ function shopping(S) {
     if (u.id === 'tubes' && lvl === 0) v += 5;   // a person really wants the tubes: no more clicking the crate
     opts.push({ kind: 'up', id: u.id, cost: c, value: v / c });
   });
+  // Side machines (the new park): pick one as soon as a slot opens and you can pay, then buy levels.
+  var uptime = { snack: 1, claw: 0.5, coffee: 0.35, ice: 0.3 }, inc = Math.max(50, incomeNow(S));
+  var sl = Engine.sideSlots(S);
+  for (var si = 0; si < sl.length; si++) {
+    var s = sl[si];
+    if (s.open && !s.id) {
+      var pickId = ['snack', 'coffee', 'ice', 'claw'].filter(function (id) { return !Engine.sideUsed(S, id); })[0];
+      if (R.cash >= Engine.sideCost(pickId, 0)) { spend('side', Engine.sideCost(pickId, 0)); return Engine.pickSide(S, s.i, pickId); }
+    } else if (s.id && s.lv < Engine.SIDE[s.id].max) {
+      var sb = Engine.SIDE[s.id].fx[0].v, sc = Engine.sideCost(s.id, s.lv);
+      opts.push({ kind: 'side', id: s.i, cost: sc, value: sb * uptime[s.id] * inc / sc });
+    }
+  }
   opts.sort(function (a, b) { return b.value - a.value; });
+  // Like a person: when orders pile up and a drone costs less than a minute of income, buy a drone.
+  if (Engine.hwAvailable(S, 'drone') && r.followers > r.drones && R.waiting > 5 && Engine.hwCost(S, 'drone') < 60 * Math.max(50, incomeNow(S)))
+    opts.unshift({ kind: 'hw', id: 'drone', cost: Engine.hwCost(S, 'drone'), value: 1 });
   var best = opts[0];
   if (!best || R.cash - reserve < best.cost) return false;
   spend(best.kind === 'up' ? best.id : best.kind === 'hw' && best.id === 'drone' ? 'drone' : best.kind, best.cost);
-  if (best.kind === 'hw') return Engine.buyHardware(S, best.id, 1) > 0;
+  if (best.kind === 'hw') {
+    var before = incomeNow(S), firstOne = !(R.hw[best.id] | 0) && Engine.HW[best.id].pps;
+    var ok = Engine.buyHardware(S, best.id, 1) > 0;
+    if (ok && Engine.HW[best.id].pps && before > 0) {
+      var jump = incomeNow(S) / before;
+      JUMPS.any.push(jump);
+      if (firstOne) JUMPS.first.push(best.id + ' +' + Math.round((jump - 1) * 100) + '%');
+    }
+    return ok;
+  }
   if (best.kind === 'dbl') return Engine.buyDoubler(S, best.id);
+  if (best.kind === 'side') return Engine.upSide(S, best.id);
   return Engine.buyUpgrade(S, best.id);
 }
 
@@ -257,18 +312,24 @@ Object.keys(PROFILES).filter(function (p) { return !only || p === only; }).forEa
     console.log('\n' + r.profile + '  (seed ' + seed + ')');
     r.runs.forEach(function (run, n) {
       console.log('  run ' + (n + 1) + ' (world ' + run.world + '): ' + fmt(run.minutes) + ' min, ' + run.quarters + ' quarters, ' + Engine.money(run.sales) +
-                  ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research + (run.asked ? ' (chose to reset)' : ' (3 strikes)'));
+                  ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research + (run.asked ? ' (chose to reset)' : ' (3 strikes)') +
+                  (run.side ? ' | side: ' + run.side : '') + (args.indexOf('--hw') >= 0 ? ' | ' + run.hw : ''));
     });
     if (r.runs.length < maxRuns) console.log('  (unfinished run: ' + fmt(r.open.minutes) + ' min, ' + r.open.quarters + ' quarters, ' + Engine.money(r.open.sales) + ')');
     console.log('  hardware passes 4 clicks/s: ' + (r.hwBeat == null ? 'never' : fmt(r.hwBeat / 60) + ' min') + ' | opening done: ' + fmt((r.introAt || 0) / 60) + ' min | mined: ' + Engine.money(r.mined) + ' | first hardware: ' + fmt(r.firstAuto / 60) + ' min | dev mode: ' + fmt(r.jailAt / 60) + ' min | first trending click: ' +
                 fmt(r.firstGold / 60) + ' min | chapter 1: ' + (r.ch1 == null ? 'not reached' : fmt(r.ch1 / 60) + ' min (' + r.ch1How + ')'));
     if (r.ch1Rivals) console.log('  at chapter 1, rivals had (of your score): ' + r.ch1Rivals);
     console.log('  chapter 2: ' + (r.ch2 || 'not reached'));
-    console.log('  longest gap with nothing new: ' + fmt(r.maxGap) + ' min | line-limited ' + Math.round(r.capShare * 100) +
+    console.log('  longest gap with nothing new: ' + fmt(r.maxGap) + ' min | online orders waiting ' + Math.round(r.capShare * 100) +
                 '% of the time | research ' + r.research + '/' + DATA.research.length + ' | book ' + r.book + '/' + DATA.cards.length +
                 ' | repeated text: ' + (r.repeats.length ? r.repeats.slice(0, 5).join(', ') : 'none'));
     if (args.indexOf('--spend') >= 0) console.log('  spent: ' + Object.keys(r.spend).map(function (k) { return k + ' ' + Math.round(r.spend[k] / 1000) + 'k'; }).join(', '));
-    console.log('  rival features installed: ' + r.features + ' | hacks (seconds locked / clicks): ' + (r.hacks.join(', ') || 'none'));
+    var js = r.jumps.any.slice().sort(function (a, b) { return a - b; });
+    console.log('  hardware buys: ' + js.length + ', median +' + (js.length ? Math.round((js[Math.floor(js.length / 2)] - 1) * 100) : 0) + '% income, smallest +' +
+                (js.length ? Math.round((js[0] - 1) * 1000) / 10 : 0) + '% | first of each: ' + r.jumps.first.join(', '));
+    if (r.drones) console.log('  drones: orders in ' + r.drones.inRate.toFixed(1) + '/s, delivered up to ' + r.drones.outRate.toFixed(1) + '/s | drones keep up ' +
+                Math.round(r.drones.keep * 100) + '% of the time | counter at 0: ' + Math.round(r.drones.zero * 100) + '%');
+    console.log('  rival features installed: ' + r.features + ' | "line too long" reviews per month: ' + r.linePerMonth.toFixed(1));
     console.log('  strikes per run: ' + r.runs.map(function (x) { return x.strikes; }).join(', ') + ' | your score went down: ' + (r.scoreDrops ? r.scoreDrops + ' times (BUG)' : 'never'));
   });
 });
