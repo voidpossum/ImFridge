@@ -542,6 +542,9 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn.primary { background: #7a2e2a; border-color: var(--you); }
 .btn.primary:hover:not(:disabled) { background: #963a34; }
+.btn.story { width: 100%; text-align: left; padding: 10px 14px; line-height: 1.4; }
+.btn.story .q { display: block; font-style: italic; font-weight: 400; }
+.btn.story .go { display: block; margin-top: 6px; font-weight: 800; text-align: right; }
 .btn.gold { border-color: var(--gold); }
 .btn.blue { border-color: var(--blue); background: #1d3450; }
 .btn.danger { border-color: var(--bad); }

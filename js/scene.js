@@ -586,10 +586,10 @@ var Scene = (function () {
   // shoot up them. Rivals always have one (they refill themselves); yours come with Pneumatic Tubes.
   // Tubes sit under the machine feet (left foot, right foot); a third one goes in the middle.
   function tubeCount(run, mi) {
-    if (mi === Engine.YOU) return Math.min(3, run.upgrades.tubes | 0);
+    if (mi === Engine.YOU) return Math.min(2, run.upgrades.tubes | 0);   // one per foot; higher levels = faster capsules
     return 2;
   }
-  var TUBE_AT = [-20, 17, -2];   // x of each tube, from the machine centre (the feet are at -19 and +18)
+  var TUBE_AT = [-20, 17];       // x of each tube, from the machine centre (under the feet at -19 and +18)
   function tubeX(mi, i) { return Engine.MX[mi] + TUBE_AT[i]; }
   function tubeBottom() { return H - oy + 4; }
   function tubes(run, t, dt) {
@@ -608,7 +608,7 @@ var Scene = (function () {
     }
     for (var c = caps.length - 1; c >= 0; c--) {
       var C = caps[c];
-      C.y -= 150 * dt;
+      C.y -= (C.v || 150) * dt;
       if (C.y < 203) { caps.splice(c, 1); continue; }
       if (C.y > bot) continue;
       R(ctx, C.x, Math.round(C.y), 3, 5, C.c); R(ctx, C.x, Math.round(C.y), 3, 1, '#ffffff');
@@ -617,7 +617,8 @@ var Scene = (function () {
   function capsule(S, mi, drink, delay) {
     var n = tubeCount(S.run, mi);
     if (!n || caps.length > 24) return;
-    caps.push({ x: tubeX(mi, Math.floor(Math.random() * n)), y: tubeBottom() + (delay || 0), c: DATA.drinks[drink] ? DATA.drinks[drink].color : P.red });
+    var lv = mi === Engine.YOU ? (S.run.upgrades.tubes | 0) : 1;
+    caps.push({ v: 150 + 40 * Math.max(0, lv - 1), x: tubeX(mi, Math.floor(Math.random() * n)), y: tubeBottom() + (delay || 0), c: DATA.drinks[drink] ? DATA.drinks[drink].color : P.red });
   }
 
   // Everything dark except a pool of light on your machine (and the crate when it matters).

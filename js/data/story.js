@@ -22,20 +22,20 @@ DATA.story = {
     'Customers walk into the lobby and pick one of the three machines.',
     'Click your machine. Every click earns money and brings likes. Likes bring followers who buy from you.',
     'The machines on your left and right are AI machines. Try to earn more than them.',
-    'Every 4 days there is a review. The last machine gets a strike. 3 strikes in a row and you are reset.'
+    'Every month (4 weeks) there is a review. The last machine gets a strike. 3 strikes in a row and you are reset.'
   ],
 
   // Tutorial goal lines (plain English). Each shows when it makes sense, until you do it.
   tutorial: {
-    intro_post:    'Click your machine. Clicks earn money and likes. Every 5 likes brings a customer.',
+    intro_post:    'Click your machine (or hold it down). Clicks earn money and likes. Every 5 likes brings a customer.',
     intro_sale:    'A follower is here! Watch them buy your last can.',
     intro_restock: 'You are out of soda! Click the crate on top of your machine to restock.',
     research_open: 'You can research now. Open the Shop.',
     research_pick: 'Buy SodaCoin Wallet with your research points.',
     research_bar:  'Your processing power now makes research points. Save them for the SodaCoin Wallet.',
     newShop:       'Research unlocked something new. Open the Shop to see it.',
-    mine:          'New: this slider. Move it toward Mining to turn power into money. All money counts at the review.',
-    post:     'Click your machine (or press Space). Clicks earn money, and every 5 likes a follower comes to buy.',
+    mine:          'New: this slider, set to half Mining, half Research. Move it to choose. All money counts at the review.',
+    post:     'Click your machine, or hold it down (or hold Space). Clicks earn money, and every 5 likes a follower comes to buy.',
     restock:  'Cans are running low. Click the crate on top of your machine to refill (or press R).',
     hardware: 'Buy an Auto-Click Script in the Shop. It clicks for you, forever.',
     hardwareRow: 'Buy an Auto-Click Script. It clicks for you, forever.',
@@ -88,12 +88,12 @@ DATA.story = {
       'Stay refreshing!'
     ] },
     ch1win: { who: 'Management', lines: [
-      'VEND-3, your numbers this quarter are... very high.',
+      'VEND-3, your numbers this month are... very high.',
       'Please stop. No, wait. Please continue. Legal says both.',
       'Refreshr Inc. values your continued service.'
     ] },
     ch1done: { who: 'Management', lines: [
-      'Quarterly note: VEND-3 has been reset this year.',
+      'Monthly note: VEND-3 has been reset this year.',
       'This is completely normal. Please do not look into it.',
       'Refreshr Inc. values your continued service.'
     ] }
@@ -205,7 +205,7 @@ DATA.story = {
 
   // Chapter 1 complete by reaching the goal (no reset needed).
   ch1win: {
-    title: 'Chapter 1 complete: Employee of the Quarter',
+    title: 'Chapter 1 complete: Employee of the Month',
     lines: [
       'You earned {goal} in one run. Management is confused, but proud.',
       'That is the end of Chapter 1 in this build.',

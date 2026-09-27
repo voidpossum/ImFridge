@@ -44,12 +44,48 @@
     var what = Scene.hit(S, e);
     if (!what) return;
     if (what.kind === 'gold') Engine.clickGold(S, what.id);
-    else if (what.kind === 'you') UI.clickPop(e.clientX, e.clientY, Engine.promote(S));
+    else if (what.kind === 'you') {
+      UI.clickPop(e.clientX, e.clientY, Engine.promote(S));
+      hold.on = true; hold.over = true; hold.acc = -0.15; hold.x = e.clientX; hold.y = e.clientY;   // keep holding = auto-click
+    }
     else if (what.kind === 'crate') Engine.restock(S);
   });
   canvas.addEventListener('mousemove', function () {
     canvas.classList.toggle('pointer', !!Scene.hoverTarget(S));
   });
+
+  // Hold the mouse on your machine (or hold Space) = it clicks for you, B.holdCps times a second.
+  // Faster than that: click yourself. Held clicks do not count for a hack reboot (see Engine.promote).
+  var hold = { on: false, over: false, key: false, acc: 0, popT: 0, x: 0, y: 0 };
+  function holdStop() { hold.on = false; hold.key = false; }
+  canvas.addEventListener('pointermove', function (e) {
+    if (!hold.on) return;
+    var w = Scene.hit(S, e);
+    hold.over = !!w && w.kind === 'you'; hold.x = e.clientX; hold.y = e.clientY;
+  });
+  canvas.addEventListener('pointerleave', function () { hold.on = false; });
+  window.addEventListener('pointerup', function () { hold.on = false; });
+  window.addEventListener('pointercancel', function () { hold.on = false; });
+  window.addEventListener('blur', holdStop);
+  window.addEventListener('keydown', function (e) {
+    if (e.key !== ' ' || e.repeat || hold.key || (e.target.tagName === 'INPUT' && e.target.type !== 'range')) return;
+    hold.key = true; hold.acc = -0.15;
+  });
+  window.addEventListener('keyup', function (e) { if (e.key === ' ') hold.key = false; });
+  function holdTick(real) {
+    if (S.pause || !((hold.on && hold.over) || hold.key)) return;
+    hold.acc += real;
+    hold.popT -= real;
+    var every = 1 / DATA.balance.holdCps;
+    while (hold.acc >= every) {
+      hold.acc -= every;
+      var got = Engine.promote(S, true);
+      if (got && hold.popT <= 0) {   // at most ~6 floating numbers a second
+        hold.popT = 0.17;
+        if (hold.on) UI.clickPop(hold.x, hold.y, got); else UI.clickPopAtMachine(got);
+      }
+    }
+  }
 
   if (window.ResizeObserver) new ResizeObserver(fit).observe(box);
   window.addEventListener('resize', fit);
@@ -73,6 +109,7 @@
       fpsN = 0; fpsT = 0;
     }
     var dt = Math.min(0.1, real);
+    holdTick(Math.min(0.25, real));
     acc += real * speed;
     var steps = 0;
     while (acc >= TICK && !S.pause) {

@@ -317,11 +317,12 @@ var Engine = (function () {
     return { likes: likes, research: research, mined: mined };
   }
 
-  // Player action: post an ad. Never fails.
-  function promote(S) {
+  // Player action: click your machine. Never fails. held = an auto-click from holding the button down.
+  function promote(S, held) {
     if (S.pause) return null;
     var L = S.run.lock;
     if (L && L.on) {
+      if (held) return null;   // a hack reboot needs real clicks
       L.got++;
       if (S.run.st) { S.run.st.clicks++; S.run.st.secN++; }
       emit(S, { type: 'reboot', got: L.got, need: L.need });
@@ -435,6 +436,7 @@ var Engine = (function () {
     Rs.done[id] = (Rs.done[id] | 0) + 1;
     S.meta.tut.research = 1;
     if (Rs.done[id] === 1) grant(S, r.unlock);
+    if (id === 'r_mining' && Rs.done[id] === 1) S.run.split = { res: 0.5, mine: 0.5 };   // the slider starts in the middle
     var lvl = r.repeat ? ' (level ' + Rs.done[id] + ')' : '';
     log(S, 'Research', r.name + lvl + ' done. ' + r.desc, 'research');
     emit(S, { type: 'researchDone', id: id, level: Rs.done[id], novel: true });
@@ -574,9 +576,16 @@ var Engine = (function () {
     }
   }
 
+  // The calendar (inside the engine a month is still called a quarter, and a week a day: saves stay the same).
+  function monthName(q) { return DATA.months[(q - 1) % 12]; }
+  function calendar(S) {
+    var R = S.run, q = R.quarter;
+    return { week: R.qDay + 1, weeks: B.daysPerQuarter, weeksLeft: B.daysPerQuarter - R.qDay,
+             month: monthName(q), year: 1 + Math.floor((q - 1) / 12) };
+  }
   function stamp(S) {
-    var R = S.run;
-    return 'Run ' + S.meta.runs + ' · Q' + R.quarter + ' · Day ' + (R.qDay + 1);
+    var c = calendar(S);
+    return 'Run ' + S.meta.runs + ' · ' + c.month + ' Y' + c.year + ' · Week ' + c.week;
   }
 
   function log(S, who, text, kind) {
@@ -2025,7 +2034,7 @@ var Engine = (function () {
     droneRate: droneRate, prodMult: prodMult, clickPower: clickPower, clickCash: clickCash, ordersCap: ordersCap,
     pickCard: pickCard, reroll: reroll, closeInfo: closeInfo, hold: hold, clickGold: clickGold, stat: stat, loyalChance: loyalChance,
     buyTree: buyTree, treeReady: treeReady, startShift: startShift, requestReset: requestReset, canReset: canReset,
-    hourOf: hourOf, daypartOf: daypartOf, rankNow: rankNow, rivalName: rivalName, rpFor: rpFor,
+    hourOf: hourOf, daypartOf: daypartOf, calendar: calendar, monthName: monthName, rankNow: rankNow, rivalName: rivalName, rpFor: rpFor,
     youStats: youStats, rates: rates, perClick: perClick, rivalInfo: rivalInfo, effPrice: effPrice, available: available,
     capOf: capOf, lanesOf: lanesOf, lineMax: lineMax, folLineMax: folLineMax, lifeComplete: lifeComplete, hasHat: hasHat, fmtVer: fmtVer,
     expectedProfitRate: expectedProfitRate, conditions: conditions, filler: filler, thoughtsSummary: thoughtsSummary,

@@ -9,6 +9,15 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.2.3–0.2.7 (2026-09-27): layout and feel, from Void Possum's play
+- Top bar: clock at the left, customer reviews, menu buttons next to Pause. Money at the top of the Shop panel (top bar when folded). Today's conditions at the top middle of the park; rival news, features and mods on their cards.
+- Click a mail pop-up to close it. Smooth dawn (dark at 6:00, light at 8:00) and blended sky colours. Soda cans in the Refresh map (flavour per group).
+- Developer Mode: the machine's line is the button. SodaCoin Wallet and Carpet cost 25; the slider starts at 50/50. Drones research shows at 8 orders.
+- **Hold to click:** holding the mouse on your machine (or Space) clicks `B.holdCps` (10) times a second; not for a hack reboot. Sim bots hold.
+- **Calendar:** one day/night = one week, 4 weeks = a month (review), 12 months = a year (`Engine.calendar`, `DATA.months`). Internally still `quarter`/`qDay`.
+- Pneumatic Tubes: at most 2 tubes (under the feet); higher levels = faster capsules.
+- Balance: `clickCash` 5, Chapter 1 goal $30,000. Sim: active 25–29 min, casual 28–35, idle resets at ~45.
+
 ## 0.2.2 (2026-09-27): online orders fix (from Void Possum's run-2 save: 430 orders in quarter 1)
 - Cause: +10% processing per Refresh Point ever earned (40 RP = ×5) → likes → followers without limit.
 - Online orders have a limit (`Engine.ordersCap`: 30 s of drone deliveries, at least 15; counter shows 15/18). When full, extra likes earn ad money (`B.adCash` 5 cents per follower, counts as score, "Ads" in the money tooltip). Old saves are clamped to the limit.

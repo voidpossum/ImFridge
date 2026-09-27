@@ -6,12 +6,12 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.2.6';
+DATA.version = '0.2.7';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
   dayLength: 60,          // real seconds per in-game day (at 1x speed)
-  daysPerQuarter: 4,      // a review happens after this many days
+  daysPerQuarter: 4,      // weeks per month: the review comes at the end of every month (one day/night = one week)
   dayStartHour: 6,        // the day runs 06:00 → 24:00
   dayHours: 18,
 
@@ -35,7 +35,8 @@ DATA.balance = {
   // Processing power always brings likes (likes bring followers); after Developer Mode it also makes
   // research or mined money (one slider: Research ⟷ Mining).
   clickPower: 1,          // processing per click
-  clickCash: 10,          // cents earned per point of click power (1 click = $0.10 at the start)
+  holdCps: 10,            // holding the mouse on your machine (or Space) clicks this many times a second
+  clickCash: 5,           // cents earned per point of click power (1 click = $0.05 at the start; holding = 10 clicks/s)
   resRate: 0.3,           // research points per point of processing put into Research
   likesPerFollower: 5,    // this many likes → one follower walks in
   followerPatience: 40,   // followers waiting outside give up over about this many seconds
@@ -46,13 +47,13 @@ DATA.balance = {
   lineTolerance: 40,     // ...plus this much for every customer in the shortest rival line
   loyalFade: 150,         // above that, the chance to buy falls over this many cents...
   loyalFloor: 0.05,       // ...down to this chance
-  startMine: 0.2,         // Mining share at the start of a run, once SodaCoin Wallet is researched
+  startMine: 0.5,         // Mining share at the start of a run, once SodaCoin Wallet is researched
   mineRate: 10,           // cents per point of processing put into Mining (after the SodaCoin Wallet research)
   mineHalf: 15000,          // mining difficulty: after $150 mined this run, each point pays half; after 45,000, a quarter
 
   reviewBonus: 0.25,      // cash bonus = this × your quarter earnings (only if you are not last)
   strikesMax: 3,          // last at this many reviews in a row = you are reset
-  ch1Goal: 2000000,       // earn this much in one run ($20,000) and Chapter 1 is complete, no reset needed
+  ch1Goal: 3000000,       // earn this much in one run ($30,000) and Chapter 1 is complete, no reset needed
 
   // Rivals grow by multiplying, you grow by adding and by capacity: that is what ends every run.
   rivalBump: 1.15,        // strength × this each time a rival loses a review and gets "updated"
@@ -92,6 +93,9 @@ DATA.balance = {
   pricewarCut: 100,       // it sells for this much less than you ($1)
   lineGap: 40             // seconds between two talking lines from the same rival
 };
+
+// The calendar: one day/night cycle is one week, 4 weeks are a month (the review), 12 months are a year.
+DATA.months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 // Drinks. `color` is the can colour in the pixel scene.
 DATA.drinks = {

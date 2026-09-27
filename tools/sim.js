@@ -33,8 +33,8 @@ var only = arg('--only', null);
 var READ = { boot: 25, review: 18, reset: 45, chapter: 15, jailbreak: 25, say: 2.5, mail: 6 };
 
 var PROFILES = {
-  active: { cps: 4.0, busy: 0.85, check: 0.6, gold: 0.9, prices: true, split: true, name: 'Active player (4 clicks/s)' },
-  casual: { cps: 1.5, busy: 0.6, check: 2.0, gold: 0.5, prices: false, split: true, name: 'Casual player (1.5 clicks/s)' },
+  active: { cps: 10, busy: 0.85, check: 0.6, gold: 0.9, prices: true, split: true, name: 'Active player (holds the machine: 10 clicks/s)' },
+  casual: { cps: 10, busy: 0.4, check: 2.0, gold: 0.5, prices: false, split: true, name: 'Casual player (holds sometimes: 10 clicks/s, 40% of the time)' },
   greedy: { cps: 3.0, busy: 0.85, check: 0.6, gold: 0.9, prices: false, split: true, greedy: true, name: 'Greedy (3 clicks/s, always $6)' },
   miner:  { cps: 4.0, busy: 0.85, check: 0.6, gold: 0.9, prices: true, split: true, miner: true, name: 'Miner (4 clicks/s, 75% Mining)' },
   idler:  { cps: 0.4, busy: 0.5, check: 4.0, gold: 0.3, prices: false, split: false, name: 'Mostly idle (0.4 clicks/s)' }
