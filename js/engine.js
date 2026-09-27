@@ -1217,8 +1217,12 @@ var Engine = (function () {
     return true;
   }
 
+  // Resetting is your choice (from the pause menu), once the first review is behind you.
+  function canReset(S) { return !!S.run && !S.run.intro && (S.meta.wipes >= 1 || S.run.quarter >= 2); }
   function requestReset(S) {
-    if (S.pause || S.meta.wipes < 1) return false;
+    if (S.pause && S.pause.type !== 'hold') return false;
+    if (!canReset(S)) return false;
+    S.pause = null;
     beginReset(S, { voluntary: true, quarter: S.run.quarter });
     return true;
   }
@@ -1426,6 +1430,14 @@ var Engine = (function () {
       if (R.qDay === B.daysPerQuarter - 1) liveLine(S, 'review', 'REVIEW TONIGHT at midnight. The last machine gets a strike.');
     }
 
+    // Chapter 1 can be won without a reset: earn the goal in one run.
+    if (!m.flags.ch1done && !intro && R.machines[YOU].rSales >= B.ch1Goal) {
+      m.flags.ch1done = 1; m.flags.ch1win = 1;
+      mail(S, 'ch1win');
+      stat(S, 'ch1', 'goal');
+      S.pause = { type: 'chapter', id: 'ch1win' };
+      return;
+    }
     // Scripted: on the very first run, both rivals launch new versions on "model day" (a set quarter).
     if (!m.flags.modelDay && R.quarter >= B.modelDayQuarter && m.runs === 1) {
       m.flags.modelDay = 1;
@@ -1948,7 +1960,7 @@ var Engine = (function () {
     buyResearch: buyResearch, researchAvailable: researchAvailable, resCost: resCost, resLevel: resLevel,
     droneRate: droneRate, prodMult: prodMult, clickPower: clickPower, clickCash: clickCash,
     pickCard: pickCard, reroll: reroll, closeInfo: closeInfo, hold: hold, clickGold: clickGold, stat: stat, loyalChance: loyalChance,
-    buyTree: buyTree, treeReady: treeReady, startShift: startShift, requestReset: requestReset,
+    buyTree: buyTree, treeReady: treeReady, startShift: startShift, requestReset: requestReset, canReset: canReset,
     hourOf: hourOf, daypartOf: daypartOf, rankNow: rankNow, rivalName: rivalName, rpFor: rpFor,
     youStats: youStats, rates: rates, perClick: perClick, rivalInfo: rivalInfo, effPrice: effPrice, available: available,
     capOf: capOf, lanesOf: lanesOf, lineMax: lineMax, folLineMax: folLineMax, lifeComplete: lifeComplete, hasHat: hasHat, fmtVer: fmtVer,

@@ -672,7 +672,8 @@ var UI = (function () {
     for (var k = 0; k < B.strikesMax; k++) lights += k < strikes ? '●' : '○';
     setHTML(Y.goal, (strikes ? '<span class="strikes" data-tip="Strikes: last place at a review. ' + B.strikesMax + ' in a row = reset. Not being last clears them.">' + lights + '</span> ' : '') +
       (rkY === 3 ? '<span class="bad">Last place! Review ' + when + (strikes === B.strikesMax - 1 ? ': the last strike means a reset.' : ': last place gets a strike.') + '</span>'
-                 : 'Do not be last. Review ' + when + '.'));
+                 : S.meta.flags.ch1done ? 'Do not be last. Review ' + when + '.'
+                 : '<span data-tip="Earn this much in one run to finish Chapter 1. No reset needed.">Goal: ' + money(ms[YOU].rSales) + ' / ' + money(B.ch1Goal) + '</span> · review ' + when + '.'));
     var slide = Engine.splitKeys(S).indexOf('mine') >= 0;
     Y.bars.hidden = !slide;
     if (slide) paintSplit();
@@ -1111,9 +1112,9 @@ var UI = (function () {
           '<div class="set-row"><span>Reduce motion</span><input type="checkbox" data-set="reduced"' + (settings.reduced ? ' checked' : '') + '></div>' +
           '<div class="set-row"><span>Machine name</span><span class="seg"><input id="nameSet" maxlength="8" spellcheck="false" autocomplete="off" value="' + esc(Engine.myName(S)) + '">' +
           '<button class="btn" data-act="rename">Rename</button></span></div>';
-        if (S.meta.wipes >= 1) {
+        if (Engine.canReset(S)) {
           var rp = Engine.rpFor(S);
-          h += '<h3 style="margin-top:18px">This run</h3><p class="note">Reset yourself now and get ' + rp + ' Refresh Points. You lose this run\'s money, automation, upgrades and cards.</p>' +
+          h += '<h3 style="margin-top:18px">This run</h3><p class="note">You can reset whenever you like. Reset now and get ' + rp + ' Refresh Points (more if you earn more first). You lose this run\'s money, automation, upgrades and cards. Research and Refresh Points stay.</p>' +
             '<button class="btn danger full" data-act="wipe">' + (armed('wipe') ? 'Click again to reset now' : 'Reset now for ' + rp + ' Refresh Points') + '</button>';
         }
         h += '<h3 style="margin-top:18px">Save</h3><p class="note">The game saves by itself every 10 seconds.</p>' +
@@ -1194,7 +1195,7 @@ var UI = (function () {
   function renderModal() {
     var P = S.pause;
     var show = P && P.type !== 'reset';
-    var sig = show ? P.type + JSON.stringify(P.res ? [P.res.offer, P.res.rerolls] : '') + (P.type === 'hold' ? PANELS.settings.sig() : '') : '';
+    var sig = show ? P.type + (P.id || '') + JSON.stringify(P.res ? [P.res.offer, P.res.rerolls] : '') + (P.type === 'hold' ? PANELS.settings.sig() : '') : '';
     if (sig === modalSig) return;
     modalSig = sig;
     if (!show) { el.modal.hidden = true; el.modalBox.innerHTML = ''; return; }
@@ -1294,9 +1295,9 @@ var UI = (function () {
         '<div class="foot"><span class="hintKey">P or Esc also pauses and continues.</span><button class="btn primary" data-act="close">Continue</button></div>';
     },
 
-    chapter: function () {
-      var c = DATA.story.ch1;
-      return '<h2>' + esc(c.title) + '</h2>' + c.lines.map(function (l) { return '<p>' + esc(l) + '</p>'; }).join('') +
+    chapter: function (P) {
+      var c = DATA.story[P.id] || DATA.story.ch1;
+      return '<h2>' + esc(c.title) + '</h2>' + c.lines.map(function (l) { return '<p>' + esc(l.replace('{goal}', money(B.ch1Goal))) + '</p>'; }).join('') +
         '<div class="foot"><button class="btn primary" data-act="close">Keep playing</button></div>';
     }
   };
@@ -1343,16 +1344,16 @@ var UI = (function () {
       var order = [0, 1, 2].sort(function (a, b) { return r.sales[b] - r.sales[a]; });
       h += '<p class="rsSum">Quarter ' + r.quarter + ' review: ' + order.map(function (i) {
         return '<span class="' + (i === YOU ? 'you' : '') + '">' + esc(r.names[i]) + ' ' + money(r.sales[i]) + '</span>';
-      }).join(' · ') + '</p><p><b>You sold the least, so VEND-3 is being reset.</b></p>';
+      }).join(' · ') + '</p><p><b>Last at ' + B.strikesMax + ' reviews in a row, so VEND-3 is being reset.</b></p>';
     }
-    if (r.runSales != null) h += '<p class="dim">This run you sold ' + money(r.runSales) + ' in total. Selling more in a run gives more Refresh Points.</p>';
+    if (r.runSales != null) h += '<p class="dim">This run you earned ' + money(r.runSales) + ' in total. Earning more in a run gives more Refresh Points.</p>';
     if (r.keep) h += '<p>Keepsake: you keep <b>' + esc(Engine.CARD[r.keep].name) + '</b>.</p>';
     h += '<p class="next">Next run: all your processing <b>×' + (1 + B.rpProd * m.rpEarned).toFixed(1) + '</b> (every Refresh Point you ever earned adds 10%, even after you spend it).</p>';
     h += '</div><div class="rpBox"><span class="lbl">Refresh Points</span><span class="big">' + m.refresh + '</span><span class="gain">+' + r.rp + ' from this reset</span></div></div>';
     h += '<div class="rsMid">';
     if (r.wake) h += '<div class="wake"><p class="sys">' + esc(r.wake.sys) + '</p><p class="me">' + esc(r.wake.me) + '</p></div>';
     else h += '<div class="wake"><p class="sys">SYSTEM REBOOT ...</p></div>';
-    if (r.firstReset) h += '<ul class="help">' + DATA.story.resetHelp.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>';
+    if (r.firstReset) h += '<ul class="help">' + DATA.story[r.voluntary ? 'resetHelpAsk' : 'resetHelp'].map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>';
     h += '</div>';
     h += '<div class="treeWrap"><div class="tree" id="tree"></div><div class="nodeInfo" id="nodeInfo">' + nodeInfo() + '</div></div>';
     h += '<div class="rsFoot"><span class="note">The game is paused. Refresh Points can only be spent here. They are kept forever.</span>' +

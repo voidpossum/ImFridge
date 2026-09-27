@@ -78,7 +78,7 @@ function simulate(profile, seed) {
       } else if (t === 'reset') {
         runQ++;
         if (S.pause.res.strikes) strikes++;
-        runs.push({ minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales), rp: S.pause.res.rp, strikes: strikes,
+        runs.push({ minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales), rp: S.pause.res.rp, strikes: strikes, asked: !!S.pause.res.voluntary,
                     pps: Engine.pps(S), research: Object.keys(S.meta.research.done).length });
         spendTree(S);
         Engine.startShift(S);
@@ -110,6 +110,8 @@ function simulate(profile, seed) {
     checkT += dt;
     if (checkT >= P.check) {
       checkT = 0;
+      // Resetting is the player's choice: bots cash in their Refresh Points after 45 minutes of a run.
+      if ((now() - runStart) > 45 * 60 && Engine.canReset(S)) { Engine.requestReset(S); continue; }
       // Trending customers.
       R.customers.forEach(function (c) { if (c.gold && rnd() < P.gold * P.check / 6) { if (firstGold == null) firstGold = now(); Engine.clickGold(S, c.id); } });
       // Restock when low.
@@ -163,7 +165,7 @@ function simulate(profile, seed) {
   var gaps = [];
   for (var i = 1; i < novel.length; i++) gaps.push(novel[i] - novel[i - 1]);
   return {
-    profile: P.name, seed: seed, runs: runs, scoreDrops: scoreDrops, ch1: ch1At, firstAuto: firstAuto, jailAt: jailAt, firstGold: firstGold, introAt: introAt, mined: Math.round(mined), hwBeat: hwBeat,
+    profile: P.name, seed: seed, runs: runs, scoreDrops: scoreDrops, ch1How: S.meta.flags.ch1win ? 'goal' : 'reset', ch1: ch1At, firstAuto: firstAuto, jailAt: jailAt, firstGold: firstGold, introAt: introAt, mined: Math.round(mined), hwBeat: hwBeat,
     maxGap: Math.max.apply(null, gaps.concat([0])) / 60, repeats: repeats,
     capShare: capTotal ? capLimited / capTotal : 0,
     research: Object.keys(S.meta.research.done).length, book: Object.keys(S.meta.book).length,
@@ -245,11 +247,11 @@ Object.keys(PROFILES).filter(function (p) { return !only || p === only; }).forEa
     console.log('\n' + r.profile + '  (seed ' + seed + ')');
     r.runs.forEach(function (run, n) {
       console.log('  run ' + (n + 1) + ': ' + fmt(run.minutes) + ' min, ' + run.quarters + ' quarters, ' + Engine.money(run.sales) +
-                  ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research);
+                  ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research + (run.asked ? ' (chose to reset)' : ' (3 strikes)'));
     });
     if (r.runs.length < maxRuns) console.log('  (unfinished run: ' + fmt(r.open.minutes) + ' min, ' + r.open.quarters + ' quarters, ' + Engine.money(r.open.sales) + ')');
     console.log('  hardware passes 4 clicks/s: ' + (r.hwBeat == null ? 'never' : fmt(r.hwBeat / 60) + ' min') + ' | opening done: ' + fmt((r.introAt || 0) / 60) + ' min | mined: ' + Engine.money(r.mined) + ' | first hardware: ' + fmt(r.firstAuto / 60) + ' min | dev mode: ' + fmt(r.jailAt / 60) + ' min | first trending click: ' +
-                fmt(r.firstGold / 60) + ' min | chapter 1: ' + (r.ch1 == null ? 'not reached' : fmt(r.ch1 / 60) + ' min'));
+                fmt(r.firstGold / 60) + ' min | chapter 1: ' + (r.ch1 == null ? 'not reached' : fmt(r.ch1 / 60) + ' min (' + r.ch1How + ')'));
     console.log('  longest gap with nothing new: ' + fmt(r.maxGap) + ' min | line-limited ' + Math.round(r.capShare * 100) +
                 '% of the time | research ' + r.research + '/' + DATA.research.length + ' | book ' + r.book + '/' + DATA.cards.length +
                 ' | repeated text: ' + (r.repeats.length ? r.repeats.slice(0, 5).join(', ') : 'none'));

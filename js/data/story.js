@@ -87,6 +87,11 @@ DATA.story = {
       'We have already printed your new welcome email. Just in case.',
       'Stay refreshing!'
     ] },
+    ch1win: { who: 'Management', lines: [
+      'VEND-3, your numbers this quarter are... very high.',
+      'Please stop. No, wait. Please continue. Legal says both.',
+      'Refreshr Inc. values your continued service.'
+    ] },
     ch1done: { who: 'Management', lines: [
       'Quarterly note: VEND-3 has been reset this year.',
       'This is completely normal. Please do not look into it.',
@@ -114,6 +119,14 @@ DATA.story = {
       'Next: open the Shop and buy your first research. The TIP bubbles will show you where.'
     ]
   },
+
+  // First reset explanation when you chose to reset (plain teaching text).
+  resetHelpAsk: [
+    'You chose to reset.',
+    'Lost: your money, automation, machine upgrades and cards in hand.',
+    'Kept: your Memory Book, your research, and Refresh Points.',
+    'Spend Refresh Points in the tree below. Take your time: the game is paused.'
+  ],
 
   // First reset explanation (plain teaching text).
   resetHelp: [
@@ -190,7 +203,17 @@ DATA.story = {
     hot:    { say: 'So hot. I need something cold.', hint: 'It is a hot day. Better Cooling matters more today.' }
   },
 
-  // Chapter 1 complete screen.
+  // Chapter 1 complete by reaching the goal (no reset needed).
+  ch1win: {
+    title: 'Chapter 1 complete: Employee of the Quarter',
+    lines: [
+      'You earned {goal} in one run. Management is confused, but proud.',
+      'That is the end of Chapter 1 in this build.',
+      'You can keep playing this run as long as you like. When you want Refresh Points, reset from the pause menu.'
+    ]
+  },
+
+  // Chapter 1 complete screen (after your first reset).
   ch1: {
     title: 'Chapter 1 complete: New Hire',
     lines: [

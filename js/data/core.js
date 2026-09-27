@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.1.9';
+DATA.version = '0.2.0';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -52,13 +52,14 @@ DATA.balance = {
 
   reviewBonus: 0.25,      // cash bonus = this × your quarter earnings (only if you are not last)
   strikesMax: 3,          // last at this many reviews in a row = you are reset
+  ch1Goal: 1000000,       // earn this much in one run ($10,000) and Chapter 1 is complete, no reset needed
 
   // Rivals grow by multiplying, you grow by adding and by capacity: that is what ends every run.
   rivalBump: 1.15,        // strength × this each time a rival loses a review and gets "updated"
   rivalQuarter: 1.16,     // strength × this every quarter (the labs ship updates constantly)
   modelDayQuarter: 5,     // first run only: both rivals launch new versions at the start of this quarter...
   modelDayBumps: 4,       // ...this many versions at once (it makes the first reset land at 30–45 min)
-  rivalCopy: 0.35,        // rivals copy a leader: out-earn one by 2× in a quarter and it grows ×1.35 more next quarter
+  rivalCopy: 0,           // rubber-banding, OFF in the cozy standard mode. (Hard mode idea: 0.35 = out-earn a rival 2× in a quarter and it grows ×1.35 more)
   rivalPerWipe: 0.1,      // rivals start this much stronger for every reset you have had
   rivalProcessing: 0.9,   // rival processing per second, per point of strength
   rivalOnline: 0.25,      // rival online orders per second, per point of strength above 1 (their delivery drones)
