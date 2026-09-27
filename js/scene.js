@@ -195,9 +195,8 @@ var Scene = (function () {
     // trees: trunks now, blossoms later (they hang over everything)
     trunk(40, 198, 1); trunk(446, 198, -1);
     blossoms(h);
-    // lamp post, stone park sign, bench, recycle bins
+    // lamp post, bench, recycle bins
     lampPost(414);
-    parkSign(390, 198);
     R(ctx, 64, 180, 48, 4, P.ink); R(ctx, 65, 180, 46, 2, '#b07a50'); R(ctx, 65, 176, 46, 3, '#8a5a3a');
     R(ctx, 68, 184, 3, 12, '#3a2a2a'); R(ctx, 105, 184, 3, 12, '#3a2a2a');
     Sprites.plant(ctx, 372, 198, Math.min(24, (S.meta.runs - 1) * 3));
@@ -339,14 +338,6 @@ var Scene = (function () {
     glow(x + 1, 95, 30, 'rgba(255,214,150,' + (0.1 + a * 0.6).toFixed(3) + ')');
     cone(x + 1, 100, 230, 40, 'rgba(255,200,140,' + (a * 0.14).toFixed(3) + ')');
   }
-  function parkSign(x, y) {
-    R(ctx, x - 7, y - 46, 14, 46, P.ink); R(ctx, x - 6, y - 45, 12, 45, '#9a968e'); R(ctx, x - 6, y - 45, 12, 2, '#c8c4bc');
-    R(ctx, x - 4, y - 40, 8, 32, '#8a867e');
-    // carved marks (a park name, too worn to read)
-    var G = [[0, 0, 5, 1], [2, 0, 1, 5], [0, 3, 5, 1], [0, 1, 1, 3], [4, 1, 1, 4], [1, 5, 3, 1]];
-    for (var i = 0; i < 4; i++) G.forEach(function (g, k) { if ((i * 3 + k) % 4 !== 3) R(ctx, x - 3 + g[0], y - 38 + i * 8 + g[1], g[2], g[3], '#4a4640'); });
-    R(ctx, x - 9, y - 3, 18, 3, '#6e6a64');
-  }
   function recycleBin(x, y, col) {
     R(ctx, x - 5, y - 18, 11, 18, P.ink); R(ctx, x - 4, y - 17, 9, 17, col); R(ctx, x - 4, y - 17, 9, 2, '#ffffff');
     R(ctx, x - 2, y - 13, 5, 4, '#1a1a24'); R(ctx, x - 1, y - 12, 3, 2, '#33334a');
@@ -447,7 +438,7 @@ var Scene = (function () {
     var infos = [];
     for (var i = 0; i < 3; i++) {
       infos.push(machineInfo(S, i, t));
-      if (i === Engine.YOU) { youXf(hov === 'you', t); Sprites.machine(ctx, Engine.MX[i], infos[i]); ctx.restore(); }
+      if (i === Engine.YOU) youDraw(hov === 'you', t, function (g) { Sprites.machine(g, Engine.MX[Engine.YOU], infos[Engine.YOU]); });
       else Sprites.machine(ctx, Engine.MX[i], infos[i]);
       if (bumpFlash[i] && t - bumpFlash[i] < 1.2) {
         ctx.fillStyle = 'rgba(255,255,255,' + (0.5 * (1 - (t - bumpFlash[i]) / 1.2)).toFixed(2) + ')';
@@ -462,8 +453,7 @@ var Scene = (function () {
         Sprites.bubble(ctx, Engine.MX[em] - 12, ey, E.kind, null, t);
       }
     }
-    youXf(hov === 'you', t); Sprites.crate(ctx, CRATE.x, CRATE.y, hov === 'crate'); ctx.restore();
-    if (hov === 'you') { ctx.fillStyle = 'rgba(255,240,200,0.14)'; ctx.fillRect(YOU_BOX.x - 1, 107, YOU_BOX.w + 2, 94); }
+    youDraw(hov === 'you', t, function (g) { Sprites.crate(g, CRATE.x, CRATE.y, hov === 'crate'); });
     // followers waiting outside: a counter at the left edge of the view
     var wait = Math.floor(run.waiting);
     if (wait >= 1) {
@@ -503,7 +493,10 @@ var Scene = (function () {
       }
       glow(TV.x + TV.w / 2, TV.y + TV.h / 2, 60, 'rgba(110,180,255,' + (a * 0.25).toFixed(3) + ')');
       ctx.globalCompositeOperation = 'source-over';
-      for (var m2 = 0; m2 < 3; m2++) Sprites.machineLights(ctx, Engine.MX[m2], infos[m2], a);
+      for (var m2 = 0; m2 < 3; m2++) {
+        if (m2 === Engine.YOU) youDraw(hov === 'you', t, function (g) { Sprites.machineLights(g, Engine.MX[Engine.YOU], infos[Engine.YOU], a); });
+        else Sprites.machineLights(ctx, Engine.MX[m2], infos[m2], a);
+      }
     }
 
     var dark = 0;
@@ -553,12 +546,23 @@ var Scene = (function () {
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.moveTo(x - 6, y0); ctx.lineTo(x + 6, y0); ctx.lineTo(x + halfW, y1); ctx.lineTo(x - halfW, y1); ctx.closePath(); ctx.fill();
   }
-  // Your machine's click squash: call before drawing it, then ctx.restore().
-  function youXf(hover, t) {
+  // Your machine squashes when clicked and grows a little under the mouse. draw(g) paints into a small
+  // canvas that is then copied with the scale, pixel by pixel (no blurry edges). Use it for every
+  // layer of your machine (body, crate, night lights), so they all move together.
+  var youCv = null, youG = null, YOU_AREA = { w: 120, top: 60, h: 156 };
+  function youDraw(hover, t, draw) {
     var k = reduced ? 0 : Math.max(0, 1 - (t - squashAt) / 0.16), cx = Engine.MX[Engine.YOU], by = 200;
-    var sx = 1 + 0.045 * k + (hover ? 0.012 : 0), sy = 1 - 0.06 * k + (hover ? 0.012 : 0);
-    ctx.save();
-    ctx.translate(cx, by); ctx.scale(sx, sy); ctx.translate(-cx, -by);
+    var sx = 1 + 0.045 * k + (hover ? 0.04 : 0), sy = 1 - 0.06 * k + (hover ? 0.04 : 0);
+    if (sx === 1 && sy === 1) { draw(ctx); return; }
+    var A = YOU_AREA, x0 = cx - A.w / 2;
+    if (!youCv) { youCv = document.createElement('canvas'); youCv.width = A.w; youCv.height = A.h; youG = youCv.getContext('2d'); }
+    youG.setTransform(1, 0, 0, 1, 0, 0);
+    youG.clearRect(0, 0, A.w, A.h);
+    youG.translate(-x0, -A.top);
+    draw(youG);
+    var dw = Math.round(A.w * sx), dh = Math.round(A.h * sy);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(youCv, Math.round(cx - dw / 2), Math.round(by - (by - A.top) * sy), dw, dh);
   }
 
   // Pneumatic tubes: pipes from above into the back of your machine. One more pipe per level (up to 3).

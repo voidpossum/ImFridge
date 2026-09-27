@@ -9,6 +9,12 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.1.9 (2026-09-27)
+- Click a speech bubble or a tip to close it (a closed tip stays away until the next tip step).
+- Stone park sign removed.
+- Your machine is drawn into a small canvas and copied with the scale (`youDraw` in `js/scene.js`): the squash and the hover grow are crisp, and the night-light pass (face, name) moves with the machine. No white hover veil any more.
+- "Customer reviews" label before the thoughts at the top. The top bar stays one line: chips shrink to icon + number on narrow screens.
+
 ## M1.8 in progress (plan "UPDATE 4": Cookie Clicker economy + Japanese park)
 - Engine + data + sim DONE (2026-09-27): money is fizz (ƒ, ×100, save v5 migrates), research points (`buyResearch`, no projects), machine upgrades research-gated, Pneumatic Tubes (`tubeEvery`), Delivery Drone building (`serve`), mining not in review, `rpProd` +10%/RP ever earned, Macro Keyboards (`clickPct`), rivals copy a leader (`rivalCopy`), hardware ~3× cheaper. Sim: chapter 1 27–46 min for all bots, hardware beats clicks at 5–11 min, miner bot worse than active.
 - Step 1 UI DONE: Shop = Research strip (research points) + Upgrades strip (machine levels + doublers) + Automation list (hardware + Delivery Drone); Research tab removed; research tutorial via Shop; click squash + floating numbers; pause menu has settings; all-time counter; tubes on your machine; drones fly up; RESTOCK over darkness; fizz mail; old saves migrate (v3/v4 → v5, gate research credited). CSS gotcha again: `.res` clashes (use `k-res`).

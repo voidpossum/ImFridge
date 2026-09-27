@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.1.8';
+DATA.version = '0.1.9';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step

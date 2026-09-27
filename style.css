@@ -67,7 +67,7 @@ b, strong { font-weight: 700; }
   background: var(--bg2);
   border-bottom: 2px solid var(--line);
 }
-#thoughts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-width: 0; }
+#thoughts { display: flex; gap: 6px; align-items: center; min-width: 0; overflow: hidden; }   /* one line: chips shrink instead of wrapping */
 .th {
   display: flex; align-items: center; gap: 5px;
   padding: 3px 9px 3px 5px;
@@ -77,7 +77,10 @@ b, strong { font-weight: 700; }
   cursor: pointer;
   white-space: nowrap;
 }
-.th img { width: 26px; height: 28px; image-rendering: pixelated; }
+.th img { flex: none; width: 26px; height: 28px; image-rendering: pixelated; }
+.th { min-width: 0; }
+.th .tx { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.thLabel { flex: none; margin-right: 4px; font: 700 0.72em/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
 .th b { font-family: var(--mono); color: var(--bad); }
 .th.ok { border-color: #3a6a4a; }
 .th.ok b { color: var(--good); }
@@ -233,13 +236,14 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
   clip-path: var(--notch);
   box-shadow: 0 2px 0 rgba(0,0,0,0.3);
   animation: pop 0.18s ease-out;
+  pointer-events: auto; cursor: pointer;   /* click to close */
 }
 .bubble .who { display: block; font-weight: 800; font-size: 0.8em; letter-spacing: 0.04em; text-transform: uppercase; }
 .bubble.chug .who { color: #1f8a6a; }
 .bubble.clawd .who { color: #b25a30; }
 .bubble.you .who { color: #c0392b; }
 .bubble.customer .who { color: #5a5a9a; }
-.bubble.fade { opacity: 0; transition: opacity 0.4s; }
+.bubble.fade { pointer-events: none; opacity: 0; transition: opacity 0.4s; }
 @keyframes pop { from { transform: translate(-50%, -90%) scale(0.9); opacity: 0; } to { transform: translate(-50%, -100%); opacity: 1; } }
 
 #toasts { position: absolute; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 5; width: min(320px, 60%); pointer-events: none; }
@@ -541,7 +545,7 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
   border: 2px solid #2a1c2c;
   box-shadow: 0 3px 0 rgba(0,0,0,0.35);
   font-size: 0.86em; line-height: 1.35;
-  pointer-events: none;
+  cursor: pointer;   /* click to close */
   animation: tipBob 1.2s ease-in-out infinite;
 }
 #tipBubble .who { display: block; font-weight: 800; font-size: 0.78em; letter-spacing: 0.06em; text-transform: uppercase; color: #a8362f; }
@@ -627,7 +631,7 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
 .patch p { margin: 4px 0 0; }
 .patch.feat { background: #3a1a22; border-left-color: var(--bad); }
 .patch.feat b { color: var(--bad); }
-.bubble.reboot { background: #2a0e14; color: #ffd0d0; border: 2px solid var(--bad); font-weight: 700; animation: none; }
+.bubble.reboot { pointer-events: none; background: #2a0e14; color: #ffd0d0; border: 2px solid var(--bad); font-weight: 700; animation: none; }
 .bubble.reboot .who { color: var(--bad); }
 .chip.lock, .chip.feat { border-color: var(--bad); color: var(--bad); }
 .bonus { color: var(--gold); font-weight: 700; }

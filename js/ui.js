@@ -16,6 +16,7 @@ var UI = (function () {
   var confirmUntil = {};     // two-step buttons
   var priceShownAt = null;
   var selNode = null;        // selected node on the reset tree
+  var tipStep = null, tipClosed = null;   // the tip on screen, and the one the player clicked away
   var tipEl = null, tipX = 0, tipY = 0;
   var tv = { q: [], cur: null, x: 0, w: 0, gap: 3, fillerT: -20 };
   var mcs = [];              // the three machine cards in the HUD
@@ -105,6 +106,13 @@ var UI = (function () {
     el.panel.addEventListener('input', onPanelInput);
     el.modalBox.addEventListener('click', onModalClick);
     el.resetScreen.addEventListener('click', onResetClick);
+    // Click a speech bubble or a tip to close it.
+    el.bubbles.addEventListener('click', function (e) {
+      var n = e.target.closest('.bubble');
+      if (!n || n.classList.contains('reboot')) return;
+      bubbles = bubbles.filter(function (b) { if (b.node === n) { n.remove(); return false; } return true; });
+    });
+    el.tipBubble.addEventListener('click', function () { tipClosed = tipStep; el.tipBubble.hidden = true; });
     el.toasts.addEventListener('click', function (e) {
       var tn = e.target.closest('.toast');
       if (tn) { tab = 'log'; fold(false); panelSig = ''; renderRail(); tn.remove(); }
@@ -708,10 +716,11 @@ var UI = (function () {
       thoughtT = 2;
       var th = Engine.thoughtsSummary(S, 60);
       var keys = Object.keys(th).filter(function (k) { return THOUGHT_SHORT[k]; }).sort(function (a, b) { return th[b] - th[a]; }).slice(0, 3);
-      setHTML(el.thoughts, keys.length ? keys.map(function (k) {
+      setHTML(el.thoughts, '<span class="thLabel" data-tip="What your customers thought in the last minute. Click one to learn more.">Customer<br>reviews</span>' +
+        (keys.length ? keys.map(function (k) {
         return '<button class="th' + (k === 'value' ? ' ok' : '') + '" data-open="customers" data-tip="' + esc(DATA.story.thoughts[k].say + '\n' + DATA.story.thoughts[k].hint) + '">' +
-          '<img src="' + thoughtIcon(k) + '" alt=""><b>' + th[k] + '</b> ' + THOUGHT_SHORT[k] + '</button>';
-      }).join('') : '<span class="dim">Customers look happy.</span>');
+          '<img src="' + thoughtIcon(k) + '" alt=""><b>' + th[k] + '</b><span class="tx">' + THOUGHT_SHORT[k] + '</span></button>';
+      }).join('') : '<span class="dim">Customers look happy.</span>'));
     }
     setText(el.cash, money(R.cash));
     var rt = Engine.rates(S);
@@ -822,7 +831,8 @@ var UI = (function () {
 
   function renderTipBubble() {
     var step = S.pause ? null : goalStep();
-    var pos = step && tipTarget(step);
+    var pos = step && step !== tipClosed && tipTarget(step);
+    tipStep = step;
     if (!pos) { el.tipBubble.hidden = true; return; }
     el.tipBubble.hidden = false;
     el.tipBubble.className = 'dir-' + pos.dir + (step === 'golden' ? ' gold' : '');
