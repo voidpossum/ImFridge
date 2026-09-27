@@ -1,4 +1,4 @@
-# OUT OF ORDER — project notes
+# I'm Fridge — project notes
 
 Soda-machine incremental by Void Possum. Plain HTML/CSS/JS, no build step: `index.html` runs from a double-click.
 The design plan (chapters, systems, endings) was approved 2026-09-26.
@@ -11,7 +11,9 @@ The design plan (chapters, systems, endings) was approved 2026-09-26.
 - **Tune with the simulator first:** `node tools/sim.js` (add `--runs N`, `--expert`). Chapter 1 target: 30–45 min.
 - **Saves must survive updates:** bump `SAVE_VERSION` and add a step in `migrate()`; never reset a player's save.
 - `js/engine.js` has no DOM code. The page and the simulator run the same rules.
-- All author/credit text says "Void Possum" only.
+- All author/credit text says "Void Possum" only. Links: https://voidpossum.carrd.co/ (About box in the pause menu and on the start screen).
+- Money is stored in **cents** (200 = $2.00). Show it only through `Engine.money(n)` (`short` = scene pixel text).
+- `DATA.version` (`js/data/core.js`) is shown in the pause menu: raise it for every shared build.
 - **All rights reserved.** Never add an open-source license (MIT etc.). File headers say `© 2026 Void Possum. All rights reserved.`
 
 ## Map

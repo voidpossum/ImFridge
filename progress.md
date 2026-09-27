@@ -1,6 +1,13 @@
-# OUT OF ORDER — progress
+# I'm Fridge — progress (was called OUT OF ORDER)
 
 Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (its newest "UPDATE" is the current milestone).
+
+## 2026-09-27 (later): Void Possum's notes
+- Game renamed **I'm Fridge** (title, start screen, file headers, README, LICENSE). Save keys (`outoforder_*`) and `window.OOO` are unchanged on purpose, so saves keep working.
+- Money shows in dollars: the numbers were already cents, so a can is $2.00 (was ƒ200). No balance or save change. `Engine.money(n, short)` formats it everywhere (UI, scene, sim). The fizz mail and all "fizz" amounts in text now say money / dollars.
+- Idea, not built: prices that go up later in the game (Void Possum said "maybe").
+- Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
+- Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
 ## M1.8 in progress (plan "UPDATE 4": Cookie Clicker economy + Japanese park)
 - Engine + data + sim DONE (2026-09-27): money is fizz (ƒ, ×100, save v5 migrates), research points (`buyResearch`, no projects), machine upgrades research-gated, Pneumatic Tubes (`tubeEvery`), Delivery Drone building (`serve`), mining not in review, `rpProd` +10%/RP ever earned, Macro Keyboards (`clickPct`), rivals copy a leader (`rivalCopy`), hardware ~3× cheaper. Sim: chapter 1 27–46 min for all bots, hardware beats clicks at 5–11 min, miner bot worse than active.

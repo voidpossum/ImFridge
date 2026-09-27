@@ -1,4 +1,4 @@
-# OUT OF ORDER — local dev server (only for testing; the game itself needs no server).
+# I'M FRIDGE — local dev server (only for testing; the game itself needs no server).
 # Serves the folder on 127.0.0.1 and accepts POST /__snap?name=x (a PNG data URL) to save
 # screenshots of the canvas (default folder: <system temp>/outoforder-snaps).
 # Usage: python tools/devserver.py 8741 <snapshot folder>

@@ -1,4 +1,4 @@
-// OUT OF ORDER — memory cards.
+// I'M FRIDGE — memory cards.
 // After you survive a review you pick 1 of 3. Each card is a memory from your human life + a bonus.
 // The first time you take a card, it goes into your Memory Book forever.
 //
@@ -17,7 +17,7 @@ var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 DATA.lifeChapters = [
   { id: 'childhood', name: 'Childhood', perk: 'Forever: +5% appeal', perkFx: [{ k: 'appeal', v: 0.05 }] },
-  { id: 'firstjob',  name: 'First Job', perk: 'Forever: start every run with +2,500 fizz', perkFx: [{ k: 'startCash', v: 2500 }] },
+  { id: 'firstjob',  name: 'First Job', perk: 'Forever: start every run with +$25', perkFx: [{ k: 'startCash', v: 2500 }] },
   { id: 'friends',   name: 'Friends',   perk: 'Forever: clicks make +1 processing', perkFx: [{ k: 'click', v: 1 }] }
   // School, Family and Last Day arrive in later chapters.
 ];
@@ -28,7 +28,7 @@ DATA.cards = [
     name: 'Lemonade Stand',
     text: 'You sold lemonade for 25 cents a cup. You made four dollars and felt rich.',
     fx: [{ k: 'appeal', v: 0.25, c: { price_le: 150 } }],
-    desc: '+25% appeal while your price is 150 fizz or less' },
+    desc: '+25% appeal while your price is $1.50 or less' },
 
   { id: 'c_icecream', life: 'childhood', rarity: 'common', chapter: 1, tags: ['Music'],
     name: 'Ice Cream Truck Song',

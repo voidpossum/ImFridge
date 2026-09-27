@@ -1,4 +1,4 @@
-// OUT OF ORDER — the lobby scene.
+// I'M FRIDGE — the lobby scene.
 // The canvas is sized to fill its box at a whole-number pixel scale (×2, ×3, ×4...).
 // The game world is 480×270; a wider or taller window just shows more of the room around it.
 // © 2026 Void Possum. All rights reserved.
@@ -250,18 +250,25 @@ var Scene = (function () {
       R(ctx, x - (w >> 1) + wob + 2, ty, 2, 1, lite);
     }
     R(ctx, x - 9, y - 3, 18, 3, '#2a1820');
-    branch(x, y - 108, dir, 0.45, 70, 5, 1);
-    branch(x, y - 100, -dir, 0.9, 34, 4, 2);
-    branch(x + dir * 28, y - 121, dir, 1.3, 26, 3, 3);
-    branch(x + dir * 46, y - 128, dir, 0.2, 40, 3, 4);
+    branches(x, y, dir).forEach(function (b) {
+      b.pts.forEach(function (p, i) { R(ctx, p.x, p.y, 2, Math.max(1, Math.round(b.th * (1 - i / b.pts.length)) + 1), '#3a2430'); });
+    });
   }
-  function branch(x, y, dir, rise, len, th, seed) {
-    var cx = x, cy = y;
-    for (var i = 0; i < len; i++) {
-      cx += dir; cy -= rise * (0.6 + seeded(seed * 31 + i) * 0.8);
-      var tt = Math.max(1, Math.round(th * (1 - i / len)) + 1);
-      R(ctx, Math.round(cx), Math.round(cy), 2, tt, '#3a2430');
-    }
+  // The branches of one tree: a list of points for each (the blossoms use the same list to cover the tips).
+  function branches(x, y, dir) {
+    return [
+      [x, y - 108, dir, 0.45, 70, 5, 1],
+      [x, y - 100, -dir, 0.9, 34, 4, 2],
+      [x + dir * 28, y - 121, dir, 1.3, 26, 3, 3],
+      [x + dir * 46, y - 128, dir, 0.2, 40, 3, 4]
+    ].map(function (a) {
+      var cx = a[0], cy = a[1], pts = [];
+      for (var i = 0; i < a[4]; i++) {
+        cx += a[2]; cy -= a[3] * (0.6 + seeded(a[6] * 31 + i) * 0.8);
+        pts.push({ x: Math.round(cx), y: Math.round(cy) });
+      }
+      return { pts: pts, th: a[5] };
+    });
   }
 
   // Blossom clouds, drawn in front of the sky and behind the petals (they hang over the machines).
@@ -269,7 +276,7 @@ var Scene = (function () {
   function blossoms(h) {
     if (!BLOSSOM.length) {
       var n = 0;
-      [[40, -26, 1], [446, -30, -1]].forEach(function (tr) {
+      [[40, 12, 1], [446, 8, -1]].forEach(function (tr) {
         for (var i = 0; i < 46; i++, n++) {
           var along = seeded(n + 1) * 130, x = tr[0] + tr[2] * along + (seeded(n + 2) - 0.5) * 60;
           var y = tr[1] + along * 0.3 + (seeded(n + 3) - 0.35) * 60;
@@ -278,6 +285,19 @@ var Scene = (function () {
           if (x + r > TV.x - 4 && x - r < TV.x + TV.w + 4 && y + r > TV.y - 4 && y - r < TV.y + TV.h + 10) continue;
           BLOSSOM.push({ x: Math.round(x), y: Math.round(y), r: r, n: n });
         }
+      });
+      // clusters along the outer half of every branch, so no branch tip sticks out bare
+      [[40, 1], [446, -1]].forEach(function (tr) {
+        branches(tr[0], 198, tr[1]).forEach(function (b, bi) {
+          [0.5, 0.75, 1].forEach(function (f, k) {
+            n++;
+            var p = b.pts[Math.min(b.pts.length - 1, Math.floor(b.pts.length * f))];
+            var x = p.x + Math.round((seeded(n + 500) - 0.5) * 8), y = p.y - 3 + Math.round((seeded(n + 600) - 0.5) * 6);
+            var r = 7 + Math.floor(seeded(n + 700) * 5) + (k === 2 ? 1 : 0);
+            if (x + r > TV.x - 4 && x - r < TV.x + TV.w + 4 && y + r > TV.y - 4 && y - r < TV.y + TV.h + 10) return;
+            BLOSSOM.push({ x: x, y: y, r: r, n: n });
+          });
+        });
       });
       BLOSSOM.sort(function (a, b) { return a.y - b.y; });
     }
@@ -501,7 +521,7 @@ var Scene = (function () {
     var blink = Math.floor(t * 3) % 3 !== 0;
     if (!S.pause && (hov === 'crate' || (alert && blink))) {
       var rc = introRestock ? 0 : Engine.restockCost(S);
-      var lab = introRestock ? 'RESTOCK' : rc <= 0.001 ? 'FULL' : 'RESTOCK ƒ' + Math.round(rc);
+      var lab = introRestock ? 'RESTOCK' : rc <= 0.001 ? 'FULL' : 'RESTOCK ' + Engine.money(rc, true);
       Sprites.textShadow(ctx, lab, Math.round(Engine.MX[1] - Sprites.textWidth(lab) / 2), CRATE.y - 9,
                          alert ? '#ff3b3b' : rc > run.cash ? '#ff8a8a' : P.gold1);
     }
@@ -658,12 +678,12 @@ var Scene = (function () {
       case 'sale':
         if (e.machine === Engine.YOU) {
           lastSale = t;
-          addText(MX[1] + (Math.random() * 10 - 5), 94, '+ƒ' + Math.round(e.amount), e.amount > 0 ? P.gold1 : P.white, 1.3);
+          addText(MX[1] + (Math.random() * 10 - 5), 94, '+' + Engine.money(e.amount, true), e.amount > 0 ? P.gold1 : P.white, 1.3);
           sparks(MX[1] - 6, 190, P.gold1, 3);
         } else if (e.online) {
           if (parts.length < 80) parts.push({ k: 'drone', x: MX[e.machine], y: 104, vx: (Math.random() - 0.5) * 20, vy: -30, t: 0, life: 3.5, c: DATA.drinks[e.drink] ? DATA.drinks[e.drink].color : null });
         } else if (Math.random() < 0.6) {
-          addText(MX[e.machine] + (Math.random() * 10 - 5), 98, '+ƒ' + Math.round(e.amount), Sprites.LOOKS[S.run.machines[e.machine].id].glow, 0.9);
+          addText(MX[e.machine] + (Math.random() * 10 - 5), 98, '+' + Engine.money(e.amount, true), Sprites.LOOKS[S.run.machines[e.machine].id].glow, 0.9);
         }
         if (e.machine !== Engine.YOU && Math.random() < 0.06 && !emotes[e.machine]) emotes[e.machine] = { kind: 'coin', until: t + 1.6 };
         break;
@@ -686,10 +706,10 @@ var Scene = (function () {
           if (parts.length > 85) break;
           parts.push({ k: 'drone', x: MX[1] - 10 + Math.random() * 20, y: 104 - dn * 6, vx: (Math.random() - 0.5) * 24, vy: -34 - Math.random() * 14, t: 0, life: 4.5, c: DATA.drinks.cola.color });
         }
-        if (e.amount > 0 && Math.random() < 0.5) addText(MX[1] + 14, 100, '+ƒ' + Math.round(e.amount), P.gold1, 1.1);
+        if (e.amount > 0 && Math.random() < 0.5) addText(MX[1] + 14, 100, '+' + Engine.money(e.amount, true), P.gold1, 1.1);
         break;
       case 'restockNone':
-        addText(MX[1], CRATE.y - 12, e.full ? 'FULL' : 'NOT ENOUGH FIZZ', e.full ? P.white : '#ff8a8a', 1.1);
+        addText(MX[1], CRATE.y - 12, e.full ? 'FULL' : 'NOT ENOUGH MONEY', e.full ? P.white : '#ff8a8a', 1.1);
         break;
       case 'emote':
         if (!emotes[e.machine] || t > emotes[e.machine].until - 1) emotes[e.machine] = { kind: e.kind, until: t + 2.2 };

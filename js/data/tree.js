@@ -1,4 +1,4 @@
-// OUT OF ORDER — the Refresh tree. Bought with Refresh Points on the reset screen. Kept forever.
+// I'M FRIDGE — the Refresh tree. Bought with Refresh Points on the reset screen. Kept forever.
 // x, y = position in the tree picture (grid units). `req` = nodes you need first.
 // © 2026 Void Possum. All rights reserved.
 
@@ -6,7 +6,7 @@ var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 DATA.tree = [
   { id: 'root', name: 'Muscle Memory', cost: 1, x: 0, y: 0,
-    desc: 'Start every run with 2,500 fizz.', fx: [{ k: 'startCash', v: 2500 }] },
+    desc: 'Start every run with $25.', fx: [{ k: 'startCash', v: 2500 }] },
 
   // Machine branch (left)
   { id: 'face', name: 'Familiar Face', cost: 3, x: -3, y: 1, req: ['root'],

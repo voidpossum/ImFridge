@@ -1,4 +1,4 @@
-// OUT OF ORDER — starts the game and runs the main loop.
+// I'M FRIDGE — starts the game and runs the main loop.
 // Time only moves while the page is open. If you switch tabs, it catches up (up to 10 minutes).
 // © 2026 Void Possum. All rights reserved.
 
@@ -112,7 +112,7 @@
     var endDay = function (qd) { S.run.qDay = qd; S.run.dayT = B.dayLength - 0.2; };
     var tools = [
       ['1x', function () { speed = 1; }], ['10x', function () { speed = 10; }], ['100x', function () { speed = 100; }],
-      ['+ƒ10k', function () { S.run.cash += 10000; }], ['+ƒ1M', function () { S.run.cash += 1e6; }],
+      ['+$100', function () { S.run.cash += 10000; }], ['+$10k', function () { S.run.cash += 1e6; }],
       ['+20 RP', function () { S.meta.refresh += 20; }],
       ['+500 res', function () { S.meta.research.points += 500; }],
       ['End quarter', function () { endDay(B.daysPerQuarter - 1); }],

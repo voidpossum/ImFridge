@@ -1,4 +1,4 @@
-// OUT OF ORDER — hardware. This is what makes your processing power when you are not clicking.
+// I'M FRIDGE — hardware. This is what makes your processing power when you are not clicking.
 // Works like buildings in Cookie Clicker: each copy costs 15% more.
 // Owning 1 / 5 / 25 / 50 of something unlocks an upgrade that doubles it.
 // Hardware lives inside your machine (you can see it in the cut-away later).

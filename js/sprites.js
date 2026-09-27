@@ -1,4 +1,4 @@
-// OUT OF ORDER — pixel art, drawn in code.
+// I'M FRIDGE — pixel art, drawn in code.
 // Everything that is "art" lives here: the palette, people, machines, the TV, room pieces and icons.
 // All drawing uses whole pixels. People are drawn once into small cached images, then outlined.
 // © 2026 Void Possum. All rights reserved.

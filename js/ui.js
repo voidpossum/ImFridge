@@ -1,4 +1,4 @@
-// OUT OF ORDER — everything outside the canvas: HUD, bottom bar, drawer tabs, pop-ups, the reset tree,
+// I'M FRIDGE — everything outside the canvas: HUD, bottom bar, drawer tabs, pop-ups, the reset tree,
 // speech bubbles, tooltips and the text on the lobby TV.
 // Rule: instructions are plain and short. Jokes only come from characters.
 // © 2026 Void Possum. All rights reserved.
@@ -31,8 +31,7 @@ var UI = (function () {
     { id: 'shop', name: 'Shop', icon: 'tabMachine', show: function () { return true; } },
     { id: 'memories', name: 'Memories', icon: 'tabBook', show: function () { return Object.keys(S.meta.book).length > 0; } },
     { id: 'customers', name: 'Customers', icon: 'tabCustomers', show: function () { return true; } },
-    { id: 'log', name: 'Log', icon: 'tabLog', show: function () { return true; } },
-    { id: 'settings', name: 'Settings', icon: 'tabSettings', show: function () { return true; } }
+    { id: 'log', name: 'Log', icon: 'tabLog', show: function () { return true; } }
   ];
 
   // ───────────────────────── helpers
@@ -43,11 +42,8 @@ var UI = (function () {
     while (n >= 1000 && i < suffixes.length) { n /= 1000; i++; }
     return { n: n, s: i ? suffixes[i - 1] : '' };
   }
-  // Money is fizz (ƒ), Refreshr's own company money.
-  function money(n) {
-    if (n >= 1e6) { var b = big(n, ['K', 'M', 'B', 'T', 'Qa']); return 'ƒ' + b.n.toFixed(2) + b.s; }
-    return 'ƒ' + Math.round(n).toLocaleString('en-US');
-  }
+  // Money is kept in cents; this shows it in dollars.
+  function money(n) { return Engine.money(n); }
   function num(n) {
     if (n >= 1e6) { var b = big(n, ['K', 'M', 'B', 'T', 'Qa']); return b.n.toFixed(2) + b.s; }
     if (n >= 1e4) return Math.floor(n).toLocaleString('en-US');
@@ -614,7 +610,7 @@ var UI = (function () {
   var BAR_TIP = {
     post: 'Posting brings likes, and likes bring followers.',
     res: 'Research unlocks new tech. It is kept forever, even when you are reset.',
-    mine: 'Mining turns power straight into fizz to spend.\nIt does NOT count at the review: only cans sold count.'
+    mine: 'Mining turns power straight into money to spend.\nIt does NOT count at the review: only cans sold count.'
   };
   function paintSplit() {
     var Y = mcs[YOU], keys = Engine.splitKeys(S), sp = Engine.splitOf(S);
@@ -723,8 +719,8 @@ var UI = (function () {
       '<span data-tip="Likes per second, from your clicks and hardware.">' + Icons.img('heart') + num(rt.likes) + '/s</span>' +
       '<span data-tip="New followers per second. They walk in to buy from you.">' + Icons.img('tabCustomers') + num(rt.followers) + '/s</span>' +
       (S.meta.flags.jailbreak ? '<span data-tip="Research points (you have ' + num(S.meta.research.points) + '). Spend them at the top of the Shop.">' + Icons.img('bits') + num(rt.research) + '/s</span>' : '') +
-      '<span data-tip="Fizz per second from cans sold (average). Only this counts at the review.">' + money(rt.sales) + '/s</span>' +
-      (rt.mined > 0.5 ? '<span class="mined" data-tip="Fizz per second from Mining. You can spend it, but it does not count at the review.">+' + money(rt.mined) + '/s</span>' : ''));
+      '<span data-tip="Money per second from cans sold (average). Only this counts at the review.">' + money(rt.sales) + '/s</span>' +
+      (rt.mined > 0.5 ? '<span class="mined" data-tip="Money per second from Mining. You can spend it, but it does not count at the review.">+' + money(rt.mined) + '/s</span>' : ''));
     setText(el.allTime, 'all time ' + money(S.meta.totalSales));
   }
 
@@ -884,7 +880,7 @@ var UI = (function () {
     return buyN;
   }
 
-  // Icons along the top of the Shop: research (paid with research points) and upgrades (paid with fizz).
+  // Icons along the top of the Shop: research (paid with research points) and upgrades (paid with money).
   function stripItems() {
     var R = S.run, res = [], ups = [];
     if (S.meta.flags.jailbreak) Engine.researchAvailable(S).slice(0, 14).forEach(function (r) {
@@ -1112,14 +1108,13 @@ var UI = (function () {
           '<button class="btn" data-act="rename">Rename</button></span></div>';
         if (S.meta.wipes >= 1) {
           var rp = Engine.rpFor(S);
-          h += '<h3 style="margin-top:18px">This run</h3><p class="note">Reset yourself now and get ' + rp + ' Refresh Points. You lose this run\'s fizz, automation, upgrades and cards.</p>' +
+          h += '<h3 style="margin-top:18px">This run</h3><p class="note">Reset yourself now and get ' + rp + ' Refresh Points. You lose this run\'s money, automation, upgrades and cards.</p>' +
             '<button class="btn danger full" data-act="wipe">' + (armed('wipe') ? 'Click again to reset now' : 'Reset now for ' + rp + ' Refresh Points') + '</button>';
         }
         h += '<h3 style="margin-top:18px">Save</h3><p class="note">The game saves by itself every 10 seconds.</p>' +
           '<div class="set-row"><button class="btn" data-act="export">Export save file</button><button class="btn" data-act="import">Import save file</button></div>' +
           '<div class="set-row"><span>Start the whole game over</span><button class="btn danger" data-act="reset">' + (armed('reset') ? 'Click again to delete' : 'Reset game') + '</button></div>' +
-          '<p class="note" style="margin-top:12px">Keys: Space = post, R = restock, P or Esc = pause, 1–4 = pick a card, Enter = continue.</p>' +
-          '<p class="about">OUT OF ORDER · made by Void Possum · bugs: bugs.voidpossum@icloud.com</p>';
+          '<p class="note" style="margin-top:12px">Keys: Space = post, R = restock, P or Esc = pause, 1–4 = pick a card, Enter = continue.</p>';
         return h;
       }
     }
@@ -1224,6 +1219,14 @@ var UI = (function () {
     }).join('') + '</pre>';
   }
 
+  // About the game: shown at the bottom of the pause menu.
+  function aboutBox() {
+    return '<div class="aboutBox"><img src="art/voidpossum.jpg" alt="Void Possum" width="48" height="48">' +
+      '<div><b>I\'m Fridge</b> <span class="ver">version ' + esc(DATA.version) + ' · early test build</span><br>' +
+      'Made by Void Possum. <a href="https://voidpossum.carrd.co/" target="_blank" rel="noopener">voidpossum.carrd.co</a><br>' +
+      '<span class="note">Bugs and ideas: bugs.voidpossum@icloud.com</span></div></div>';
+  }
+
   var MODALS = {
     boot: function () {
       return term(DATA.story.boot) +
@@ -1274,7 +1277,7 @@ var UI = (function () {
 
     hold: function () {
       return '<h2>Paused</h2><p class="muted">Nothing happens until you continue.</p>' +
-        '<div class="pauseSet">' + PANELS.settings.html() + '</div>' +
+        '<div class="pauseSet">' + PANELS.settings.html() + '</div>' + aboutBox() +
         '<div class="foot"><span class="hintKey">P or Esc also pauses and continues.</span><button class="btn primary" data-act="close">Continue</button></div>';
     },
 

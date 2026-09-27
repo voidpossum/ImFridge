@@ -1,4 +1,4 @@
-// OUT OF ORDER — small pixel icons for the menus (12×12), drawn from text maps.
+// I'M FRIDGE — small pixel icons for the menus (12×12), drawn from text maps.
 // Each letter is a colour (see PAL). "." is empty. Icons are turned into images once, at start.
 // © 2026 Void Possum. All rights reserved.
 

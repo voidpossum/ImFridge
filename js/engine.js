@@ -1,4 +1,4 @@
-// OUT OF ORDER — game engine.
+// I'M FRIDGE — game engine.
 // Pure rules: no drawing, no DOM. The page and the simulator (tools/sim.js) both run this same file.
 // The screen reads state from S and drains S.ev (a list of things that just happened).
 // © 2026 Void Possum. All rights reserved.
@@ -32,6 +32,20 @@ var Engine = (function () {
     var r = rand(S) * total;
     for (k in weights) { r -= weights[k]; if (r <= 0) return k; }
     return k;
+  }
+
+  // Money is kept in cents (200 = $2.00, one can at the start). This turns it into text.
+  // short: drop ".00" and use K for thousands (for the small pixel numbers in the scene).
+  function money(n, short) {
+    var neg = n < 0, d = Math.abs(n) / 100, s;
+    if (d >= (short ? 1000 : 1e6)) {
+      var suf = ['K', 'M', 'B', 'T', 'Qa', 'Qi'], i = 0;
+      while (d >= 1000 && i < suf.length) { d /= 1000; i++; }
+      s = d.toFixed(short ? 1 : 2).replace(/\.0$/, '') + suf[i - 1];
+    }
+    else if (d >= 1000) s = Math.round(d).toLocaleString('en-US');
+    else s = short && Math.round(d * 100) % 100 === 0 ? String(Math.round(d)) : d.toFixed(2);
+    return (neg ? '-' : '') + '$' + s;
   }
 
   // Your machine's nickname (the rivals and Management still say VEND-3, your model number).
@@ -244,7 +258,7 @@ var Engine = (function () {
     return sp;
   }
   function splitNow(S) { return splitOf(S).post; }
-  // Fizz per point of processing put into Mining. It drops as you mine more this run (SodaCoin difficulty).
+  // Money per point of processing put into Mining. It drops as you mine more this run (SodaCoin difficulty).
   function mineRateNow(S) { return B.mineRate * (1 + fx(S, 'mine')) / (1 + (S.run.minedRun || 0) / B.mineHalf); }
 
   // Turn processing power into likes (→ followers) and research.
@@ -254,7 +268,7 @@ var Engine = (function () {
     var research = amount * spl.res;
     var mined = amount * spl.mine * mineRateNow(S);
     if (mined > 0) {
-      // Mined fizz can be spent, but Management only counts cans sold at the review.
+      // Mined money can be spent, but Management only counts cans sold at the review.
       R.cash += mined; m.totalSales += mined;
       R.rate.mineNow = (R.rate.mineNow || 0) + mined;
       R.minedBank = (R.minedBank || 0) + mined;
@@ -956,7 +970,7 @@ var Engine = (function () {
   function fxLine(S, M) {
     var n = rivalName(S, M).toUpperCase();
     switch (M.fx.type) {
-      case 'free': return n + ' is giving cans away for free. Its sales will be 0 fizz for a while.';
+      case 'free': return n + ' is giving cans away for free. It earns nothing for a while.';
       case 'hype': return n + ' is extra popular right now.';
       case 'nopay': return n + ' is not getting paid for its sales right now.';
       case 'closed': return n + ' is away (blazer delivery). Nobody can buy from it.';
@@ -1289,7 +1303,7 @@ var Engine = (function () {
     switch (res.kind) {
       case 'trending': return 'TRENDING! Your posts get 7 times the likes for a while.';
       case 'rush': return 'RUSH HOUR! You sell twice as fast, and twice as many people walk in.';
-      case 'tip': return 'BIG TIP! A fan sent you ' + res.cash + ' fizz.';
+      case 'tip': return 'BIG TIP! A fan sent you ' + money(res.cash) + '.';
       case 'grant': return 'RESEARCH GRANT! +' + res.research + ' research.';
     }
     return '';
@@ -1816,7 +1830,7 @@ var Engine = (function () {
 
   function deserialize(str) {
     var o = migrate(JSON.parse(str));
-    if (!o.meta) throw new Error('Not an OUT OF ORDER save');
+    if (!o.meta) throw new Error("Not an I'm Fridge save");
     var S = newGame(1);
     S.rs = o.rs | 0;
     var fm = freshMeta();
@@ -1880,7 +1894,7 @@ var Engine = (function () {
 
   return {
     YOU: YOU, MX: MX, CARD: CARD, MACH: MACH, HW: HW, RES: RES, TREE: TREE, VERSION: SAVE_VERSION,
-    newGame: newGame, tick: tick,
+    newGame: newGame, tick: tick, money: money,
     promote: promote, restock: restock, skipIntro: skipIntro, myName: myName, setName: setName, splitOf: splitOf, splitKeys: splitKeys, restockCost: restockCost, setPrice: setPrice, setSmart: setSmart, setSplit: setSplit,
     buyUpgrade: buyUpgrade, upgradeCost: upgradeCost, upgradeAvailable: upgradeAvailable,
     buyHardware: buyHardware, hwCost: hwCost, hwCostN: hwCostN, hwMaxAffordable: hwMaxAffordable, hwAvailable: hwAvailable,

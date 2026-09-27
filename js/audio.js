@@ -1,4 +1,4 @@
-// OUT OF ORDER — sound effects, made by the browser (no audio files).
+// I'M FRIDGE — sound effects, made by the browser (no audio files).
 // Volume 0 means fully silent: nothing is created or played.
 // © 2026 Void Possum. All rights reserved.
 

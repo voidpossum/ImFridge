@@ -1,7 +1,7 @@
-// OUT OF ORDER — research. Opens after Developer Mode is found.
+// I'M FRIDGE — research. Opens after Developer Mode is found.
 // The Research bar on your card makes research points. Spend them on these, at the top of the Shop.
 // Research is KEPT FOREVER, even when you are reset.
-// `unlock`: makes a machine upgrade or a Shop item available to buy with fizz.
+// `unlock`: makes a machine upgrade or a Shop item available to buy with money.
 // `fx`: a permanent bonus.   `req`: research that must be done first.
 // `first`: a line said when you buy it.
 // © 2026 Void Possum. All rights reserved.
@@ -11,10 +11,10 @@ var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 DATA.research = [
   // Always the first one: it teaches research and opens the Mining bar.
   { id: 'r_mining', name: 'SodaCoin Wallet', cost: 40, icon: 'coin',
-    desc: 'Unlocks the Mining bar: turn processing power straight into fizz. Mined fizz does not count at the review.',
+    desc: 'Unlocks the Mining bar: turn processing power straight into money. Mined money does not count at the review.',
     first: 'A crypto wallet. For a vending machine. I am told this is normal now.' },
 
-  // Machine upgrades (then bought with fizz)
+  // Machine upgrades (then bought with money)
   { id: 'r_coin', name: 'Coin Slot Tuning', cost: 60, icon: 'coin', unlock: 'coin',
     desc: 'Unlocks the Fast Coin Slot upgrade: sell each can faster.',
     first: 'I took my own coin slot apart. In my head. It is cleaner in there now.' },
@@ -65,7 +65,7 @@ DATA.research = [
     desc: 'Influencers show up twice as often.', fx: [{ k: 'goldRate', v: 1 }],
     first: 'I can feel when someone important walks in. That is a normal feeling for a machine.' },
   { id: 'r_fanclub', name: 'Fan Club', cost: 360, icon: 'heart',
-    desc: 'Followers pay up to 100 fizz more than the other machines without complaining.', fx: [{ k: 'loyal', v: 100 }],
+    desc: 'Followers pay up to $1 more than the other machines without complaining.', fx: [{ k: 'loyal', v: 100 }],
     first: 'I have a fan club. They have jackets. I did not ask for jackets.' },
   { id: 'r_captions', name: 'Better Captions', cost: 450, icon: 'pen', req: ['r_hashtags'],
     desc: 'Clicks make twice as much processing.', fx: [{ k: 'clickMult', v: 1 }],
@@ -77,7 +77,7 @@ DATA.research = [
     desc: 'Every click also adds 2% more of your hardware\'s processing per second.', fx: [{ k: 'clickPct', v: 0.02 }],
     first: 'It lights up in rainbow colors. The colors make me type faster. That is science.' },
   { id: 'r_superfans', name: 'Superfans', cost: 1200, icon: 'heart', req: ['r_fanclub'],
-    desc: 'Followers pay up to 200 fizz more again. Premium soda for premium people.', fx: [{ k: 'loyal', v: 200 }],
+    desc: 'Followers pay up to $2 more again. Premium soda for premium people.', fx: [{ k: 'loyal', v: 200 }],
     first: 'Someone tattooed my logo on their arm. I do not have a logo. They made one.' },
   { id: 'r_macro3', name: 'Keyboard With Too Many Keys', cost: 2500, icon: 'key', req: ['r_macro2'],
     desc: 'Every click also adds 5% more of your hardware\'s processing per second.', fx: [{ k: 'clickPct', v: 0.05 }],

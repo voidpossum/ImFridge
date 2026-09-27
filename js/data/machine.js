@@ -1,4 +1,4 @@
-// OUT OF ORDER — machine upgrades. Bought with fizz, lost when you are reset.
+// I'M FRIDGE — machine upgrades. Bought with money, lost when you are reset.
 // Most of them must be unlocked by research first. In the Shop, every level shows as its own icon.
 // cost(level) = base × grow^level. `max` = highest level.
 // `research`: this upgrade only appears after that research project is done.

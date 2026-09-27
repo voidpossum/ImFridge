@@ -1,4 +1,4 @@
-// OUT OF ORDER — play stats report.
+// I'M FRIDGE — play stats report.
 // Reads an exported save file and prints how the game was played: one line per quarter, then the event timeline.
 // Run:  node tools/stats.js path/to/out-of-order-save.json
 // The stats live only in the save file on the player's computer. Nothing is ever sent anywhere.

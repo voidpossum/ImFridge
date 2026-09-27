@@ -1,4 +1,4 @@
-// OUT OF ORDER — saving and loading.
+// I'M FRIDGE — saving and loading.
 // The game saves itself every 10 seconds, when you switch tabs, and when you close the page.
 // © 2026 Void Possum. All rights reserved.
 
@@ -50,7 +50,7 @@ var Save = (function () {
       try {
         var S = Engine.deserialize(String(r.result));
         done(null, S);
-      } catch (e) { done('That file is not an OUT OF ORDER save.'); }
+      } catch (e) { done("That file is not an I'm Fridge save."); }
     };
     r.onerror = function () { done('Could not read that file.'); };
     r.readAsText(file);

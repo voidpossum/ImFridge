@@ -1,4 +1,4 @@
-// OUT OF ORDER — story text for chapter 1.
+// I'M FRIDGE — story text for chapter 1.
 // Rule: teaching text is plain and short. Jokes live only in character lines.
 // Every line has an id and is shown once.
 // © 2026 Void Possum. All rights reserved.
@@ -34,7 +34,7 @@ DATA.story = {
     research_pick: 'Buy SodaCoin Wallet with your research points.',
     research_bar:  'Put some power into Research. Research points buy the SodaCoin Wallet.',
     newShop:       'Research unlocked something new. Open the Shop to see it.',
-    mine:          'New: the Mining bar. Mining makes fizz to spend. Only cans sold count at the review.',
+    mine:          'New: the Mining bar. Mining makes money to spend. Only cans sold count at the review.',
     post:     'Click your machine to post an ad (or press Space). Every 5 likes, a follower comes to buy.',
     restock:  'Cans are running low. Click the crate on top of your machine to refill (or press R).',
     hardware: 'Buy an Auto-Click Script in the Shop. It clicks for you, forever.',
@@ -58,8 +58,8 @@ DATA.story = {
       'Here is a memory card for your trouble. Wait. Why do we have memory cards?'
     ] },
     fizz: { who: 'Management', lines: [
-      'Payday! Refreshr pays all its units in Fizz, our own company money.',
-      'Fizz buys parts for your machine. Please do not ask what it is worth anywhere else.',
+      'Payday! Refreshr lets its units keep the money from every can they sell.',
+      'Money buys parts for your machine. Please do not ask where the machine goes shopping.',
       'Stay refreshing!'
     ] },
     cpu: { who: 'Management', lines: [
@@ -108,7 +108,7 @@ DATA.story = {
   // First reset explanation (plain teaching text).
   resetHelp: [
     'You were the lowest seller, so you were reset.',
-    'Lost: your fizz, automation, machine upgrades and cards in hand.',
+    'Lost: your money, automation, machine upgrades and cards in hand.',
     'Kept: your Memory Book, your research, and Refresh Points.',
     'Spend Refresh Points in the tree below. Take your time: the game is paused.'
   ],

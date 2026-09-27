@@ -1,4 +1,4 @@
-// OUT OF ORDER — the start screen with a password ("soda").
+// I'M FRIDGE — the start screen with a password ("soda").
 // Not security: it only stops people who stumble on the page from walking straight in.
 // Once the password is typed, this browser remembers it. ?debug=1 skips the screen (for testing).
 // © 2026 Void Possum. All rights reserved.
@@ -11,6 +11,8 @@
   try { ok = localStorage.getItem(KEY) === '1'; } catch (e) { /* storage blocked: ask every time */ }
   if (ok || /[?&]debug=1/.test(location.search)) { gate.remove(); return; }
 
+  var ver = document.getElementById('gateVer');
+  if (ver && typeof DATA !== 'undefined') ver.textContent = 'Version ' + DATA.version + ' · early test build';
   var input = document.getElementById('gatePass'), msg = document.getElementById('gateMsg');
   document.getElementById('gateForm').addEventListener('submit', function (e) {
     e.preventDefault();

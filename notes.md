@@ -1,4 +1,4 @@
-# OUT OF ORDER — working notes
+# I'm Fridge — working notes (was called OUT OF ORDER)
 
 What a new session needs to know to keep working without re-deriving anything.
 

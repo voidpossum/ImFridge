@@ -1,4 +1,4 @@
-// OUT OF ORDER — the lobby TV.
+// I'M FRIDGE — the lobby TV.
 // Three kinds of lines: live conditions (made from the game state), one-off headlines (each shown once,
 // in order of progress), and filler built from never-repeated combinations.
 // Headline `when` keys: likes, followers, runs, wipes, day (days this run), quarter, research (projects done),

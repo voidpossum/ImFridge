@@ -1,9 +1,12 @@
-// OUT OF ORDER — core balance numbers and world data.
+// I'M FRIDGE — core balance numbers and world data.
 // Everything here is plain data. Change a number, reload the page, and the game uses it.
-// Money is in fizz (Refreshr's own company money; a can costs about 200 fizz).
+// Money is in cents: 200 = $2.00 (one can at the start). The screen shows dollars.
 // © 2026 Void Possum. All rights reserved.
 
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
+
+// The game version, shown in the pause menu. Raise it with every build you share.
+DATA.version = '0.1.8';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -18,12 +21,12 @@ DATA.balance = {
   patience: 14,           // seconds a customer waits in a line before leaving
   maxQueue: 5,
 
-  canCost: 40,          // what one can costs you when you restock
+  canCost: 40,            // what one can costs you when you restock (40 = $0.40)
   startCash: 0,
-  startPrice: 200,
-  priceMin: 50,
-  priceMax: 600,
-  priceStep: 25,
+  startPrice: 200,        // $2.00
+  priceMin: 50,           // $0.50
+  priceMax: 600,          // $6.00
+  priceStep: 25,          // the − / + buttons move the price by $0.25
   startCap: 6,            // cans per drink at the start of a run
   vendTime: 2.2,          // seconds to sell one can
   tubeEvery: [3, 2, 1.2, 0.7, 0.4],   // Pneumatic Tubes: seconds per can at level 1, 2, 3, 4, 5
@@ -35,13 +38,13 @@ DATA.balance = {
   followerBudget: 1.4,    // followers are willing to pay more than walk-ins
   followerEvery: 0.6,     // at most one follower comes through the door every this many seconds
   // Followers are loyal, but they still compare your price with the other machines.
-  loyalMargin: 50,       // they always pay up to this much more (fizz) than the cheapest rival
+  loyalMargin: 50,       // they always pay up to this much more than the cheapest rival (cents)
   lineTolerance: 40,     // ...plus this much for every customer in the shortest rival line
-  loyalFade: 150,         // above that, the chance to buy falls over this many fizz...
+  loyalFade: 150,         // above that, the chance to buy falls over this many cents...
   loyalFloor: 0.05,       // ...down to this chance
   startSplit: 0.7,        // Posting share right after Developer Mode is found (0.7 = 70% posting)
-  mineRate: 10,           // fizz per point of processing put into Mining (after the SodaCoin Wallet research)
-  mineHalf: 15000,          // mining difficulty: after 15,000 fizz mined this run, each point pays half; after 45,000, a quarter
+  mineRate: 10,           // cents per point of processing put into Mining (after the SodaCoin Wallet research)
+  mineHalf: 15000,          // mining difficulty: after $150 mined this run, each point pays half; after 45,000, a quarter
 
   reviewBonus: 0.25,      // cash bonus = this × your quarter sales (only if you survive)
 
@@ -56,7 +59,7 @@ DATA.balance = {
 
   // Refresh Points on a reset = floor(rpK × cube root of run sales) + reviews survived
   rpProd: 0.1,            // every Refresh Point ever earned: +10% to all processing
-  rpK: 0.28008,          // (was 1.3 when money was in dollars; ×100 money → ÷ cube root of 100)
+  rpK: 0.28008,          // (was 1.3 when money was counted in whole dollars; cents → ÷ cube root of 100)
 
   // Influencers (the golden cookie of this game): click them for a bonus
   goldFirst: 150,         // seconds into the very first run
@@ -70,12 +73,12 @@ DATA.balance = {
   // Rival features (installed after a rival loses a review)
   rivalSpend: 0.4,        // share of each rival sale saved for its machine upgrades
   rivalShopEvery: 6,      // seconds between a rival's shopping checks
-  cryptoRate: 35,       // fizz per second added to its score, × square root of its strength
+  cryptoRate: 35,       // cents per second added to its score, × square root of its strength
   hackLead: 1.5,          // it hacks you only when your quarter sales are this many times its own
   hackWarn: 5,            // seconds of warning before the lock
   hackClicks: 20,         // clicks to reboot
   hackMax: 20,            // the lock ends by itself after this many seconds
-  pricewarCut: 100,       // it sells for this much less than you
+  pricewarCut: 100,       // it sells for this much less than you ($1)
   lineGap: 40             // seconds between two talking lines from the same rival
 };
 
@@ -105,7 +108,7 @@ DATA.weather = {
 };
 
 // Customer types. Every type always wears its signature, so you can read them at a glance.
-// `w` = how common they are in each part of the day. `budget` = [min, max] in fizz.
+// `w` = how common they are in each part of the day. `budget` = [min, max] in cents.
 DATA.customers = {
   office: { name: 'Office worker', look: 'Always a white shirt', budget: [180, 300],
             wants: { cola: 3, lemon: 2, orange: 2, grape: 1 }, speed: 1.0,

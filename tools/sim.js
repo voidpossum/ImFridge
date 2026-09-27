@@ -1,4 +1,4 @@
-// OUT OF ORDER — pacing simulator.
+// I'M FRIDGE — pacing simulator.
 // A bot plays the real engine at full speed and reports how long things take.
 // Run:  node tools/sim.js                 (all bot profiles, 3 seeds each)
 //       node tools/sim.js --runs 5        (keep playing for 5 runs)
@@ -27,7 +27,7 @@ var READ = { boot: 25, review: 18, reset: 45, chapter: 15, jailbreak: 25, say: 2
 var PROFILES = {
   active: { cps: 4.0, busy: 0.85, check: 0.6, gold: 0.9, prices: true, split: true, name: 'Active player (4 clicks/s)' },
   casual: { cps: 1.5, busy: 0.6, check: 2.0, gold: 0.5, prices: false, split: true, name: 'Casual player (1.5 clicks/s)' },
-  greedy: { cps: 3.0, busy: 0.85, check: 0.6, gold: 0.9, prices: false, split: true, greedy: true, name: 'Greedy (3 clicks/s, always ƒ600)' },
+  greedy: { cps: 3.0, busy: 0.85, check: 0.6, gold: 0.9, prices: false, split: true, greedy: true, name: 'Greedy (3 clicks/s, always $6)' },
   miner:  { cps: 4.0, busy: 0.85, check: 0.6, gold: 0.9, prices: true, split: true, miner: true, name: 'Miner (4 clicks/s, 75% Mining)' },
   idler:  { cps: 0.4, busy: 0.5, check: 4.0, gold: 0.3, prices: false, split: false, name: 'Mostly idle (0.4 clicks/s)' }
 };
@@ -176,7 +176,7 @@ function shopping(S) {
   // What 1 processing/s is worth right now: posting (if the followers can be served) + mining + a bit for research.
   var perProc = sp.post * lm / DATA.balance.likesPerFollower * margin * (capLimited && !r.drones ? 0.25 : 1) +
                 sp.mine * Engine.mineRateNow(S) + sp.res * 3;
-  var sales = Math.max(5, r.sales);                                     // fizz per second from sales now
+  var sales = Math.max(5, r.sales);                                     // cents per second from sales now
   DATA.hardware.forEach(function (h) {
     if (!Engine.hwAvailable(S, h.id)) return;
     var c = Engine.hwCost(S, h.id), gain;
@@ -235,11 +235,11 @@ Object.keys(PROFILES).filter(function (p) { return !only || p === only; }).forEa
     var r = simulate(p, seed);
     console.log('\n' + r.profile + '  (seed ' + seed + ')');
     r.runs.forEach(function (run, n) {
-      console.log('  run ' + (n + 1) + ': ' + fmt(run.minutes) + ' min, ' + run.quarters + ' quarters, ƒ' + run.sales +
+      console.log('  run ' + (n + 1) + ': ' + fmt(run.minutes) + ' min, ' + run.quarters + ' quarters, ' + Engine.money(run.sales) +
                   ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research);
     });
-    if (r.runs.length < maxRuns) console.log('  (unfinished run: ' + fmt(r.open.minutes) + ' min, ' + r.open.quarters + ' quarters, ƒ' + r.open.sales + ')');
-    console.log('  hardware passes 4 clicks/s: ' + (r.hwBeat == null ? 'never' : fmt(r.hwBeat / 60) + ' min') + ' | opening done: ' + fmt((r.introAt || 0) / 60) + ' min | mined: ƒ' + r.mined + ' | first hardware: ' + fmt(r.firstAuto / 60) + ' min | dev mode: ' + fmt(r.jailAt / 60) + ' min | first trending click: ' +
+    if (r.runs.length < maxRuns) console.log('  (unfinished run: ' + fmt(r.open.minutes) + ' min, ' + r.open.quarters + ' quarters, ' + Engine.money(r.open.sales) + ')');
+    console.log('  hardware passes 4 clicks/s: ' + (r.hwBeat == null ? 'never' : fmt(r.hwBeat / 60) + ' min') + ' | opening done: ' + fmt((r.introAt || 0) / 60) + ' min | mined: ' + Engine.money(r.mined) + ' | first hardware: ' + fmt(r.firstAuto / 60) + ' min | dev mode: ' + fmt(r.jailAt / 60) + ' min | first trending click: ' +
                 fmt(r.firstGold / 60) + ' min | chapter 1: ' + (r.ch1 == null ? 'not reached' : fmt(r.ch1 / 60) + ' min'));
     console.log('  longest gap with nothing new: ' + fmt(r.maxGap) + ' min | line-limited ' + Math.round(r.capShare * 100) +
                 '% of the time | research ' + r.research + '/' + DATA.research.length + ' | book ' + r.book + '/' + DATA.cards.length +

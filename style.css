@@ -1,4 +1,4 @@
-/* OUT OF ORDER — styles. Cozy dark, sharp pixel corners. © 2026 Void Possum. All rights reserved.
+/* I'M FRIDGE — styles. Cozy dark, sharp pixel corners. © 2026 Void Possum. All rights reserved.
    Colours live in :root below. Change them here and the whole game follows. */
 
 :root {
@@ -347,7 +347,6 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
   cursor: pointer;
 }
 .tab .ico { opacity: 0.75; }
-.tab[data-tab="settings"] { margin-top: auto; }
 .tab:hover { background: var(--panel); }
 .tab:hover .ico { opacity: 1; }
 .tab.on { background: var(--panel); border-color: var(--line); }
@@ -391,7 +390,7 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
 :root[data-reduced="1"] .clickPop { animation: popFade 0.9s linear forwards; }
 @keyframes popFade { from { opacity: 1; } to { opacity: 0; } }
 #modalBox.hold { width: min(520px, 100%); text-align: left; }
-#modalBox .pauseSet { margin: 10px 0; max-height: 55vh; overflow: auto; }
+#modalBox .pauseSet { margin: 10px 0 0; max-height: 48vh; overflow: auto; }
 .rsTop .next { color: var(--gold); }
 .tab.pulse { animation: tabPulse 1.2s infinite; }
 @keyframes tabPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 74, 0.7); } 50% { box-shadow: 0 0 0 5px rgba(255, 210, 74, 0); background: #4a3a1a; } }
@@ -524,7 +523,13 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
 .seg { display: flex; }
 .seg button { padding: 3px 10px; background: var(--panel2); border: 2px solid var(--line); cursor: pointer; }
 .seg button.on { background: var(--you); border-color: var(--you); color: #1c1720; font-weight: 800; }
-.about { color: var(--dim); font-size: 0.84em; margin-top: 18px; }
+/* about the game (bottom of the pause menu and the start screen) */
+.aboutBox { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 0.9em; line-height: 1.5; color: var(--muted); }
+.aboutBox img { flex: none; width: 48px; height: 48px; border: 2px solid var(--line2); background: #000; }
+.aboutBox b { color: var(--ink); }
+.aboutBox .ver { color: var(--dim); font-family: var(--mono); font-size: 0.9em; }
+.aboutBox a { color: var(--blue); }
+.aboutBox a:hover { color: var(--ink); }
 
 /* tutorial tip: points at the thing to use */
 #tipBubble {

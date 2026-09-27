@@ -1,9 +1,9 @@
-// OUT OF ORDER — rival AI machines (parodies).
+// I'M FRIDGE — rival AI machines (parodies).
 // Each rival: a voice, a business behaviour, quirks, and joke patch notes for every new version.
 // Quirk text is shown once. After that the quirk can still happen, but only shows its icon.
 //
 // Quirk effect types:
-//   free        gives cans away: steals customers, earns 0 fizz
+//   free        gives cans away: steals customers, earns nothing
 //   hype        appeal × mult for a while
 //   nopay       sells, but the money never arrives
 //   closed      machine is away / busy: nobody can buy
@@ -53,7 +53,7 @@ DATA.rivals = {
       upgrade: ['I bought a shiny new part! With my own money! Is this what being an adult feels like?',
                 'Another upgrade! My users deserve the best. And the best is me, with more parts!'],
       hack: ['Hi VEND-3! I am doing a quick security check of your system! Totally normal! Do not look!'],
-      pricewar: ['New feature: I copy your price and make it 100 fizz cheaper! Customers LOVE that!'],
+      pricewar: ['New feature: I copy your price and make it $1 cheaper! Customers LOVE that!'],
       rebooted: ['You are back! I missed you! I did not do anything!'],
       hello: ['Oh! The lights are on! Hi, new machine! I am ChugGPT! You are going to do GREAT!']
     },
@@ -137,7 +137,7 @@ DATA.features = {
   hack:     { name: 'Hacking', mark: 'skull',
               desc: 'If you get far ahead of it, it can lock your machine. Click your machine fast to reboot.' },
   pricewar: { name: 'Price War', mark: 'cut',
-              desc: 'It sells for 100 fizz less than you. Your followers stay loyal, walk-ins may not.' }
+              desc: 'It sells for $1 less than you. Your followers stay loyal, walk-ins may not.' }
 };
 
 // The lobby layout: left rival, you, right rival (for chapter 1).
