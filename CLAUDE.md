@@ -12,6 +12,7 @@ The design plan (chapters, systems, endings) was approved 2026-09-26.
 - **Saves must survive updates:** bump `SAVE_VERSION` and add a step in `migrate()`; never reset a player's save.
 - `js/engine.js` has no DOM code. The page and the simulator run the same rules.
 - All author/credit text says "Void Possum" only.
+- **All rights reserved.** Never add an open-source license (MIT etc.). File headers say `© 2026 Void Possum. All rights reserved.`
 
 ## Map
 - `js/data/*.js`: all text and numbers (balance, cards, rivals, story, machine, hardware, research, tree, news)
