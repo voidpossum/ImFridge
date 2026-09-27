@@ -458,7 +458,7 @@ var Scene = (function () {
     // A drone, so players see what delivers them.
     var wait = Math.floor(run.waiting);
     if (wait >= 1) {
-      var lab2 = String(wait), bw = Sprites.textWidth(lab2) + 22, bx = Math.round(-ox + 8);
+      var lab2 = wait + '/' + Engine.ordersCap(S), bw = Sprites.textWidth(lab2) + 22, bx = Math.round(-ox + 8);
       R(ctx, bx - 1, 95, bw + 2, 17, P.ink); R(ctx, bx, 96, bw, 15, '#fff4e0');
       Sprites.drone(ctx, bx + 9, 99, run.hw.drone ? t : 0, DATA.drinks.cola.color);
       Sprites.text(ctx, lab2, bx + 19, 101, run.hw.drone ? P.ink : P.red);

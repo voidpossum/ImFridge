@@ -9,6 +9,13 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.2.2 (2026-09-27): online orders fix (from Void Possum's run-2 save: 430 orders in quarter 1)
+- Cause: +10% processing per Refresh Point ever earned (40 RP = ×5) → likes → followers without limit.
+- Online orders have a limit (`Engine.ordersCap`: 30 s of drone deliveries, at least 15; counter shows 15/18). When full, extra likes earn ad money (`B.adCash` 5 cents per follower, counts as score, "Ads" in the money tooltip). Old saves are clamped to the limit.
+- Followers are made in one step per tick (was one loop per follower): the sim is ~20× faster.
+- Money box moved to the top of the Shop panel (back in the top bar when the panel is folded).
+- Chapter 1 goal $20,000. Sim: active 26–28 min, casual 34–42, idle 42–44, all by the goal.
+
 ## 0.2.1 (2026-09-27, after Void Possum's 0.2.0 play; their save is the data)
 Research on Horripilant, Gnorp Apologue, Tower Wizard, Starvester: everything bought in a run resets; only the
 prestige tree is permanent; the best prestige nodes are "start with X". Void Possum approved:

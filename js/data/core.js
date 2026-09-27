@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.2.1';
+DATA.version = '0.2.2';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -52,7 +52,7 @@ DATA.balance = {
 
   reviewBonus: 0.25,      // cash bonus = this × your quarter earnings (only if you are not last)
   strikesMax: 3,          // last at this many reviews in a row = you are reset
-  ch1Goal: 1000000,       // earn this much in one run ($10,000) and Chapter 1 is complete, no reset needed
+  ch1Goal: 2000000,       // earn this much in one run ($20,000) and Chapter 1 is complete, no reset needed
 
   // Rivals grow by multiplying, you grow by adding and by capacity: that is what ends every run.
   rivalBump: 1.15,        // strength × this each time a rival loses a review and gets "updated"
@@ -63,6 +63,9 @@ DATA.balance = {
   rivalPerWipe: 0.1,      // rivals start this much stronger for every reset you have had
   rivalProcessing: 0.9,   // rival processing per second, per point of strength
   rivalOnline: 0.25,      // rival online orders per second, per point of strength above 1 (their delivery drones)
+  ordersMin: 15,          // online orders that can wait (at least this many)...
+  ordersSeconds: 30,      // ...or this many seconds of what your drones deliver, if that is more
+  adCash: 5,              // cents per follower who could not even order online (your ads earn a little instead)
   followerQueue: 8,       // followers will join a line up to this long (walk-ins give up at maxQueue)
 
   // Refresh Points on a reset = floor(rpK × cube root of run sales) + reviews survived
