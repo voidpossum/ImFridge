@@ -135,6 +135,14 @@ var Scene = (function () {
     }
   }
 
+  // Art export (tools/export.html): draw the park without the trees, or only the trees, on a clear canvas.
+  var layer = {};
+  function exportLayer(S, t, which) {
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H); ctx.translate(ox, oy);
+    if (which === 'trees') { var h = Engine.hourOf(S); trunk(40, 198, 1); trunk(446, 198, -1); blossoms(h); }
+    else { layer.noTrees = which === 'park'; drawPark(S, t); layer = {}; }
+    ctx.restore();
+  }
   function drawPark(S, t) {
     var run = S.run, h = Engine.hourOf(S);
     var vx0 = -ox - 2, vx1 = W - ox + 2, vy0 = -oy - 2;
@@ -209,8 +217,7 @@ var Scene = (function () {
       if (seeded(gx + 3) < 0.35) R(ctx, gx + 4, gt + 1, 1, 1, '#ffd0e0');
     }
     // trees: trunks now, blossoms later (they hang over everything)
-    trunk(40, 198, 1); trunk(446, 198, -1);
-    blossoms(h);
+    if (!layer.noTrees) { trunk(40, 198, 1); trunk(446, 198, -1); blossoms(h); }
     // lamp post, bench, recycle bins
     lampPost(414);
     R(ctx, 64, 180, 48, 4, P.ink); R(ctx, 65, 180, 46, 2, '#b07a50'); R(ctx, 65, 176, 46, 3, '#8a5a3a');
@@ -794,5 +801,5 @@ var Scene = (function () {
   }
 
   return { init: init, resize: resize, draw: draw, hit: hit, onEvent: onEvent, toScreen: toScreen, tvRect: tvRect,
-           setReduced: setReduced, hoverTarget: hoverTarget, size: function () { return { W: W, H: H, scale: scale, ox: ox, oy: oy }; } };
+           setReduced: setReduced, hoverTarget: hoverTarget, exportLayer: exportLayer, size: function () { return { W: W, H: H, scale: scale, ox: ox, oy: oy }; } };
 })();

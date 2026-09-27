@@ -91,6 +91,63 @@
     R(g, x0 + 20, y0 + 55, 7, 5, '#1b1826'); R(g, x0 + 22, y0 + 56, 3, 3, P.gold1);
     R(g, x0 + 6, y0 + 65, 22, 7, '#15121c');
   }
+  // Your own side machines: red like VEND-3, smaller than a soda machine (32 × 66). cx = centre, ground at y 200.
+  var SIDE_W = 32, SIDE_H = 66;
+  function sideMachine(g, cx, kind, t) {
+    var L = Sprites.LOOKS.you, w = SIDE_W, h = SIDE_H, x0 = Math.round(cx - w / 2), y0 = 200 - h;
+    R(g, x0 + 1, y0 + h, w, 2, 'rgba(40,20,40,0.3)');
+    R(g, x0 - 1, y0 - 1, w + 2, h + 1, P.ink);
+    R(g, x0, y0, w, h, L.main); R(g, x0 + 1, y0 + 2, 2, h - 6, L.light); R(g, x0 + w - 3, y0, 3, h, L.dark);
+    R(g, x0, y0 + h - 5, w, 5, L.dark); R(g, x0 + 2, y0 + h, 4, 1, P.ink); R(g, x0 + w - 6, y0 + h, 4, 1, P.ink);
+    var label = { snack: 'SNACK', claw: 'CLAW', coffee: 'CAFE', ice: 'ICE' }[kind];
+    R(g, x0 + 3, y0 + 3, w - 7, 7, '#1b1826'); T(g, label, x0 + 3 + Math.floor((w - 7 - Sprites.textWidth(label)) / 2), y0 + 4, L.accent);
+    var gx = x0 + 3, gy = y0 + 12, gw = 20, gh = 34;   // the glass
+    if (kind === 'snack') {
+      R(g, gx, gy, gw, gh, '#dcf0f2');
+      var cols = [['#e0483f', '#ffd24a'], ['#4a78d0', '#fffaf0'], ['#6cd48a', '#2a5a34'], ['#a58ad8', '#fff0a0']];
+      for (var r = 0; r < 3; r++) {
+        var ry = gy + 2 + r * 11;
+        for (var k = 0; k < 3; k++) {
+          if (r === 1) { R(g, gx + 2 + k * 6, ry + 3, 5, 5, '#e8b48a'); R(g, gx + 2 + k * 6, ry + 5, 5, 1, '#6cd48a'); }   // sandwiches
+          else { var c = cols[(r + k) % 4]; R(g, gx + 2 + k * 6, ry, 5, 8, c[0]); R(g, gx + 3 + k * 6, ry + 2, 3, 2, c[1]); }
+        }
+        R(g, gx + 1, ry + 9, gw - 2, 1, '#9197a8');
+      }
+    } else if (kind === 'claw') {
+      R(g, gx, gy, gw, gh, '#bfe6f0'); R(g, gx, gy, gw, 1, '#f6fcfc');
+      var cxp = gx + 5 + Math.round((Math.sin(t * 1.3) + 1) * 5);
+      R(g, cxp, gy + 1, 1, 9, P.steel3); R(g, cxp - 2, gy + 10, 5, 2, P.steel2); R(g, cxp - 2, gy + 12, 1, 2, P.steel2); R(g, cxp + 2, gy + 12, 1, 2, P.steel2);
+      [['#ff6b8a', 1, 0], ['#6fe0ff', 7, 0], ['#ffd24a', 13, 0], ['#a58ad8', 4, 5], ['#6cd48a', 10, 5]].forEach(function (p) {
+        var px = gx + p[1], py = gy + gh - 7 - p[2];
+        R(g, px, py, 6, 6, p[0]); R(g, px + 1, py + 2, 1, 1, P.ink); R(g, px + 4, py + 2, 1, 1, P.ink);
+      });
+    } else if (kind === 'coffee') {
+      R(g, gx, gy, gw, gh, '#3a2418'); R(g, gx + 2, gy + 2, gw - 4, 8, '#1b1826');
+      T(g, 'HOT', gx + 5, gy + 4, '#ffb07a');
+      R(g, gx + 4, gy + 14, 12, 16, '#15121c');                           // the cup bay
+      R(g, gx + 7, gy + 21, 6, 8, '#fffaf0'); R(g, gx + 7, gy + 21, 6, 2, '#6c4128'); R(g, gx + 13, gy + 23, 2, 3, '#fffaf0');
+      for (var st = 0; st < 3; st++) { var sy = (Math.floor(t * 5) + st * 3) % 7; R(g, gx + 8 + st * 2, gy + 19 - sy, 1, 2, 'rgba(255,255,255,0.6)'); }
+      R(g, gx + 9, gy + 14, 2, 4, '#6c4128');                           // the pour
+    } else if (kind === 'ice') {
+      R(g, gx, gy, gw, gh, '#e8faff'); R(g, gx, gy, gw, 2, '#ffffff');
+      for (var i = 0; i < 9; i++) { var ix = gx + 2 + (i % 3) * 6, iy = gy + 4 + Math.floor(i / 3) * 10; R(g, ix, iy, 5, 5, '#9adcf0'); R(g, ix, iy, 5, 1, '#ffffff'); R(g, ix + 1, iy + 1, 1, 1, '#ffffff'); }
+      R(g, gx + 1, gy + gh - 3, gw - 2, 2, '#c8f0ff');
+      if (Math.floor(t * 2) % 2) R(g, gx + gw - 4, gy + 2, 1, 1, '#ffffff');   // sparkle
+    }
+    // side panel: a coin slot and buttons, and a little "V3" (it is yours)
+    var px = x0 + 24;
+    R(g, px, gy, 5, gh, L.deep); R(g, px + 1, gy + 2, 3, 4, '#1b1826'); R(g, px + 2, gy + 3, 1, 2, P.gold1);
+    for (var b = 0; b < 3; b++) R(g, px + 1, gy + 9 + b * 4, 3, 2, b === 0 ? L.glow : P.steel1);
+    T(g, 'V3', x0 + 9, y0 + 48, L.accent);
+    R(g, x0 + 5, y0 + 54, 20, 5, '#15121c');   // the tray
+  }
+  function slotPlot(g, cx, t) {   // an empty side slot next to VEND-3
+    var a = Math.floor(t * 2) % 2 ? '#fffaf0' : '#d8d0c0', x0 = Math.round(cx - SIDE_W / 2), y0 = 200 - SIDE_H;
+    for (var i = 0; i < SIDE_W; i += 4) { R(g, x0 + i, y0, 2, 1, a); R(g, x0 + i, 199, 2, 1, a); }
+    for (var j = 0; j < SIDE_H; j += 4) { R(g, x0, y0 + j, 1, 2, a); R(g, x0 + SIDE_W - 1, y0 + j, 1, 2, a); }
+    R(g, cx - 1, y0 + 24, 3, 9, '#ffd24a'); R(g, cx - 4, y0 + 27, 9, 3, '#ffd24a');
+    T(g, 'PICK', cx - 7, y0 + 38, '#fffaf0');
+  }
   function bench(g, x, y) {   // x = left, y = ground
     R(g, x, y - 20, 40, 3, P.ink); R(g, x + 1, y - 19, 38, 1, '#b07a50');
     R(g, x, y - 15, 40, 4, P.ink); R(g, x + 1, y - 14, 38, 2, '#b07a50'); R(g, x + 1, y - 12, 38, 1, '#8a5a3a');
@@ -407,27 +464,43 @@
     T(g, 'FOOD TRUCK', 20, 80, '#fffaf0'); T(g, 'BENCH', 104, 80, '#fffaf0'); T(g, 'FOUNTAIN', 166, 80, '#fffaf0'); T(g, 'BUS STOP', 240, 80, '#fffaf0'); T(g, 'RECYCLING', 322, 80, '#fffaf0'); T(g, 'LAMPS', 390, 80, '#fffaf0');
   }
 
-  // Version 2: everyone side by side on one screen (Void Possum's note). Same 480-wide park as Chapter 1.
+  // Version 4 (Void Possum's Photoshop layout): ChugGPT, [your slot], VEND-3, [your slot], lamp, Clawd, lamp, Grog.
+  // The edges stay free for the trees and the menus.
+  var LAYOUT = { chug: 110, slotL: 164, you: 215, slotR: 262, lamp1: 288, clawd: 318, lamp2: 352, grog: 386 };
   function drawParkTight(t, full) {
-    var W = 480, g = setup(full ? 'tightFull' : 'tight', W, WH, 3);
-    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[112, 384]], hello: 'GROG MOVED IN' });
-    tree(g, 22, 199, 1, full); tree(g, 458, 199, -1, full);
-    var X = { chug: 143, you: 212, clawd: 281, grog: 350 };
-    if (full) { snackMachine(g, 84, t); bench(g, 16, 199); clawMachine(g, 420, t); lamp(g, 392, 199, true); }
-    else { plot(g, 60, 199, 48, 'SNACKS $', t); plot(g, 6, 199, 50, 'BENCH $', t); plot(g, 396, 199, 48, 'CLAW $$', t); }
+    var W = 480, g = setup(full ? 'tightFull' : 'tight', W, WH, 3), X = LAYOUT;
+    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[80, 416]], hello: 'GROG MOVED IN' });
+    tree(g, 26, 199, 1, full); tree(g, 454, 199, -1, full);
+    lamp(g, X.lamp1, 199, full); lamp(g, X.lamp2, 199, full);
     Sprites.machine(g, X.chug, { id: 'chug', stock: { cola: 6, lemon: 7, orange: 4 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: { sign: 2 }, feats: ['crypto', 'plus'] });
     Sprites.machine(g, X.you, { id: 'you', name: 'VEND-3', stock: { cola: 10, lemon: 8, orange: 11, grape: 6 }, cap: 12, drinks: ['cola', 'lemon', 'orange', 'grape'], t: t, cold: 1.2, up: { sign: 3, cool: 2 }, hw: { fan: 1, ram: 1 }, pps: 3, lanes: 2 });
     Sprites.machine(g, X.clawd, { id: 'clawd', stock: { cola: 7, lemon: 5, orange: 9 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: {}, feats: ['snacks'] });
     grogMachine(g, X.grog, 'smirk', t, { feats: ['crypto'] });
+    if (full) { sideMachine(g, X.slotL, 'snack', t); sideMachine(g, X.slotR, 'claw', t); }
+    else { slotPlot(g, X.slotL, t); slotPlot(g, X.slotR, t); }
     if (full) { g.fillStyle = 'rgba(30,20,70,0.22)'; g.fillRect(0, 0, W, WH); }
-    person(g, 'office', 140, 213, t, { st: 'buy' }); person(g, 'kid', 145, 224, t);
-    person(g, 'boss', 209, 213, t, { st: 'buy' }); person(g, 'gym', 214, 223, t, { fol: 1 }); person(g, 'intern', 211, 233, t, { fol: 1 }); person(g, 'office', 213, 243, t);
-    person(g, 'intern', 279, 214, t, { st: 'buy' });
-    person(g, 'gym', 348, 213, t, { st: 'buy' }); person(g, 'office', 352, 224, t);
-    person(g, 'boss', 60, 250, t, { st: 'in', tx: 200 }); person(g, 'kid', 420, 250, t, { st: 'in', tx: 300 });
-    if (full) { person(g, 'office', 84, 214, t, { sipT: 0.5, drink: 'cola', st: 'out', tx: 84 }); person(g, 'kid', 420, 214, t, { st: 'look' }); }
+    person(g, 'office', 107, 213, t, { st: 'buy' }); person(g, 'kid', 112, 224, t);
+    person(g, 'boss', 212, 213, t, { st: 'buy' }); person(g, 'gym', 217, 223, t, { fol: 1 }); person(g, 'intern', 214, 233, t, { fol: 1 }); person(g, 'office', 216, 243, t);
+    person(g, 'intern', 316, 214, t, { st: 'buy' });
+    person(g, 'gym', 384, 213, t, { st: 'buy' }); person(g, 'office', 388, 224, t);
+    person(g, 'boss', 40, 250, t, { st: 'in', tx: 200 }); person(g, 'kid', 440, 250, t, { st: 'in', tx: 300 });
+    if (full) { person(g, 'office', 164, 212, t, { sipT: 0.5, drink: 'cola', st: 'out', tx: 164 }); person(g, 'kid', 262, 212, t, { st: 'look' }); }
+  }
+  // The four side-machine choices (you pick one for each slot).
+  function drawSideChoices(t) {
+    var g = setup('sides', 200, 90, 3);
+    R(g, 0, 0, 200, 90, '#2a2432'); g.save(); g.translate(0, -122);
+    R(g, 0, 200, 200, 12, '#8e8880'); R(g, 0, 198, 200, 2, '#4e8a48');
+    ['snack', 'claw', 'coffee', 'ice'].forEach(function (k, i) { sideMachine(g, 28 + i * 48, k, t); });
+    Sprites.machine(g, -40, { id: 'you', stock: {}, cap: 12, drinks: ['cola'], t: t, cold: 1, up: {} });
+    g.restore();
+    ['SNACK', 'CLAW', 'COFFEE', 'ICE'].forEach(function (k, i) { T(g, k, 28 + i * 48 - (Sprites.textWidth(k) >> 1), 82, '#ffd24a'); });
   }
 
+  // Shared with tools/export.html (PNG export for Photoshop mockups).
+  window.Mock = { grogMachine: grogMachine, grogFace: grogFace, sideMachine: sideMachine, lamp: lamp, tree: tree, person: person,
+                  bigPark: bigPark, SIDE_W: SIDE_W, SIDE_H: SIDE_H, LAYOUT: LAYOUT };
+
   var t = 3.3;
-  drawParkTight(t, false); drawParkTight(t, true); drawParkEmpty(t); drawParkFull(t); drawGrog(t); drawInside(t); drawItems(t);
+  if (document.getElementById('tight')) { drawParkTight(t, false); drawParkTight(t, true); drawSideChoices(t); drawParkEmpty(t); drawParkFull(t); drawGrog(t); drawInside(t); drawItems(t); }
 })();
