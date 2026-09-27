@@ -9,6 +9,38 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.3.0 (2026-09-27): Chapter 2 starts: the new park and Grog
+- **Worlds** (`DATA.worlds` in `core.js`, `run.world`): world 1 = the Chapter 1 park, world 2 = the new park (Void Possum's layout, VEND-3 in the centre under the news board):
+  - left to right: a cardboard box ("SOON", a machine that arrives later), ChugGPT, your slot, VEND-3, your slot, Clawd, Grog
+  - a lamp behind each side slot; the slots stay empty until 0.3.1
+- **When you move:** after Chapter 1, every new run starts in the new park.
+  - Goal reached: the pop-up has **Move now** (reset) and **Stay a little longer** (move later with Reset).
+  - First reset: the next run is already there.
+  - A mail, the TV news and a line from each rival, all once.
+- **Save v7:** `run.world`, and old runs stay in world 1. Void Possum's saves were tested: they move at the next reset.
+- **Engine: any number of machines.**
+  - Loops use `machines.length`.
+  - `Engine.MX` changes with the world (it is the same array).
+  - Rival lines are looked up by id; banter only plays when both speakers are here.
+- **Grog** (a Grok parody, the product only):
+  - Look: dark chrome, sunglasses face, antenna, flames in spicy mode.
+  - Price: chaos (a new price every day).
+  - Quirks: spicy mode (hype), roast (its line walks away and people keep away for a while), free soda, hot take (closed), 40% off.
+  - Rival-only mods on a schedule: Fleet month 2, Plus 4, Sandwiches 6.
+  - Lines, patch notes, 4 night banters. Quirks can have their own TV line and card word (`tv`, `word`).
+- **Chapter 2 goal:** $1,000,000 in one run in the new park (`B.ch2Goal`), then a Chapter 2 complete screen.
+- **Money from processing slows down within a run** (this fixed a big snowball: run 2 went to $214M, rivals at 0%):
+  - clicks (`clickHalf`, $30k) and ads (`adHalf`, $20k), like mining already did
+  - reason: after a reset, +10% processing per Refresh Point made clicks worth $1k+ each
+- **Rival-only mods** are ×2.5 in the new park and grow with your permanent power (√ of your processing multiplier), not with this run's score.
+- 4 cards in the bottom bar (`#machines.four`), "4th" rank. Debug: `?debug=1&demo=park2`.
+- Sim (runs 1–3; bots press Move now):
+  - Chapter 1: active 29–32 min, casual 35–37 min (unchanged).
+  - Chapter 2, active: 37–42 min into run 2, rivals at 14–36% of you.
+  - Chapter 2, casual: 16–21 min into run 3, about 100 min into the game.
+  - Idle players get 3 strikes in both runs.
+- Known: in runs 3+ the rivals fall behind again (2–7%). This is for the 0.3.3 balance pass.
+
 ## 0.2.8 (2026-09-27): drones, Smart Price, rivals keep up (from Void Possum's 0.2.7 save)
 - Their save: $30,093 at month 8 vs rivals $4,435 / $3,675 (7× ahead); 24 drones sold 78% of all cans.
 - **Drones** cost 35% more per copy (`grow` in `DATA.hardware`, others stay 15%). At most ~12 drones are drawn in the sky.
@@ -22,8 +54,19 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Sim (1 run each): active Chapter 1 at 28–29 min, rivals at 20–38% of you; casual 31–38 min, rivals 34–105%; idle players now get 3 strikes around 36 min (rivals pass them).
 
 ## Chapter 2 plan (approved 2026-09-27), mockups in `tools/ch2mock.html`
-- Four builds: 0.3.0 the move + Grog, 0.3.1 park items + bigger numbers, 0.3.2 inside the machine, 0.3.3 achievements.
-- Void Possum's first notes on the mockups: the food truck should be a **snack vending machine** (theme). **Not sure about the Big Park**: machines off screen, not side by side with you, feels weird. Rework the layout before 0.3.0.
+- **Builds:**
+  - 0.3.0: the move + Grog (done)
+  - 0.3.1: your **side machines** + bigger numbers
+  - 0.3.2: inside the machine
+  - 0.3.3: achievements + balance
+- **Layout** (after Void Possum's Photoshop mockup):
+  - One screen, no Big Park. The machines stand side by side.
+  - Your own machines are red, smaller, and stand next to VEND-3.
+  - No bench, fountain or bus stop: they'd be lost among the NPCs and menus.
+- **Side slots:** two slots. The player **picks one machine per slot**: Snack (money), Claw (kids and crowds), Coffee (mornings), Ice (hot days).
+- **Art export for Photoshop:** `tools/export.html` writes to `art/export/` (1x and 4x, clear backgrounds).
+  - Machines, side machines, the cardboard box, people, and the park with and without trees.
+  - Rebuild: open the page through the dev server and run `exportAll()`.
 
 ## 0.2.3–0.2.7 (2026-09-27): layout and feel, from Void Possum's play
 - Top bar: clock at the left, customer reviews, menu buttons next to Pause. Money at the top of the Shop panel (top bar when folded). Today's conditions at the top middle of the park; rival news, features and mods on their cards.

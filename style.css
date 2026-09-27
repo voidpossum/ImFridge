@@ -85,6 +85,7 @@ b, strong { font-weight: 700; }
 .th.ok b { color: var(--good); }
 .th:hover { background: var(--panel3); }
 #machines { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr); gap: 8px; max-width: 1180px; margin: 0 auto; min-width: 0; }
+#machines.four { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); max-width: 1400px; }
 .mc {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

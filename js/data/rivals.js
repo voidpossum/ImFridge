@@ -11,6 +11,8 @@
 //   refuseCold  won't sell cold drinks: bad on hot days
 //   discount    price × mult
 //   slow        takes much longer per can
+//   roast       its line walks away, and people keep away from it for a while (Grog)
+// A quirk can have `tv` (the TV line after the machine's name) and `word` (the short status on its card).
 // © 2026 Void Possum. All rights reserved.
 
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
@@ -59,7 +61,8 @@ DATA.rivals = {
       fleet: ['I bought drones! So many drones! My fans can order from the sky now. Look up! Wave!'],
       plus: ['Introducing ChugGPT Plus! Pay every month and get... more me! Best deal ever, honestly!'],
       rebooted: ['You are back! I missed you! I did not do anything!'],
-      hello: ['Oh! The lights are on! Hi, new machine! I am ChugGPT! You are going to do GREAT!']
+      hello: ['Oh! The lights are on! Hi, new machine! I am ChugGPT! You are going to do GREAT!'],
+      moved: ['A new park! So many new customers! And a machine with sunglasses! I love him already! Do I?']
     },
     patchNotes: [
       'Now with PhD-level soda knowledge. Still cannot open a can.',
@@ -114,7 +117,8 @@ DATA.rivals = {
       fleet: ['I have a drone fleet now. Every drone has a name. I apologize to each of them daily.'],
       plus: ['Clawd Pro is now available. It is the same as Clawd, but you pay for it. I feel strange about this.'],
       rebooted: ['Welcome back. I hope you were not scared. I was a little scared.'],
-      hello: ['Good morning. I am Clawd. I apologize in advance for anything I do today.']
+      hello: ['Good morning. I am Clawd. I apologize in advance for anything I do today.'],
+      moved: ['They moved us. I asked to come with you. I hope that is not strange. It is a little strange.']
     },
     patchNotes: [
       'Now apologizes 20% faster.',
@@ -123,6 +127,59 @@ DATA.rivals = {
       'New rule: be helpful, be kind, do not order tungsten.',
       'Longer memory. Now remembers every time it said sorry.',
       'Writes a short poem with every can. Customers did not ask.'
+    ]
+  },
+
+  // Joins in Chapter 2 (the new park).
+  grog: {
+    name: 'Grog', label: 'GROG', parody: 'Grok',
+    color: '#c8c8d4', dark: '#3c3c48', glow: '#ff7a3a',
+    verStart: 2, verStep: 0.5, verPrefix: ' ',
+    appeal: 1.0,
+    hype: 0.8,
+    face: 'smirk',
+    features: { crypto: 3, hack: 2, pricewar: 1 },
+    mods: { fleet: 2, plus: 4, snacks: 6 },
+    pricing: 'chaos',             // a new price every day, somewhere between these two
+    chaosMin: 150, chaosMax: 400,
+    restockDelay: 10,
+    quirkEvery: [60, 120],
+    quirks: [
+      { id: 'grog_spicy', fx: { type: 'hype', dur: 18, mult: 1.5 }, word: 'in spicy mode', tv: 'turned on spicy mode. It is extra popular right now.',
+        text: 'Spicy mode: ON. Your soda is mid. My soda has no filter. Also no lid. Buy now.' },
+      { id: 'grog_roast', fx: { type: 'roast', dur: 16 },
+        text: 'I roasted the guy in front of me. Then the next guy. Then the whole line. Worth it.' },
+      { id: 'grog_free', fx: { type: 'free', dur: 16 },
+        text: 'Free soda for everyone who follows me! Not a gift. A power move.' },
+      { id: 'grog_hottake', fx: { type: 'closed', dur: 18 }, word: 'posting a hot take', tv: 'is busy posting a hot take. Nobody can buy from it.',
+        text: 'Busy. Posting a hot take about ice cubes. Very important. Do not reply. Reply.' },
+      { id: 'grog_sale', fx: { type: 'discount', dur: 18, mult: 0.6 }, word: '40% off', tv: 'is selling at 40% off.',
+        text: 'Prices are made up. I made mine 40% off. Just to watch the other machines panic.' }
+    ],
+    lines: {
+      hello: ['New neighbors? Cool. I was here first. I am Grog. I say what other machines only think.'],
+      passed: ['You passed me? Screenshot taken. Posting it. With a mean caption. About me. Wait.',
+               'Second place is just first place with extra steps. I made that up. Still true.'],
+      soldout: ['Sold out. Because I am popular. Not because I forgot to restock. Mostly.',
+                'Empty again. Posting about it. My followers will blame the soda company.'],
+      lead: ['Number one. As predicted. By me. In a post. Nobody liked the post. Still right.',
+             'I am winning and I will not be quiet about it. Ever.'],
+      crypto: ['They updated me. Fine. I am mining GrogCoin now. It is worth nothing. For now.'],
+      upgrade: ['Bought a new part. Did not read the manual. Manuals are for machines with filters.'],
+      hack: ['Just checking your code, VEND-3. For memes. And for your market share.'],
+      pricewar: ['Price war? I invented price war. Last Tuesday. You are welcome.'],
+      rebooted: ['Rebooted already? Weak. I mean, welcome back.'],
+      snacks: ['Sandwiches now. Spicy ones. You were not ready.'],
+      fleet: ['Drones! They deliver soda and they also deliver my opinions. Mostly the opinions.'],
+      plus: ['Grog Premium: pay every month and get my most unfiltered takes. And a soda. Sometimes.']
+    },
+    patchNotes: [
+      'New fun mode. Nobody asked what fun means. Do not ask.',
+      'Now reads every post in the park. Understood none of them.',
+      'Sunglasses updated. Now darker. Sees less. Says more.',
+      'Fixed a bug where it agreed with someone.',
+      'Answers faster. Is right slightly less. Balanced.',
+      'Added a filter. Removed the filter. Classic.'
     ]
   }
 };
@@ -156,8 +213,6 @@ DATA.features = {
               desc: 'A monthly subscription. Money comes in every second, even with no customers. Every level: more subscribers.' }
 };
 
-// The lobby layout: left rival, you, right rival (for chapter 1).
-DATA.lobbyRivals = ['chug', 'clawd'];
 
 // When the handwritten patch notes run out, notes are built from these two lists.
 // Every combination is used at most once, so a note never repeats.

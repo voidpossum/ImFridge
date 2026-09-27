@@ -51,7 +51,7 @@ function simulate(profile, seed) {
   var checkT = 0, shopT = 0, clickAcc = 0, busy = true, busyT = 0, lastHour = -1;
   var seen = {}, repeats = [], novel = [0];
   var hwBeat = null;
-  var ch1Rivals = '';
+  var ch1Rivals = '', ch2 = null;
   var runs = [], runStart = 0, runQ = 0, ch1At = null, firstAuto = null, jailAt = null, firstGold = null, introAt = null, mined = 0;
   var capLimited = 0, capTotal = 0, strikes = 0, lastScore = 0, scoreDrops = 0;
   var rnd = mulberry(seed * 7 + 3);
@@ -71,7 +71,14 @@ function simulate(profile, seed) {
                       ', drones ' + (S.run.hw.drone | 0) + ', price ' + Engine.money(S.run.price);
         }
         if (t === 'jailbreak' && jailAt == null) jailAt = now();
+        var chId = t === 'chapter' ? S.pause.id : null;
+        if (chId === 'ch2win') {
+          var ms2 = S.run.machines, y2 = ms2[Engine.YOU].rSales;
+          ch2 = fmt(now() / 60) + ' min into the game, ' + fmt((now() - runStart) / 60) + ' min into run ' + (runs.length + 1) + ' | rivals had ' +
+                ms2.filter(function (M) { return M.idx !== Engine.YOU; }).map(function (M) { return M.id + ' ' + Math.round(100 * M.rSales / Math.max(1, y2)) + '%'; }).join(', ');
+        }
         Engine.closeInfo(S);
+        if (chId === 'ch1win') Engine.requestReset(S);   // "Move now" to the new park
       } else if (t === 'review') {
         runQ++;
         if (S.pause.res.strikes) strikes++;
@@ -84,7 +91,7 @@ function simulate(profile, seed) {
       } else if (t === 'reset') {
         runQ++;
         if (S.pause.res.strikes) strikes++;
-        runs.push({ minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales), rp: S.pause.res.rp, strikes: strikes, asked: !!S.pause.res.voluntary,
+        runs.push({ world: S.run.world, minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales), rp: S.pause.res.rp, strikes: strikes, asked: !!S.pause.res.voluntary,
                     pps: Engine.pps(S), research: Object.keys(S.meta.research.done).length });
         spendTree(S);
         Engine.startShift(S);
@@ -167,7 +174,7 @@ function simulate(profile, seed) {
   var gaps = [];
   for (var i = 1; i < novel.length; i++) gaps.push(novel[i] - novel[i - 1]);
   return {
-    profile: P.name, seed: seed, runs: runs, scoreDrops: scoreDrops, ch1How: S.meta.flags.ch1win ? 'goal' : 'reset', ch1: ch1At, ch1Rivals: ch1Rivals, firstAuto: firstAuto, jailAt: jailAt, firstGold: firstGold, introAt: introAt, mined: Math.round(mined), hwBeat: hwBeat,
+    profile: P.name, seed: seed, runs: runs, scoreDrops: scoreDrops, ch1How: S.meta.flags.ch1win ? 'goal' : 'reset', ch1: ch1At, ch1Rivals: ch1Rivals, ch2: ch2, firstAuto: firstAuto, jailAt: jailAt, firstGold: firstGold, introAt: introAt, mined: Math.round(mined), hwBeat: hwBeat,
     maxGap: Math.max.apply(null, gaps.concat([0])) / 60, repeats: repeats,
     capShare: capTotal ? capLimited / capTotal : 0,
     research: Object.keys(S.meta.research.done).length, book: Object.keys(S.meta.book).length,
@@ -249,13 +256,14 @@ Object.keys(PROFILES).filter(function (p) { return !only || p === only; }).forEa
     var r = simulate(p, seed);
     console.log('\n' + r.profile + '  (seed ' + seed + ')');
     r.runs.forEach(function (run, n) {
-      console.log('  run ' + (n + 1) + ': ' + fmt(run.minutes) + ' min, ' + run.quarters + ' quarters, ' + Engine.money(run.sales) +
+      console.log('  run ' + (n + 1) + ' (world ' + run.world + '): ' + fmt(run.minutes) + ' min, ' + run.quarters + ' quarters, ' + Engine.money(run.sales) +
                   ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research + (run.asked ? ' (chose to reset)' : ' (3 strikes)'));
     });
     if (r.runs.length < maxRuns) console.log('  (unfinished run: ' + fmt(r.open.minutes) + ' min, ' + r.open.quarters + ' quarters, ' + Engine.money(r.open.sales) + ')');
     console.log('  hardware passes 4 clicks/s: ' + (r.hwBeat == null ? 'never' : fmt(r.hwBeat / 60) + ' min') + ' | opening done: ' + fmt((r.introAt || 0) / 60) + ' min | mined: ' + Engine.money(r.mined) + ' | first hardware: ' + fmt(r.firstAuto / 60) + ' min | dev mode: ' + fmt(r.jailAt / 60) + ' min | first trending click: ' +
                 fmt(r.firstGold / 60) + ' min | chapter 1: ' + (r.ch1 == null ? 'not reached' : fmt(r.ch1 / 60) + ' min (' + r.ch1How + ')'));
     if (r.ch1Rivals) console.log('  at chapter 1, rivals had (of your score): ' + r.ch1Rivals);
+    console.log('  chapter 2: ' + (r.ch2 || 'not reached'));
     console.log('  longest gap with nothing new: ' + fmt(r.maxGap) + ' min | line-limited ' + Math.round(r.capShare * 100) +
                 '% of the time | research ' + r.research + '/' + DATA.research.length + ' | book ' + r.book + '/' + DATA.cards.length +
                 ' | repeated text: ' + (r.repeats.length ? r.repeats.slice(0, 5).join(', ') : 'none'));

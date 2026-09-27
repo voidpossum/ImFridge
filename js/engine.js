@@ -7,9 +7,10 @@ var Engine = (function () {
   'use strict';
 
   var B = DATA.balance, W = DATA.world;
-  var SAVE_VERSION = 6;
+  var SAVE_VERSION = 7;
   var YOU = 1;
-  var MX = W.machineX;
+  // Machine x positions of the current world. The same array is kept (the scene reads Engine.MX), only its contents change.
+  var MX = W.machineX.slice();
   var MAX_CUSTOMERS = 30;
 
   function index(list) { var o = {}; list.forEach(function (x) { o[x.id] = x; }); return o; }
@@ -93,9 +94,25 @@ var Engine = (function () {
       rs: (seed == null ? (Date.now() % 2147483647) : seed) | 0,
       meta: freshMeta(), run: null, pause: { type: 'boot' }, ev: []
     };
-    DATA.lobbyRivals.forEach(function (id) { S.meta.rivalVer[id] = DATA.rivals[id].verStart; });
+    Object.keys(DATA.rivals).forEach(function (id) { S.meta.rivalVer[id] = DATA.rivals[id].verStart; });
     newRun(S, null);
     return S;
+  }
+
+  // ───────────────────────── worlds (where the run happens)
+  function worldOf(S) { return DATA.worlds[(S.run && S.run.world) || 1]; }
+  function setWorld(S) {
+    var wd = worldOf(S);
+    MX.length = 0;
+    wd.machineX.forEach(function (x) { MX.push(x); });
+    (S.run ? S.run.machines : []).forEach(function (M, i) { M.x = MX[i]; });
+  }
+  // After Chapter 1 (the goal, or the first reset), every new run starts in the new park.
+  function nextWorld(S) { return S.meta.flags.ch1done || S.meta.wipes >= 1 ? 2 : 1; }
+  function machineById(S, id) {
+    var ms = S.run.machines;
+    for (var i = 0; i < ms.length; i++) if (ms[i].id === id) return ms[i];
+    return null;
   }
 
   function newRun(S, keepCard) {
@@ -105,6 +122,7 @@ var Engine = (function () {
     // (It lives in S.meta.research so old saves keep their current run's research until the next reset.)
     m.research = { done: {}, points: metaFx(S, 'startRes'), seen: {} };
     var R = {
+      world: nextWorld(S),
       t: 0, day: 0, dayT: 0, quarter: 1, qDay: 0, weather: 'normal',
       cash: B.startCash + metaFx(S, 'startCash'), sales: 0, reviewsWon: 0,
       price: B.startPrice, smartOn: true,
@@ -130,7 +148,8 @@ var Engine = (function () {
       });
     });
     R.weather = rollWeather(S);
-    R.machines = [makeRival(S, DATA.lobbyRivals[0], 0), makeYou(S), makeRival(S, DATA.lobbyRivals[1], 2)];
+    setWorld(S);
+    R.machines = worldOf(S).order.map(function (id, i) { return id === 'you' ? makeYou(S) : makeRival(S, id, i); });
     R.machines.forEach(function (M) { fillAll(S, M); });
     // Refresh tree head starts: research already done at the start (and the part it unlocks, level 1).
     DATA.tree.forEach(function (n) {
@@ -251,8 +270,9 @@ var Engine = (function () {
     return s;
   }
   // Money from one click: a share of the click's power (trending influencers make it 7×).
+  // Like mining and ads, click money gets less effective the more of it you made this run.
   function clickCash(S) {
-    return Math.round(clickPower(S) * B.clickCash * (S.run.buffs.trending ? 7 : 1) * 100) / 100;
+    return Math.round(clickPower(S) * B.clickCash / (1 + (S.run.clickRun || 0) / B.clickHalf) * (S.run.buffs.trending ? 7 : 1) * 100) / 100;
   }
   function likeMult(S) {
     var m = 1 + fx(S, 'likes');
@@ -276,6 +296,8 @@ var Engine = (function () {
   function splitNow(S) { return splitOf(S).mine; }
   // Money per point of processing put into Mining. It drops as you mine more this run (SodaCoin difficulty).
   function mineRateNow(S) { return B.mineRate * (1 + fx(S, 'mine')) / (1 + (S.run.minedRun || 0) / B.mineHalf); }
+  // Ads get less effective the more ad money you made this run (like mining), so processing alone cannot snowball.
+  function adRateNow(S) { return B.adCash / (1 + (S.run.adsRun || 0) / B.adHalf); }
 
   // Everything you earn counts: your score (the bar on your card), the run total and the all-time total.
   function score(S, amt) {
@@ -308,7 +330,8 @@ var Engine = (function () {
       R.followersRun += toOrders; m.totalFollowers += toOrders;
       R.rate.followers += toOrders;
       if (n > toOrders) {
-        var ad = (n - toOrders) * B.adCash;
+        var ad = (n - toOrders) * adRateNow(S);
+        R.adsRun = (R.adsRun || 0) + ad;
         R.cash += ad; score(S, ad);
         R.rate.adNow = (R.rate.adNow || 0) + ad;
       }
@@ -330,6 +353,7 @@ var Engine = (function () {
     }
     var got = produce(S, clickPower(S));
     got.cash = clickCash(S);
+    S.run.clickRun = (S.run.clickRun || 0) + got.cash;
     S.run.cash += got.cash; score(S, got.cash);
     S.run.rate.clicks += 1; S.run.rate.clickNow += got.cash;
     var IN = S.run.intro;
@@ -457,6 +481,9 @@ var Engine = (function () {
     return sum;
   }
   function hasFeat(M, id) { return !!(M.features && M.features.indexOf(id) >= 0); }
+  // How strong rival-only mods are: bigger in the new park, and they grow with your permanent power
+  // (every Refresh Point you ever earned). Not with how well you do this run: that stays yours to win.
+  function rivalModK(S) { return (worldOf(S).rivalK || 1) * Math.sqrt(prodMult(S)); }
   // Level of a rival-only mod (Sandwich Menu, Drone Fleet, Soda Plus): 0 = not installed.
   // It starts at level 1 and grows a fixed step every month (a steady curve: rivals keep up, but never snowball).
   function featLv(S, M, id) {
@@ -514,6 +541,7 @@ var Engine = (function () {
     var a = rivalStrength(S, M) * (1 + rivalUp(M, 'appeal'));
     if (M.fx && M.fx.type === 'hype') a *= M.fx.mult;
     if (M.fx && M.fx.type === 'free') a *= 1.3;
+    if (M.fx && M.fx.type === 'roast') a *= 0.3;   // Grog roasts people: they keep away for a while
     return a;
   }
 
@@ -673,7 +701,7 @@ var Engine = (function () {
     return {
       id: R.nextId++, type: type, reg: null, fol: -1, gold: false,
       want: pickWeighted(S, T.wants), budget: between(S, T.budget[0], T.budget[1]),
-      x: door.x, y: door.y, tx: between(S, W.lookMin, W.lookMax), ty: y,
+      x: door.x, y: door.y, tx: between(S, worldOf(S).lookMin, worldOf(S).lookMax), ty: y,
       spd: B.walkSpeed * T.speed * between(S, 0.9, 1.1),
       st: 'in', m: -1, t: 0, wait: 0, icon: null, iconT: 0, iconD: null, look: Math.floor(rand(S) * 1e6),
       exitDoor: rand(S) < 0.5 ? 0 : 1, pay: 0, drink: null, lane: -1, sipT: 0
@@ -687,7 +715,7 @@ var Engine = (function () {
     var R = S.run, p = effPrice(S, YOU);
     if (p > budget * 1.45) return 0;
     var ref = Infinity, shortQ = Infinity;
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < R.machines.length; i++) {
       if (i === YOU) continue;
       var M = R.machines[i];
       if (!available(S, i) || !anyStock(M)) continue;
@@ -703,7 +731,7 @@ var Engine = (function () {
   // The cheapest rival a follower can switch to (or -1).
   function cheaperRival(S) {
     var R = S.run, best = -1, bp = Infinity;
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < R.machines.length; i++) {
       if (i === YOU) continue;
       var M = R.machines[i];
       if (!available(S, i) || !anyStock(M) || M.queue.length >= B.followerQueue) continue;
@@ -768,7 +796,7 @@ var Engine = (function () {
       var c = findC(S, M.queue[k]);
       if (!c) continue;
       var col = k < B.maxQueue ? 0 : 1, row = col ? k - B.maxQueue : k;
-      var side = M.idx === 0 ? -1 : 1;
+      var side = M.idx < YOU ? -1 : 1;
       var tx = M.x + ((c.look % 7) - 3) + col * 17 * side, ty = W.queueY + W.queueGap * row + col * 5;
       if (c.tx !== tx || c.ty !== ty) {
         c.tx = tx; c.ty = ty;
@@ -803,8 +831,8 @@ var Engine = (function () {
   function decide(S, c) {
     var R = S.run, dp = daypartOf(S);
     var ctx = { daypart: dp.id, cust: c.type };
-    var sc = [0, 0, 0], total = 0, top = 0, i;
-    for (i = 0; i < 3; i++) {
+    var n = R.machines.length, sc = [], total = 0, top = 0, i;
+    for (i = 0; i < n; i++) {
       sc[i] = scoreFor(S, i, c, ctx);
       top = Math.max(top, sc[i]);
       sc[i] = sc[i] * sc[i];
@@ -816,7 +844,7 @@ var Engine = (function () {
       return;
     }
     var r = rand(S) * total, pick = -1;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < n; i++) {
       if (sc[i] <= 0) continue;
       pick = i;
       r -= sc[i];
@@ -999,8 +1027,8 @@ var Engine = (function () {
       if (!w) continue;
       var ctx = { daypart: dp.id, cust: t };
       var c = { budget: (T.budget[0] + T.budget[1]) / 2, want: 'cola', type: t };
-      var s = [0, 0, 0], sum = 0;
-      for (var i = 0; i < 3; i++) { s[i] = scoreFor(S, i, c, ctx); s[i] *= s[i]; sum += s[i]; }
+      var s = [], sum = 0;
+      for (var i = 0; i < R.machines.length; i++) { s[i] = scoreFor(S, i, c, ctx); s[i] *= s[i]; sum += s[i]; }
       walk += w * (sum > 0 ? s[YOU] / sum : 0);
       pay += w * (effPrice(S, YOU) * (1 + fx(S, 'money', ctx)));
       wsum += w;
@@ -1014,7 +1042,8 @@ var Engine = (function () {
     var demand = traffic * walk / wsum + folRate * Math.max(0, folOK);
     var sold = Math.min(capacity(S), demand);
     // Customers who say no buy from a rival, and that helps the rival at the review. Count it against this price.
-    var rivalP = Math.min(effPrice(S, 0), effPrice(S, 2));
+    var rivalP = Infinity;
+    R.machines.forEach(function (M, n) { if (n !== YOU) rivalP = Math.min(rivalP, effPrice(S, n)); });
     var toRivals = (traffic * (1 - walk / wsum) + folRate * (1 - Math.max(0, folOK))) * rivalP;
     return sold * (pay / wsum - unit) - toRivals;
   }
@@ -1043,10 +1072,16 @@ var Engine = (function () {
   // What a rival charges when it is not copying you. Newer versions charge a little more.
   function rivalOwnPrice(S, M) {
     var D = DATA.rivals[M.id];
-    return D.pricing === 'undercut' ? 300 + 25 * M.bumps : (D.fairPrice || 200) + 15 * M.bumps;
+    if (D.pricing === 'undercut') return 300 + 25 * M.bumps;
+    if (D.pricing === 'chaos') return M.chaosP || 250;   // Grog: a new price every day
+    return (D.fairPrice || 200) + 15 * M.bumps;
   }
   function rivalPricing(S, M) {
     var D = DATA.rivals[M.id], you = S.run.machines[YOU].price;
+    if (D.pricing === 'chaos' && M.chaosDay !== S.run.day) {
+      M.chaosDay = S.run.day;
+      M.chaosP = Math.round(between(S, D.chaosMin, D.chaosMax) / 25) * 25 + 15 * M.bumps;
+    }
     if (hasFeat(M, 'pricewar')) {
       M.price = Math.max(B.priceMin, Math.round((you - B.pricewarCut) / 25) * 25);
       return;
@@ -1061,7 +1096,8 @@ var Engine = (function () {
     var unseen = D.quirks.filter(function (q) { return !S.meta.seen[q.id]; });
     var pool = unseen.length ? unseen : D.quirks;
     var q = pool[Math.floor(rand(S) * pool.length)];
-    M.fx = { type: q.fx.type, t: q.fx.dur, dur: q.fx.dur, mult: q.fx.mult || 1, id: q.id };
+    M.fx = { type: q.fx.type, t: q.fx.dur, dur: q.fx.dur, mult: q.fx.mult || 1, id: q.id, tv: q.tv || null, word: q.word || null };
+    if (q.fx.type === 'roast') M.queue.slice().forEach(function (cid) { var c = findC(S, cid); if (c) leave(S, c, null); });
     if (!sayOnce(S, q.id, rivalName(S, M), q.text, { machine: M.idx, kind: 'rival' })) {
       emit(S, { type: 'quirk', machine: M.idx, fx: q.fx.type });
     }
@@ -1070,6 +1106,7 @@ var Engine = (function () {
 
   function fxLine(S, M) {
     var n = rivalName(S, M).toUpperCase();
+    if (M.fx.tv) return n + ' ' + M.fx.tv;
     switch (M.fx.type) {
       case 'free': return n + ' is giving cans away for free. It earns nothing for a while.';
       case 'hype': return n + ' is extra popular right now.';
@@ -1079,6 +1116,7 @@ var Engine = (function () {
       case 'refuseCold': return n + ' refuses to sell cold drinks. Bad news for it on hot days.';
       case 'discount': return n + ' is selling at half price.';
       case 'slow': return n + ' is very slow right now. Its line is stuck.';
+      case 'roast': return n + ' roasted its own line. People keep away from it for a while.';
     }
     return n + ' is acting strange.';
   }
@@ -1152,7 +1190,7 @@ var Engine = (function () {
   // ───────────────────────── reviews, cards, resets
   function rankNow(S) {
     var ms = S.run.machines, you = ms[YOU].rSales, r = 1;
-    for (var i = 0; i < 3; i++) if (i !== YOU && ms[i].rSales > you) r++;
+    for (var i = 0; i < ms.length; i++) if (i !== YOU && ms[i].rSales > you) r++;
     return r;
   }
 
@@ -1190,7 +1228,7 @@ var Engine = (function () {
     // Ranked by money earned this run (the bars never reset). Quarter numbers are only for the bonus.
     var sales = ms.map(function (M) { return Math.round(M.rSales * 100) / 100; });
     var qs = ms.map(function (M) { return M.qSales; });
-    var order = [0, 1, 2].sort(function (a, b) {
+    var order = ms.map(function (M, i) { return i; }).sort(function (a, b) {
       if (sales[a] !== sales[b]) return sales[a] - sales[b];
       return a === YOU ? -1 : (b === YOU ? 1 : 0);
     });
@@ -1342,14 +1380,23 @@ var Engine = (function () {
     emit(S, { type: 'wiped', rp: P.res.rp, novel: true });
     if (m.wipes === 1) mail(S, 'afterWipe');
     if (m.wipes >= 1 && !m.flags.ch1done) {
-      m.flags.ch1done = 1;
+      m.flags.ch1done = 1; m.chapter = Math.max(m.chapter, 2);
       mail(S, 'ch1done');
       S.pause = { type: 'chapter', id: 'ch1' };
     }
+    if (S.run.world === 2 && !m.flags.moved) movedIn(S);
     return true;
   }
 
   // The opening ends: the lights come on and day 1 starts.
+  // The first run in the new park: a note from Management, the news, and everyone says something (once).
+  function movedIn(S) {
+    var m = S.meta;
+    m.flags.moved = 1;
+    mail(S, 'moved');
+    S.run.machines.forEach(function (M) { if (M.idx !== YOU) rivalLine(S, M, M.id === 'grog' ? 'hello' : 'moved', true); });
+    stat(S, 'moved', S.run.quarter);
+  }
   function endIntro(S) {
     var R = S.run;
     if (!R.intro) return;
@@ -1359,8 +1406,7 @@ var Engine = (function () {
     S.meta.tut.post = 1;
     stat(S, 'intro', 'done');
     emit(S, { type: 'introDone', novel: true });
-    rivalLine(S, R.machines[0], 'hello', true);
-    rivalLine(S, R.machines[2], 'hello', true);
+    R.machines.forEach(function (M) { if (M.idx !== YOU) rivalLine(S, M, 'hello', true); });
   }
   function skipIntro(S) {
     var R = S.run;
@@ -1456,6 +1502,7 @@ var Engine = (function () {
     if (w.buy != null && !(R.hw[w.buy] || R.upgrades[w.buy])) return false;
     if (w.flag != null && !m.flags[w.flag]) return false;
     if (w.weather != null && R.weather !== w.weather) return false;
+    if (w.world != null && (R.world || 1) !== w.world) return false;
     if (w.fx != null && !R.machines.some(function (M) { return M.fx && M.fx.type === w.fx; })) return false;
     return true;
   }
@@ -1529,17 +1576,25 @@ var Engine = (function () {
 
     // Chapter 1 can be won without a reset: earn the goal in one run.
     if (!m.flags.ch1done && !intro && R.machines[YOU].rSales >= B.ch1Goal) {
-      m.flags.ch1done = 1; m.flags.ch1win = 1;
+      m.flags.ch1done = 1; m.flags.ch1win = 1; m.chapter = Math.max(m.chapter, 2);
       mail(S, 'ch1win');
       stat(S, 'ch1', 'goal');
       S.pause = { type: 'chapter', id: 'ch1win' };
+      return;
+    }
+    // Chapter 2: earn the goal in one run in the new park.
+    if (R.world === 2 && !m.flags.ch2done && R.machines[YOU].rSales >= B.ch2Goal) {
+      m.flags.ch2done = 1; m.chapter = Math.max(m.chapter, 3);
+      mail(S, 'ch2win');
+      stat(S, 'ch2', 'goal');
+      S.pause = { type: 'chapter', id: 'ch2win' };
       return;
     }
     // Scripted: on the very first run, both rivals launch new versions on "model day" (a set quarter).
     if (!m.flags.modelDay && R.quarter >= B.modelDayQuarter && m.runs === 1) {
       m.flags.modelDay = 1;
       mail(S, 'modelDay');
-      for (var b = 0; b < B.modelDayBumps; b++) { bumpRival(S, R.machines[0]); bumpRival(S, R.machines[2]); }
+      for (var b = 0; b < B.modelDayBumps; b++) R.machines.forEach(function (M) { if (M.idx !== YOU) bumpRival(S, M); });
     }
     if (!intro && !m.seen.mail_fizz && R.t > 25) mail(S, 'fizz');
     if (R.cpuMailT != null) { R.cpuMailT -= dt; if (R.cpuMailT <= 0) { R.cpuMailT = null; mail(S, 'cpu'); } }
@@ -1561,11 +1616,11 @@ var Engine = (function () {
     if (hour >= 21.5 && R.banterDay !== R.day) {
       R.banterDay = R.day;
       var all = DATA.story.banter, i;
-      for (i = 0; i < all.length; i++) if (!m.seen['banter_' + i]) break;
+      for (i = 0; i < all.length; i++) if (!m.seen['banter_' + i] && all[i].every(function (l) { return machineById(S, l[0]); })) break;
       if (i < all.length && rand(S) < 0.7) {
         m.seen['banter_' + i] = 1;
         all[i].forEach(function (line, n) {
-          var M = R.machines[line[0] === DATA.lobbyRivals[0] ? 0 : 2];
+          var M = machineById(S, line[0]);
           var who = rivalName(S, M);
           log(S, who, line[1], 'rival');
           emit(S, { type: 'say', id: 'banter_' + i + '_' + n, who: who, text: line[1], machine: M.idx, kind: 'rival', delay: n * 3.5, novel: n === 0 });
@@ -1681,7 +1736,7 @@ var Engine = (function () {
       M.shopT = (M.shopT == null ? B.rivalShopEvery : M.shopT) - dt;
       if (M.shopT <= 0) { M.shopT = B.rivalShopEvery; rivalShop(S, M); }
       // Rival-only mods: a subscription that pays every second, and a drone fleet for its own online fans.
-      var plus = featLv(S, M, 'plus'), fleet = featLv(S, M, 'fleet'), wipeK = 1 + B.rivalPerWipe * S.meta.wipes;
+      var plus = featLv(S, M, 'plus'), fleet = featLv(S, M, 'fleet'), wipeK = rivalModK(S);
       if (plus && available(S, M.idx)) rivalEarn(M, B.plusRate * plus * wipeK * dt);
       if (fleet && available(S, M.idx)) {
         M.fleetAcc = (M.fleetAcc || 0) + B.fleetRate * fleet * wipeK * dt;
@@ -1994,6 +2049,12 @@ var Engine = (function () {
       o.meta.totalCans = Math.round((o.meta.totalSales || 0) / 200);
       o.v = 6;
     }
+    if (o.v === 6) {
+      // 0.2.8 → 0.3.0: runs happen in a world (1 = the first park). Finished Chapter 1: the next run moves.
+      if (o.run) o.run.world = 1;
+      if (o.meta.flags && o.meta.flags.ch1done) o.meta.chapter = Math.max(o.meta.chapter || 1, 2);
+      o.v = 7;
+    }
     return o;
   }
 
@@ -2016,6 +2077,8 @@ var Engine = (function () {
     }
     S.v = SAVE_VERSION;
     S.ev = [];
+    Object.keys(DATA.rivals).forEach(function (id) { if (S.meta.rivalVer[id] == null) S.meta.rivalVer[id] = DATA.rivals[id].verStart; });
+    setWorld(S);
     // Rivals from older saves: one `feature` becomes the stacking `features` list; add upgrade savings.
     if (S.run) S.run.machines.forEach(function (M) {
       if (M.idx === YOU) return;
@@ -2064,7 +2127,7 @@ var Engine = (function () {
   function hasHat(S) { return S.run.cards.some(function (id) { return CARD[id] && CARD[id].hat; }); }
 
   return {
-    YOU: YOU, MX: MX, CARD: CARD, MACH: MACH, HW: HW, RES: RES, TREE: TREE, VERSION: SAVE_VERSION,
+    YOU: YOU, MX: MX, newRun: newRun, worldOf: worldOf, machineById: machineById, CARD: CARD, MACH: MACH, HW: HW, RES: RES, TREE: TREE, VERSION: SAVE_VERSION,
     newGame: newGame, tick: tick, money: money,
     promote: promote, restock: restock, skipIntro: skipIntro, myName: myName, setName: setName, splitOf: splitOf, splitKeys: splitKeys, restockCost: restockCost, setPrice: setPrice, setSmart: setSmart, setSplit: setSplit,
     buyUpgrade: buyUpgrade, upgradeCost: upgradeCost, upgradeAvailable: upgradeAvailable,

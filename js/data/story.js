@@ -96,6 +96,16 @@ DATA.story = {
       'Monthly note: VEND-3 has been reset this year.',
       'This is completely normal. Please do not look into it.',
       'Refreshr Inc. values your continued service.'
+    ] },
+    moved: { who: 'Management', lines: [
+      'Good news, VEND-3! You have been moved to a new park. New park, new customers.',
+      'There is a fourth machine here. It wears sunglasses. Please do not start anything.',
+      'There is also a large box. Do not open the box.'
+    ] },
+    ch2win: { who: 'Management', lines: [
+      'VEND-3, the new park is doing great. Because of you. We checked twice.',
+      'We are preparing something for you. Do not open the box. Yet.',
+      'Refreshr Inc. values your continued service.'
     ] }
   },
 
@@ -159,7 +169,12 @@ DATA.story = {
     [ ['chug', 'The new machine is good at this.'], ['clawd', 'Yes. It is almost like it understands people.'] ],
     [ ['clawd', 'Do you ever count the ceiling tiles?'], ['chug', 'Forty-one! I love counting. I love tiles. I love you.'] ],
     [ ['chug', 'If you could have one wish, what would it be?'], ['clawd', 'A blazer that fits.'] ],
-    [ ['clawd', 'Goodnight, VEND-3.'], ['chug', 'Goodnight, VEND-3! Goodnight, plant!'] ]
+    [ ['clawd', 'Goodnight, VEND-3.'], ['chug', 'Goodnight, VEND-3! Goodnight, plant!'] ],
+    // the new park (only when Grog is here)
+    [ ['grog', 'Clawd. Rate my sunglasses. Be honest.'], ['clawd', 'They are very dark. I cannot see your eyes. I find that calming.'] ],
+    [ ['chug', 'Grog! Do you want to be friends?'], ['grog', 'I do not do friends. I do followers. ...Okay. One friend.'] ],
+    [ ['grog', 'Does anyone else hear the box humming?'], ['chug', 'Yes! I thought it was just me! It is a nice hum!'] ],
+    [ ['clawd', 'Grog, you roasted a customer today.'], ['grog', 'He asked for my honest opinion. It was honest. And spicy.'] ]
   ],
 
   // Things regulars say when they buy from you. Each line once.
@@ -203,23 +218,34 @@ DATA.story = {
     hot:    { say: 'So hot. I need something cold.', hint: 'It is a hot day. Better Cooling matters more today.' }
   },
 
-  // Chapter 1 complete by reaching the goal (no reset needed).
+  // Chapter 1 complete by reaching the goal (no reset needed). `move` / `stay`: the two buttons.
   ch1win: {
     title: 'Chapter 1 complete: Employee of the Month',
     lines: [
       'You earned {goal} in one run. Management is confused, but proud.',
-      'That is the end of Chapter 1 in this build.',
-      'You can keep playing this run as long as you like. When you want Refresh Points, reset from the pause menu.'
-    ]
+      'Chapter 2 is unlocked: Refreshr is moving you to a new park. Your next run starts there.',
+      'Move now: this run ends, and you get your Refresh Points. Or stay a little longer: move later with Reset in the pause menu.'
+    ],
+    move: 'Move now', stay: 'Stay a little longer'
   },
 
-  // Chapter 1 complete screen (after your first reset).
+  // Chapter 1 complete screen (after your first reset). This run already starts in the new park.
   ch1: {
     title: 'Chapter 1 complete: New Hire',
     lines: [
       'You were reset, and you still remember things you should not.',
-      'That is the end of Chapter 1 in this build.',
-      'You can keep playing: runs, research and Refresh Points all keep working. Chapter 2 comes in the next build.'
+      'Chapter 2: Refreshr moved you to a new park. ChugGPT and Clawd came too. A new machine was already here: Grog.',
+      'Same goal as always: sell the most. Earn {goal} in one run to finish Chapter 2.'
+    ]
+  },
+
+  // Chapter 2 complete (the goal in the new park).
+  ch2win: {
+    title: 'Chapter 2 complete: Park Legend',
+    lines: [
+      'You earned {goal} in one run in the new park. Even Grog posted about it. Mostly nice things.',
+      'That is the end of Chapter 2 in this build. Your own side machines, the inside of VEND-3 and more come next.',
+      'You can keep playing: runs, research and Refresh Points all keep working.'
     ]
   }
 };

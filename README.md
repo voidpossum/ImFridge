@@ -5,7 +5,7 @@ machines. Earn more than them. At every review, the last machine gets a strike: 
 and you are reset.
 
 **This is an early test build.** The art is placeholder, there are visual glitches, and the balance
-still changes. It contains Chapter 1 (about 30–45 minutes); after that you can keep playing.
+still changes. It contains Chapter 1 (about 30–45 minutes) and the start of Chapter 2 (a new park and a new rival); after that you can keep playing.
 
 Made by **Void Possum**.
 

@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.2.8';
+DATA.version = '0.3.0';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -37,6 +37,7 @@ DATA.balance = {
   clickPower: 1,          // processing per click
   holdCps: 10,            // holding the mouse on your machine (or Space) clicks this many times a second
   clickCash: 5,           // cents earned per point of click power (1 click = $0.05 at the start; holding = 10 clicks/s)
+  clickHalf: 3000000,     // clicks get tired: after $30,000 of click money this run each click pays half, after $90,000 a quarter
   resRate: 0.3,           // research points per point of processing put into Research
   likesPerFollower: 5,    // this many likes → one follower walks in
   followerPatience: 40,   // followers waiting outside give up over about this many seconds
@@ -54,6 +55,7 @@ DATA.balance = {
   reviewBonus: 0.25,      // cash bonus = this × your quarter earnings (only if you are not last)
   strikesMax: 3,          // last at this many reviews in a row = you are reset
   ch1Goal: 3000000,       // earn this much in one run ($30,000) and Chapter 1 is complete, no reset needed
+  ch2Goal: 100000000,     // Chapter 2: earn this much in one run in the new park ($1,000,000)
 
   // Rivals grow by multiplying, you grow by adding and by capacity: that is what ends every run.
   rivalBump: 1.15,        // strength × this each time a rival loses a review and gets "updated"
@@ -67,6 +69,7 @@ DATA.balance = {
   ordersMin: 15,          // online orders that can wait (at least this many)...
   ordersSeconds: 30,      // ...or this many seconds of what your drones deliver, if that is more
   adCash: 5,              // cents per follower who could not even order online (your ads earn a little instead)
+  adHalf: 2000000,        // ads get tired: after $20,000 of ad money this run each follower pays half, after $60,000 a quarter
   followerQueue: 8,       // followers will join a line up to this long (walk-ins give up at maxQueue)
 
   // Refresh Points on a reset = floor(rpK × cube root of run sales) + reviews survived
@@ -166,4 +169,15 @@ DATA.world = {
   queueY: 213, queueGap: 10,
   lookMin: 120, lookMax: 360,
   laneMin: 224, laneMax: 262
+};
+
+// The places VEND-3 works. Each run happens in one of them (run.world).
+// `order`: the machines from left to right ('you' is always the second one, index 1).
+// Chapter 1 is the first park. After Chapter 1 (the goal or the first reset), every run starts in the new park.
+DATA.worlds = {
+  1: { name: 'the park', order: ['chug', 'you', 'clawd'], machineX: [170, 240, 310], lookMin: 120, lookMax: 360 },
+  2: { name: 'the new park', order: ['chug', 'you', 'clawd', 'grog'], machineX: [135, 240, 345, 413], lookMin: 90, lookMax: 440,
+       rivalK: 2.5,          // rival-only mods earn this much more here (and more with every Refresh Point you earned)
+       box: 67,              // a big cardboard box: a machine that arrives later
+       slots: [191, 289] }   // your side slots, next to VEND-3 (empty until the next build); a lamp stands behind each
 };
