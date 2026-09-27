@@ -222,7 +222,8 @@ function shopping(S) {
 }
 
 function spendTree(S) {
-  var order = ['root', 'spare', 'viral', 'face', 'reroll', 'refurb', 'goldeye', 'crate', 'autopilot', 'second', 'keepsake'];
+  var order = ['root', 'walletStart', 'carpetStart', 'spare', 'viral', 'notes', 'droneStart', 'face', 'signStart', 'reroll', 'refurb',
+               'goldeye', 'autopilot', 'notebook', 'crate', 'fanMail', 'second', 'keepsake'];
   var progress = true;
   while (progress) {
     progress = false;

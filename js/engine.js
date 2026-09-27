@@ -101,6 +101,9 @@ var Engine = (function () {
   function newRun(S, keepCard) {
     var m = S.meta;
     m.runs++;
+    // Research belongs to the run (like upgrades): it starts over. The Refresh tree can give a head start.
+    // (It lives in S.meta.research so old saves keep their current run's research until the next reset.)
+    m.research = { done: {}, points: metaFx(S, 'startRes'), seen: {} };
     var R = {
       t: 0, day: 0, dayT: 0, quarter: 1, qDay: 0, weather: 'normal',
       cash: B.startCash + metaFx(S, 'startCash'), sales: 0, reviewsWon: 0,
@@ -129,6 +132,11 @@ var Engine = (function () {
     R.weather = rollWeather(S);
     R.machines = [makeRival(S, DATA.lobbyRivals[0], 0), makeYou(S), makeRival(S, DATA.lobbyRivals[1], 2)];
     R.machines.forEach(function (M) { fillAll(S, M); });
+    // Refresh tree head starts: research already done at the start (and the part it unlocks, level 1).
+    DATA.tree.forEach(function (n) {
+      if (!m.tree[n.id]) return;
+      n.fx.forEach(function (f) { if (f.k === 'startResearch') { m.research.done[f.v] = 1; grant(S, RES[f.v].unlock, true); } });
+    });
     // The opening (first run of a new game): a dark lobby, one can, five clicks, one sale, one restock.
     if (m.runs === 1 && !m.flags.introDone) {
       R.intro = { step: 'post', clicks: 0 };
@@ -361,18 +369,50 @@ var Engine = (function () {
   // What you can research right now: requirements met and not done yet (repeatables once most are done).
   // SodaCoin Wallet always comes first: it is the research tutorial.
   function researchAvailable(S) {
-    var d = S.meta.research.done;
+    var Rs = S.meta.research, d = Rs.done;
     if (!d.r_mining) return [RES.r_mining];
+    if (!d.r_carpet) return [RES.r_carpet];   // second: it changes how your spot looks, so new players see what research does
     var normal = DATA.research.filter(function (r) { return !r.repeat; });
     var doneN = normal.filter(function (r) { return d[r.id]; }).length;
-    var left = normal.filter(function (r) { return !d[r.id] && (r.req || []).every(function (q) { return d[q]; }); });
+    var left = normal.filter(function (r) { return !d[r.id] && (r.req || []).every(function (q) { return d[q]; }) && whenMet(S, r); });
     var out = left.slice();
     if (doneN >= 8 || !left.length) DATA.research.forEach(function (r) { if (r.repeat) out.push(r); });
     return out.sort(function (a, b) { return resCost(S, a.id) - resCost(S, b.id); });
   }
 
-  // Research points come from the Research bar. They are kept forever, even when you are reset.
+  // Research points come from processing power (after Developer Mode). They start over every run.
   function addResearch(S, amt) { S.meta.research.points += amt; }
+
+  // Milestone research (Cookie Clicker style): it shows up once something happens, then stays.
+  function whenMet(S, r) {
+    if (!r.when) return true;
+    var seen = S.meta.research.seen = S.meta.research.seen || {};
+    if (seen[r.id]) return true;
+    var w = r.when, ok = true;
+    if (w.orders != null && S.run.waiting < w.orders) ok = false;
+    if (w.hw && (S.run.hw[w.hw[0]] | 0) < w.hw[1]) ok = false;
+    if (ok) seen[r.id] = 1;
+    return ok;
+  }
+
+  // Research that unlocks a machine part gives you level 1 of it (a Shop item: one free copy).
+  function grant(S, id, quiet) {
+    var R = S.run;
+    if (!id) return;
+    if (MACH[id]) {
+      if (R.upgrades[id]) return;
+      R.upgrades[id] = 1;
+      MACH[id].fx.forEach(function (f) {
+        if (f.k === 'drink' && R.drinks.indexOf(f.v) < 0) { R.drinks.push(f.v); R.machines[YOU].stock[f.v] = capOf(S, R.machines[YOU]); }
+      });
+      if (id === 'smartprice') { R.smartOn = true; smartPrice(S); }
+      S.meta.flags['u_' + id] = 1;
+      if (!quiet) emit(S, { type: 'buy', id: id, lvl: 1, free: true });
+    } else if (HW[id]) {
+      R.hw[id] = (R.hw[id] | 0) + 1;
+      if (!quiet) emit(S, { type: 'hw', id: id, n: 1, free: true });
+    }
+  }
 
   function buyResearch(S, id) {
     var Rs = S.meta.research, r = RES[id];
@@ -383,6 +423,7 @@ var Engine = (function () {
     Rs.points -= cost;
     Rs.done[id] = (Rs.done[id] | 0) + 1;
     S.meta.tut.research = 1;
+    if (Rs.done[id] === 1) grant(S, r.unlock);
     var lvl = r.repeat ? ' (level ' + Rs.done[id] + ')' : '';
     log(S, 'Research', r.name + lvl + ' done. ' + r.desc, 'research');
     emit(S, { type: 'researchDone', id: id, level: Rs.done[id], novel: true });
@@ -558,11 +599,15 @@ var Engine = (function () {
     var R = S.run;
     R.thoughts.push({ t: R.t, k: kind });
     if (R.thoughts.length > 400) R.thoughts.shift();
+    R.qThoughts = R.qThoughts || {};                       // this quarter's reviews (reset at every review)
+    R.qThoughts[kind] = (R.qThoughts[kind] | 0) + 1;
     if (c) { c.icon = kind; c.iconD = drink || null; c.iconT = 2.2; }
   }
 
+  // windowSec = 'quarter': everything customers thought since the last review.
   function thoughtsSummary(S, windowSec) {
     var R = S.run, out = {}, since = R.t - (windowSec || 120);
+    if (windowSec === 'quarter') { for (var k in R.qThoughts || {}) out[k] = R.qThoughts[k]; return out; }
     R.thoughts.forEach(function (th) { if (th.t >= since) out[th.k] = (out[th.k] || 0) + 1; });
     return out;
   }
@@ -937,9 +982,13 @@ var Engine = (function () {
     Y.price = p;
     var folOK = loyalChance(S, 240 * B.followerBudget);
     Y.price = saved;
-    var demand = traffic * walk / wsum + (R.rate.followersEMA || 0) * Math.max(0, folOK);
+    var folRate = R.rate.followersEMA || 0;
+    var demand = traffic * walk / wsum + folRate * Math.max(0, folOK);
     var sold = Math.min(capacity(S), demand);
-    return sold * (pay / wsum - unit);
+    // Customers who say no buy from a rival, and that helps the rival at the review. Count it against this price.
+    var rivalP = Math.min(effPrice(S, 0), effPrice(S, 2));
+    var toRivals = (traffic * (1 - walk / wsum) + folRate * (1 - Math.max(0, folOK))) * rivalP;
+    return sold * (pay / wsum - unit) - toRivals;
   }
 
   function smartPrice(S) {
@@ -1144,6 +1193,7 @@ var Engine = (function () {
       if (!S.meta.flags.firstWin) { S.meta.flags.firstWin = 1; mail(S, 'firstWin'); }
     }
     ms.forEach(function (M) { M.qSales = 0; });
+    R.qThoughts = {};
     R.quarter++;
     R.qDay = 0;
   }
@@ -1397,7 +1447,7 @@ var Engine = (function () {
     if (dp.id === 'night') out.push({ k: 'night', text: 'Night', detail: 'Only night-shift workers come by.' });
     if (R.buffs.trending) out.push({ k: 'trending', text: 'Trending', detail: 'Likes ×7 for ' + Math.ceil(R.buffs.trending.t) + ' more seconds.' });
     if (R.buffs.rush) out.push({ k: 'rush', text: 'Rush hour', detail: 'You sell twice as fast for ' + Math.ceil(R.buffs.rush.t) + ' more seconds.' });
-    if (R.waiting >= 3) out.push({ k: 'waiting', text: Math.floor(R.waiting) + ' waiting outside', detail: 'Followers are waiting because your line is full. Sell faster, or put more power into Research.' });
+    if (R.waiting >= 3) out.push({ k: 'waiting', text: Math.floor(R.waiting) + ' online orders', detail: 'Your line is full, so followers ordered online. Delivery Drones deliver online orders. Orders nobody delivers expire.' });
     R.machines.forEach(function (M) {
       if (M.idx !== YOU && M.fx) out.push({ k: 'fx' + M.idx, text: DATA.rivals[M.id].name, detail: fxLine(S, M) });
       if (M.idx !== YOU) (M.features || []).forEach(function (f) {
@@ -1509,12 +1559,13 @@ var Engine = (function () {
     // Bonuses run out.
     for (var bk in R.buffs) { R.buffs[bk].t -= dt; if (R.buffs[bk].t <= 0) delete R.buffs[bk]; }
 
-    // Followers waiting outside: some give up, the rest come in when there is room in your line.
+    // Online orders: followers who could not fit in your line ordered online. Drones deliver them;
+    // the rest come in when there is room in your line. Orders nobody delivers expire (lost sales, no complaint).
     var Y = R.machines[YOU];
     if (R.waiting > 0 && !intro) {
       var gave = R.waiting * dt / (B.followerPatience * (1 + fx(S, 'patience')));
       R.waiting -= gave; R.gaveBank += gave;
-      while (R.gaveBank >= 1) { R.gaveBank -= 1; think(S, null, anyStock(Y) ? 'gaveup' : 'sold'); }
+      while (R.gaveBank >= 1) { R.gaveBank -= 1; R.ordersLost = (R.ordersLost | 0) + 1; }
     }
     R.folT -= dt;
     if (R.waiting >= 1 && R.folT <= 0 && Y.queue.length < folLineMax(S, YOU) && anyStock(Y)) {
@@ -1682,11 +1733,11 @@ var Engine = (function () {
         case 'go':
           if (moveTo(c, dt)) c.st = 'queue';
           c.wait += dt;
-          if (c.wait > patienceOf(S, c)) leave(S, c, 'line');
+          if (c.wait > patienceOf(S, c)) leave(S, c, c.m === YOU ? 'gaveup' : null);
           break;
         case 'queue':
           c.wait += dt;
-          if (c.lane < 0 && (c.wait > patienceOf(S, c) || (!available(S, c.m) && c.m !== YOU && c.wait > 4))) leave(S, c, 'line');
+          if (c.lane < 0 && (c.wait > patienceOf(S, c) || (!available(S, c.m) && c.m !== YOU && c.wait > 4))) leave(S, c, c.m === YOU ? 'gaveup' : null);
           break;
         case 'gold':
         case 'out':

@@ -348,7 +348,8 @@ var Sprites = (function () {
         R(ctx, cx + 1, cy + 1, 1, 1, P.red); R(ctx, cx + 2, cy + 2, 1, 1, P.red); break; }
       case 'pricey': text(ctx, '$', cx - 4, cy - 2, P.red); text(ctx, '$', cx, cy - 2, P.red); break;
       case 'value': R(ctx, cx, cy - 3, 1, 7, '#3aa860'); R(ctx, cx - 3, cy, 7, 1, '#3aa860'); R(ctx, cx - 1, cy - 1, 3, 3, '#6cd48a'); break;
-      case 'line': R(ctx, cx - 2, cy - 3, 5, 1, '#7a5a3a'); R(ctx, cx - 2, cy + 3, 5, 1, '#7a5a3a');
+      case 'line': for (var qi = 0; qi < 3; qi++) { R(ctx, cx - 4 + qi * 3, cy - 2, 2, 2, '#5a5a7a'); R(ctx, cx - 4 + qi * 3, cy + 1, 2, 3, '#5a5a7a'); } break;   // a queue
+      case 'gaveup': R(ctx, cx - 2, cy - 3, 5, 1, '#7a5a3a'); R(ctx, cx - 2, cy + 3, 5, 1, '#7a5a3a');
         R(ctx, cx - 1, cy - 2, 3, 2, '#e0b060'); R(ctx, cx, cy, 1, 1, '#e0b060'); R(ctx, cx - 1, cy + 1, 3, 2, '#e0b060'); break;
       case 'hot': R(ctx, cx, cy - 3, 1, 7, P.cyan); R(ctx, cx - 3, cy, 7, 1, P.cyan); R(ctx, cx - 2, cy - 2, 1, 1, P.cyan);
         R(ctx, cx + 2, cy + 2, 1, 1, P.cyan); R(ctx, cx + 2, cy - 2, 1, 1, P.cyan); R(ctx, cx - 2, cy + 2, 1, 1, P.cyan); break;

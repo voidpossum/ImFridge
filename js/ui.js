@@ -470,8 +470,8 @@ var UI = (function () {
       if (!h.pps) {
         var dr = Engine.droneRate(S);
         return '<b>' + esc(h.name) + '</b> <span class="n">(you own ' + n + ')</span><br><span class="d">' + esc(h.desc) + '</span>' +
-          (n ? '<br>All ' + n + ' serve <b>' + num(dr) + '</b> followers per second.' : '') +
-          '<br><span class="d">They only help when followers are waiting outside. Drone sales count at the review.</span>';
+          (n ? '<br>All ' + n + ' deliver <b>' + num(dr) + '</b> online orders per second.' : '') +
+          '<br><span class="d">Online orders come when your line is full. Drone sales count at the review.</span>';
       }
       var each = h.pps * Math.pow(2, S.run.dbl[id] | 0) * Engine.prodMult(S);
       var all = Engine.hwPPS(S, id), tot = Engine.pps(S);
@@ -496,11 +496,12 @@ var UI = (function () {
       var r = Engine.RES[id];
       return '<b>' + esc(r.name) + (r.repeat ? ' (level ' + (Engine.resLevel(S, id) + 1) + ')' : '') + '</b> <span class="n">research</span><br>' + esc(r.desc) +
         '<br>Costs <span class="n">' + num(Engine.resCost(S, id)) + '</span> research points. You have <span class="n">' + num(S.meta.research.points) + '</span>.' +
-        '<br><span class="d">Research is kept forever, even when you are reset.</span>';
+        '<br><span class="d">Research starts over when you reset.</span>';
     },
     wait: function () {
-      return '<b>' + Math.floor(S.run.waiting) + ' followers are waiting outside.</b><br>Your line is full, so they wait. Some give up.<br>' +
-        '<span class="d">Sell faster (Fast Coin Slot, Second Dispenser)' + (S.meta.flags.jailbreak ? ', or move power to Research.' : '.') + '</span>';
+      return '<b>' + Math.floor(S.run.waiting) + ' online orders.</b><br>Your line is full, so followers ordered online.<br>' +
+        (S.run.hw.drone ? 'Your Delivery Drones deliver them.' : 'You need Delivery Drones to deliver them.') + ' Orders nobody delivers expire.<br>' +
+        '<span class="d">Or sell faster, so more followers fit in your line (Fast Coin Slot, Second Dispenser).</span>';
     },
     now: function (k) {
       var c = Engine.conditions(S).filter(function (x) { return x.k === k; })[0];
@@ -530,6 +531,22 @@ var UI = (function () {
   }
 
   // ───────────────────────── per-frame update
+  // A hover/click spot over the online-orders counter (drawn on the canvas at the left edge).
+  var ordersEl = null;
+  function ordersSpot() {
+    var n = Math.floor(S.run.waiting);
+    if (!ordersEl) {
+      ordersEl = document.createElement('button');
+      ordersEl.id = 'ordersSpot'; ordersEl.setAttribute('data-tipfn', 'wait'); ordersEl.setAttribute('aria-label', 'Online orders');
+      ordersEl.addEventListener('click', function () { openTab('shop'); });
+      el.bubbles.parentNode.appendChild(ordersEl);
+    }
+    ordersEl.hidden = n < 1;
+    if (n < 1) return;
+    var sz = Scene.size(), a = Scene.toScreen(-sz.ox + 7, 94), b = Scene.toScreen(-sz.ox + 12 + Sprites.textWidth(String(n)) + 22, 113);
+    ordersEl.style.left = a.x + 'px'; ordersEl.style.top = a.y + 'px';
+    ordersEl.style.width = (b.x - a.x) + 'px'; ordersEl.style.height = (b.y - a.y) + 'px';
+  }
   var rebootEl = null;
   function rebootTip() {
     var L = S.run.lock;
@@ -545,6 +562,7 @@ var UI = (function () {
     t += dt;
     placeBubbles();
     rebootTip();
+    ordersSpot();
     tvFrame(dt);
     faceT -= dt;
     if (faceT <= 0) { faceT = 0.12; drawFaces(); }
@@ -614,7 +632,7 @@ var UI = (function () {
   // One slider: Mining ⟷ Research. Your processing power always brings likes too.
   var SLIDE_TIP = 'Your processing power always brings likes and followers.\n' +
     'This slider picks what else it makes:\nMining = money right now (it counts at the review).\n' +
-    'Research = research points (kept forever).';
+    'Research = research points (for this run).';
   function paintSplit() {
     var Y = mcs[YOU], sp = Engine.splitOf(S), v = sp.mine || 0;
     if (document.activeElement !== Y.slider) Y.slider.value = v.toFixed(2);
@@ -695,7 +713,7 @@ var UI = (function () {
   // ───────────────────────── top bar: what customers are thinking, what is going on, money
   var THOUGHT_SHORT = { pricey: 'too expensive', value: 'great value', sold: 'out of their drink', line: 'line too long',
                         gaveup: 'gave up waiting', hot: 'want it colder' };
-  var THOUGHT_ICON = { pricey: 'pricey', value: 'value', sold: 'sold', line: 'line', gaveup: 'phone', hot: 'hot' };
+  var THOUGHT_ICON = { pricey: 'pricey', value: 'value', sold: 'sold', line: 'line', gaveup: 'gaveup', hot: 'hot' };
   var thoughtIcons = {}, thoughtT = 0;
   function thoughtIcon(k) {
     if (thoughtIcons[k]) return thoughtIcons[k];
@@ -710,9 +728,9 @@ var UI = (function () {
     thoughtT -= 0.1;
     if (thoughtT <= 0) {
       thoughtT = 2;
-      var th = Engine.thoughtsSummary(S, 60);
+      var th = Engine.thoughtsSummary(S, 'quarter');
       var keys = Object.keys(th).filter(function (k) { return THOUGHT_SHORT[k]; }).sort(function (a, b) { return th[b] - th[a]; }).slice(0, 3);
-      setHTML(el.thoughts, '<span class="thLabel" data-tip="What your customers thought in the last minute. Click one to learn more.">Customer<br>reviews</span>' +
+      setHTML(el.thoughts, '<span class="thLabel" data-tip="What your customers thought this quarter. They start fresh at every review. Click one to learn more.">Customer<br>reviews Q' + S.run.quarter + '</span>' +
         (keys.length ? keys.map(function (k) {
         return '<button class="th' + (k === 'value' ? ' ok' : '') + '" data-open="customers" data-tip="' + esc(DATA.story.thoughts[k].say + '\n' + DATA.story.thoughts[k].hint) + '">' +
           '<img src="' + thoughtIcon(k) + '" alt=""><b>' + th[k] + '</b><span class="tx">' + THOUGHT_SHORT[k] + '</span></button>';
@@ -953,7 +971,7 @@ var UI = (function () {
       html: function () {
         var st = stripItems(), Rs = S.meta.research, h = '';
         if (S.meta.flags.jailbreak) {
-          h += '<div class="shead"><h3>Research <span class="dim">· kept forever</span></h3><span class="rpts" id="resPts"></span></div>';
+          h += '<div class="shead"><h3>Research <span class="dim">· this run</span></h3><span class="rpts" id="resPts"></span></div>';
           h += st.res.length ? '<div class="strip">' + st.res.map(stripIcon).join('') + '</div>'
                              : '<p class="note">You have researched everything there is for now.</p>';
         }
@@ -967,7 +985,7 @@ var UI = (function () {
             return '<div>' + Icons.img(r.icon, 's') + ' <b>' + esc(r.name) + (r.repeat ? ' ×' + Rs.done[r.id] : '') + '</b>: ' + esc(r.desc) + '</div>';
           }).join('') + '</div></details>';
         }
-        h += '<p class="note">Upgrades and automation are lost when you are reset. Research is kept.</p>';
+        h += '<p class="note">Everything in the Shop starts over when you reset. The Refresh tree can give you a head start.</p>';
         return h;
       },
       live: function () {
@@ -1070,7 +1088,7 @@ var UI = (function () {
           h += '<div class="guide"><img class="p" src="' + portrait('office', 'gold') + '" alt=""><span class="nm">Influencer</span>' +
             '<span class="look">Sunglasses, a phone and a gold glow</span><span class="d">Rare. Click them before they leave for a big bonus.</span></div>';
         }
-        h += '<h3>In the park</h3><p class="note"><b>Drones</b> are online orders: every drone is one more can sold (the machine sends it by air).<br>' +
+        h += '<h3>In the park</h3><p class="note"><b>Online orders</b> (phone, at the left): followers who could not fit in your line. <b>Drones</b> deliver them: every drone is one more can sold. Orders nobody delivers expire.<br>' +
           '<b>Glass tubes</b> under a machine are refills: capsules of new cans shoot up into it. The AI machines always refill this way. You get tubes with Pneumatic Tubes.</p>';
         return h;
       }
@@ -1114,7 +1132,7 @@ var UI = (function () {
           '<button class="btn" data-act="rename">Rename</button></span></div>';
         if (Engine.canReset(S)) {
           var rp = Engine.rpFor(S);
-          h += '<h3 style="margin-top:18px">This run</h3><p class="note">You can reset whenever you like. Reset now and get ' + rp + ' Refresh Points (more if you earn more first). You lose this run\'s money, automation, upgrades and cards. Research and Refresh Points stay.</p>' +
+          h += '<h3 style="margin-top:18px">This run</h3><p class="note">You can reset whenever you like. Reset now and get ' + rp + ' Refresh Points (more if you earn more first). You lose this run\'s money, research, automation, upgrades and cards. Refresh Points and your Memory Book stay.</p>' +
             '<button class="btn danger full" data-act="wipe">' + (armed('wipe') ? 'Click again to reset now' : 'Reset now for ' + rp + ' Refresh Points') + '</button>';
         }
         h += '<h3 style="margin-top:18px">Save</h3><p class="note">The game saves by itself every 10 seconds.</p>' +
@@ -1372,7 +1390,7 @@ var UI = (function () {
   }
 
   function nodeInfo() {
-    if (!selNode) return '<h3>Refresh tree</h3><p>Click a box to read what it does.</p><p class="dim">Lines show what you need to buy first. Everything here is kept forever.</p>';
+    if (!selNode) return '<h3>Refresh stars</h3><p>Click a star to read what it does. Click it again to buy it.</p><p class="dim">Lines show which star you need first. Everything here is kept forever: it is how you get stronger from reset to reset.</p>';
     var n = Engine.TREE[selNode], st = nodeState(n), m = S.meta;
     var h = '<h3>' + esc(n.name) + '</h3><p>' + esc(n.desc) + '</p>';
     if (st === 'owned') return h + '<div class="st good">You own this.</div>';
@@ -1384,30 +1402,33 @@ var UI = (function () {
       '<button class="btn blue full" data-act="tree" data-id="' + n.id + '"' + (m.refresh < n.cost ? ' disabled' : '') + '>Buy for ' + n.cost + '</button>';
   }
 
+  // The Refresh tree as constellations: stars on a night sky, joined by thin lines. Bought stars glow green.
   function layoutTree() {
     var box = $('tree');
     if (!box) return;
-    var W = box.clientWidth;
-    var nw = Math.max(88, Math.min(118, W / 8.2));
-    var U = Math.min(120, (W - nw - 16) / 7.2), V = 104, top = 46;
-    box.style.height = (top * 2 + V * 2) + 'px';
-    box.style.setProperty('--nw', nw + 'px');
+    var W = box.clientWidth, H = Math.max(470, Math.min(580, Math.round(W * 0.66)));
+    box.style.height = H + 'px';
+    var padX = 70, padY = 40;
+    function px(x) { return W / 2 + x * (W - padX * 2) / 10; }
+    function py(y) { return padY + y * (H - padY * 2) / 8; }
     var pos = {};
-    DATA.tree.forEach(function (n) { pos[n.id] = { x: W / 2 + n.x * U, y: top + n.y * V }; });
+    DATA.tree.forEach(function (n) { pos[n.id] = { x: px(n.x), y: py(n.y) }; });
     var m = S.meta, lines = '';
     DATA.tree.forEach(function (n) {
       (n.req || []).forEach(function (q) {
         var a = pos[q], b = pos[n.id];
-        var col = m.tree[n.id] ? '#7bd88f' : m.tree[q] ? '#6fc3ff' : '#4a3c52';
-        var midY = (a.y + b.y) / 2;
-        lines += '<path d="M' + a.x + ' ' + a.y + ' V' + midY + ' H' + b.x + ' V' + b.y + '" fill="none" stroke="' + col + '" stroke-width="3"/>';
+        var col = m.tree[n.id] && m.tree[q] ? 'rgba(123,216,143,0.9)' : m.tree[q] ? 'rgba(220,225,255,0.55)' : 'rgba(160,160,190,0.22)';
+        lines += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="' + col + '" stroke-width="1.5"/>';
       });
     });
-    var h = '<svg viewBox="0 0 ' + W + ' ' + (top * 2 + V * 2) + '" preserveAspectRatio="none">' + lines + '</svg>';
+    var h = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + lines + '</svg>';
+    (DATA.treeGroups || []).forEach(function (g) {
+      h += '<span class="cname" style="left:' + px(g.x) + 'px;top:' + py(g.y) + 'px">' + esc(g.name) + '</span>';
+    });
     DATA.tree.forEach(function (n) {
       var p = pos[n.id], st = nodeState(n);
-      h += '<button class="node ' + st + (selNode === n.id ? ' sel' : '') + '" data-act="node" data-id="' + n.id + '" style="left:' + p.x + 'px;top:' + p.y + 'px">' +
-        '<span class="nm">' + esc(n.name) + '</span><span class="c">' + (st === 'owned' ? 'Owned' : n.cost + ' RP') + '</span></button>';
+      h += '<button class="node ' + st + (selNode === n.id ? ' sel' : '') + (n.id === 'root' ? ' big' : '') + '" data-act="node" data-id="' + n.id + '" style="left:' + p.x + 'px;top:' + p.y + 'px" aria-label="' + esc(n.name) + '">' +
+        '<i class="sw"><i class="star"></i></i><span class="nm">' + esc(n.name) + '</span><span class="c">' + (st === 'owned' ? 'owned' : n.cost + ' RP') + '</span></button>';
     });
     box.innerHTML = h;
   }

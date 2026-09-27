@@ -218,6 +218,7 @@ input.split::-moz-range-thumb { width: 6px; height: 16px; background: var(--ink)
 #scene { display: block; image-rendering: pixelated; image-rendering: crisp-edges; cursor: default; }
 #scene.pointer { cursor: pointer; }
 #bubbles { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+#ordersSpot { position: absolute; padding: 0; background: none; border: 0; cursor: pointer; }
 
 #tvText {
   position: absolute;
@@ -695,30 +696,44 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
 .help li { margin: 3px 0; }
 
 .treeWrap { width: min(980px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; margin-top: 10px; }
-.tree { position: relative; min-height: 360px; background: rgba(20, 15, 26, 0.7); border: 2px solid var(--line); overflow: hidden; }
-.tree svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.node {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  width: var(--nw, 112px);
-  padding: 6px 6px 5px;
-  background: var(--panel2);
-  border: 2px solid var(--line);
-  box-shadow: 0 3px 0 var(--shadow);
-  cursor: pointer;
-  text-align: center;
-  font-size: 0.78em;
-  line-height: 1.2;
+.tree {
+  position: relative; min-height: 400px; overflow: hidden; border: 2px solid var(--line);
+  /* a night sky: three layers of tiny stars */
+  background:
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.8), transparent 60%) 0 0 / 97px 83px,
+    radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.5), transparent 60%) 0 0 / 131px 109px,
+    radial-gradient(1px 1px at 40% 80%, rgba(200,210,255,0.6), transparent 60%) 0 0 / 53px 61px,
+    radial-gradient(ellipse at 30% 40%, rgba(80,50,120,0.25), transparent 60%),
+    #07060d;
 }
-.node .nm { font-weight: 800; display: block; }
+.tree svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.tree .cname { position: absolute; transform: translate(-50%, -50%); font: 700 0.72em/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: rgba(190,190,230,0.35); white-space: nowrap; pointer-events: none; }
+.node {
+  position: absolute; transform: translate(-50%, -13px);
+  width: 120px; padding: 0; background: none; border: 0;
+  cursor: pointer; text-align: center; font-size: 0.72em; line-height: 1.25; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+/* a four-point star */
+.node .star { display: block; width: 26px; height: 26px; background: #3a3a52;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
+.node.big { transform: translate(-50%, -19px); }
+.node.big .star { width: 38px; height: 38px; }
+.node .nm { font-weight: 700; display: block; }
 .node .c { font-family: var(--mono); color: var(--blue); font-size: 0.95em; }
-.node.owned { background: #1d3a2a; border-color: var(--good); }
+.node .sw { display: block; }
+.node.owned .star { background: #7bd88f; }
+.node.owned .sw { filter: drop-shadow(0 0 5px rgba(123,216,143,0.9)); }
+.node.owned .nm { color: #bff0c8; }
 .node.owned .c { color: var(--good); }
-.node.ready { border-color: var(--blue); }
-.node.ready.can { box-shadow: 0 3px 0 var(--shadow), 0 0 12px rgba(111, 195, 255, 0.45); animation: nodePulse 1.6s infinite; }
-@keyframes nodePulse { 50% { box-shadow: 0 3px 0 var(--shadow), 0 0 2px rgba(111, 195, 255, 0.2); } }
-.node.locked { opacity: 0.45; border-style: dashed; }
-.node.sel { outline: 2px solid var(--gold); outline-offset: 2px; }
+.node.ready .star { background: #e8ecff; }
+.node.ready .nm { color: var(--ink); }
+.node.ready.can .sw { filter: drop-shadow(0 0 6px rgba(200,215,255,0.9)); animation: starPulse 1.6s infinite; }
+@keyframes starPulse { 50% { filter: drop-shadow(0 0 1px rgba(200,215,255,0.3)); } }
+.node.locked { opacity: 0.55; }
+.node.sel .star { outline: none; background: var(--gold); }
+.node.sel .nm { color: var(--gold); }
+.node:hover .nm { color: var(--ink); }
 .nodeInfo { padding: 12px; background: var(--panel); border: 2px solid var(--line); align-self: start; }
 .nodeInfo h3 { margin: 0 0 6px; }
 .nodeInfo p { margin: 0 0 8px; font-size: 0.92em; }

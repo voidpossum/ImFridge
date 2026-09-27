@@ -454,13 +454,14 @@ var Scene = (function () {
       }
     }
     youDraw(hov === 'you', t, function (g) { Sprites.crate(g, CRATE.x, CRATE.y, hov === 'crate'); });
-    // followers waiting outside: a counter at the left edge of the view
+    // online orders (followers who could not fit in your line): a drone counter at the left edge of the view.
+    // A drone, so players see what delivers them.
     var wait = Math.floor(run.waiting);
     if (wait >= 1) {
-      var lx = -ox + 22, lab2 = String(wait), bw = Sprites.textWidth(lab2) + 11;
-      R(ctx, lx - bw / 2 - 1, 99, bw + 2, 11, P.ink); R(ctx, lx - bw / 2, 100, bw, 9, '#fff4e0');
-      R(ctx, lx - bw / 2 + 2, 101, 4, 7, '#20202a'); R(ctx, lx - bw / 2 + 3, 102, 2, 4, P.cyan);
-      Sprites.text(ctx, lab2, lx - bw / 2 + 8, 102, P.red);
+      var lab2 = String(wait), bw = Sprites.textWidth(lab2) + 22, bx = Math.round(-ox + 8);
+      R(ctx, bx - 1, 95, bw + 2, 17, P.ink); R(ctx, bx, 96, bw, 15, '#fff4e0');
+      Sprites.drone(ctx, bx + 9, 99, run.hw.drone ? t : 0, DATA.drinks.cola.color);
+      Sprites.text(ctx, lab2, bx + 19, 101, run.hw.drone ? P.ink : P.red);
     }
 
     // people, back to front
