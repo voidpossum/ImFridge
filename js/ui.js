@@ -26,6 +26,7 @@ var UI = (function () {
     free: 'giving cans away', hype: 'on a hype streak', nopay: 'not getting paid', closed: 'away (blazer delivery)',
     cubes: 'full of tungsten cubes', refuseCold: 'refusing cold drinks', discount: 'half price', slow: 'very slow'
   };
+  var RIVAL_MOD_ICON = { snacks: 'snacks', fleet: 'drone', plus: 'plus' };
   var BUFF_TITLE = { trending: 'Trending!', rush: 'Rush hour!', tip: 'Big tip!', grant: 'Research grant!' };
 
   var TABS = [
@@ -605,7 +606,7 @@ var UI = (function () {
                  '<input type="range" class="split" min="0" max="1" step="0.05" aria-label="Mining share (the rest goes to Research)"></div>' +
                '<span class="priceCtl" data-tip="Your price per can. Cheaper sells more cans. Higher earns more per can. Followers compare it with the other machines.">' +
                '<button data-p="-1" aria-label="Lower price">−</button><b class="pv"></b><button data-p="1" aria-label="Raise price">+</button>' +
-               '<label class="smart" hidden data-tip="Smart Price picks your price every hour. Changing the price turns it off."><input type="checkbox"> Smart</label></span>' +
+               '<label class="smart" hidden data-tip="Smart Price sets your price every hour: the average price of the other machines, so you are in the middle. Changing the price turns it off."><input type="checkbox"> Smart</label></span>' +
                '</div>'
              : '<div class="mrow full"><span class="st"></span></div><div class="mods"></div>');
       el.machines.appendChild(d);
@@ -690,7 +691,11 @@ var UI = (function () {
         var up = M.up || {};
         setHTML(c.mods, DATA.rivalUpgrades.filter(function (u) { return up[u.id]; }).map(function (u) {
           return '<span class="mod" data-tip="' + esc(u.name + ', level ' + up[u.id] + '. It bought this with its own money.') + '">' + Icons.img(u.id) + '<b>' + up[u.id] + '</b></span>';
-        }).join('') || '<span class="none">No mods yet</span>');
+        }).concat(fs.filter(function (f) { return DATA.features[f].lv; }).map(function (f) {
+          // rival-only mods (you never get these), with their level
+          var F = DATA.features[f], lv = Engine.featLv(S, M, f);
+          return '<span class="mod rival" data-tip="' + esc(F.name + ', level ' + lv + '. Only rivals have this. ' + F.desc) + '">' + Icons.img(RIVAL_MOD_ICON[f]) + '<b>' + lv + '</b></span>';
+        })).join('') || '<span class="none">No mods yet</span>');
       }
     }
     // your card: goal line, split and price

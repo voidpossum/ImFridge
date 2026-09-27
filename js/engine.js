@@ -457,9 +457,17 @@ var Engine = (function () {
     return sum;
   }
   function hasFeat(M, id) { return !!(M.features && M.features.indexOf(id) >= 0); }
+  // Level of a rival-only mod (Sandwich Menu, Drone Fleet, Soda Plus): 0 = not installed.
+  // It starts at level 1 and grows a fixed step every month (a steady curve: rivals keep up, but never snowball).
+  function featLv(S, M, id) {
+    if (!hasFeat(M, id)) return 0;
+    var at = M.featAt && M.featAt[id] != null ? M.featAt[id] : S.run.quarter;
+    return 1 + B.featPerMonth * Math.max(0, S.run.quarter - at);
+  }
   // A rival earns money: it counts for the review, and part of it goes into its upgrade savings.
   // can: it was a can sold (not crypto money).
-  function rivalEarn(M, pay, can) {
+  function rivalEarn(M, pay, can, S) {
+    if (can && S) pay *= 1 + B.snackBonus * featLv(S, M, 'snacks');   // a sandwich with the soda
     M.qSales += pay; M.rSales += pay;
     if (can) M.cans = (M.cans | 0) + 1;
     M.cash = (M.cash || 0) + pay * B.rivalSpend;
@@ -911,7 +919,7 @@ var Engine = (function () {
   function hwAvailable(S, id) { var h = HW[id]; return !h.research || !!S.meta.research.done[h.research]; }
   function hwCost(S, id, extra) {
     var n = (S.run.hw[id] | 0) + (extra || 0);
-    return Math.ceil(HW[id].base * Math.pow(B.hardwareGrow, n) * (1 - metaFx(S, 'hwDiscount')));
+    return Math.ceil(HW[id].base * Math.pow(HW[id].grow || B.hardwareGrow, n) * (1 - metaFx(S, 'hwDiscount')));
   }
   function hwCostN(S, id, count) {
     var s = 0;
@@ -1011,14 +1019,18 @@ var Engine = (function () {
     return sold * (pay / wsum - unit) - toRivals;
   }
 
+  // Smart Price: the average of the other machines' own prices, so you sit in the middle of the park.
+  // A rival that copies you (ChugGPT's undercut, a price war) counts with its normal price, or the price would chase itself down.
+  function smartTarget(S) {
+    var sum = 0, n = 0;
+    S.run.machines.forEach(function (M) { if (M.idx !== YOU) { sum += rivalOwnPrice(S, M); n++; } });
+    var p = n ? sum / n : 200;
+    return Math.max(B.priceMin, Math.min(B.priceMax, Math.round(p / B.priceStep) * B.priceStep));
+  }
   function smartPrice(S) {
-    var best = S.run.price, bestV = -1e9;
-    for (var p = B.priceMin; p <= B.priceMax + 1e-9; p += B.priceStep) {
-      var v = expectedProfitRate(S, p);
-      if (v > bestV + 1e-6) { bestV = v; best = p; }
-    }
-    S.run.price = best;
-    S.run.machines[YOU].price = best;
+    var p = smartTarget(S);
+    S.run.price = p;
+    S.run.machines[YOU].price = p;
   }
 
   // ───────────────────────── rivals
@@ -1028,14 +1040,19 @@ var Engine = (function () {
   }
   function fmtVer(v) { return (Math.round(v * 10) / 10).toString(); }
 
+  // What a rival charges when it is not copying you. Newer versions charge a little more.
+  function rivalOwnPrice(S, M) {
+    var D = DATA.rivals[M.id];
+    return D.pricing === 'undercut' ? 300 + 25 * M.bumps : (D.fairPrice || 200) + 15 * M.bumps;
+  }
   function rivalPricing(S, M) {
     var D = DATA.rivals[M.id], you = S.run.machines[YOU].price;
     if (hasFeat(M, 'pricewar')) {
       M.price = Math.max(B.priceMin, Math.round((you - B.pricewarCut) / 25) * 25);
       return;
     }
-    if (D.pricing === 'undercut') M.price = Math.max(100, Math.min(300 + 25 * M.bumps, you - 25));
-    else M.price = (D.fairPrice || 200) + 15 * M.bumps;
+    if (D.pricing === 'undercut') M.price = Math.max(100, Math.min(rivalOwnPrice(S, M), you - 25));
+    else M.price = rivalOwnPrice(S, M);
     M.price = Math.round(M.price / 25) * 25;
   }
 
@@ -1097,9 +1114,11 @@ var Engine = (function () {
   }
 
   // After an update, a rival installs one new feature for the next quarter.
-  function installFeature(S, M) {
-    var D = DATA.rivals[M.id], have = M.features || (M.features = []), id;
-    if (!have.length) id = 'crypto';   // the first update: self-defense
+  // id: a scheduled rival-only mod. Without it, the rival picks a feature (after losing a review).
+  function installFeature(S, M, id) {
+    var D = DATA.rivals[M.id], have = M.features || (M.features = []);
+    if (id) { if (have.indexOf(id) >= 0) return null; }
+    else if (!have.some(function (f) { return !DATA.features[f].lv; })) id = 'crypto';   // the first update: self-defense
     else {
       var w = {}, any = false;
       for (var k in (D.features || {})) if (have.indexOf(k) < 0) { w[k] = D.features[k]; any = true; }
@@ -1108,6 +1127,7 @@ var Engine = (function () {
     }
     var F = DATA.features[id];
     have.push(id);
+    if (F.lv) { M.featAt = M.featAt || {}; M.featAt[id] = S.run.quarter; }
     M.hackUsed = false;
     M.saySoon = id;
     delete S.run.liveKey['feat' + M.idx];
@@ -1204,6 +1224,8 @@ var Engine = (function () {
       var M = ms[lowest];
       res.patch = bumpRival(S, M, true);
       res.feature = installFeature(S, M);
+      // The other rivals behind you install something new too (their own line and the TV tell you what).
+      ms.forEach(function (M2) { if (M2 !== M && M2.idx !== YOU && M2.rSales < ms[YOU].rSales) installFeature(S, M2); });
       res.bonus = Math.round(ms[YOU].qSales * B.reviewBonus * (1 + fx(S, 'review')));
       R.cash += res.bonus;
       R.reviewsWon++;
@@ -1215,6 +1237,11 @@ var Engine = (function () {
     ms.forEach(function (M) { M.qSales = 0; });
     R.qThoughts = {};
     R.quarter++;
+    // Rival-only mods arrive on a fixed schedule (the month is in DATA.rivals[id].mods).
+    ms.forEach(function (M) {
+      var mods = M.idx !== YOU && DATA.rivals[M.id].mods;
+      for (var f in mods || {}) if (mods[f] <= R.quarter) installFeature(S, M, f);   // (<=: a save from before 0.2.8 catches up)
+    });
     R.qDay = 0;
   }
 
@@ -1653,6 +1680,19 @@ var Engine = (function () {
       }
       M.shopT = (M.shopT == null ? B.rivalShopEvery : M.shopT) - dt;
       if (M.shopT <= 0) { M.shopT = B.rivalShopEvery; rivalShop(S, M); }
+      // Rival-only mods: a subscription that pays every second, and a drone fleet for its own online fans.
+      var plus = featLv(S, M, 'plus'), fleet = featLv(S, M, 'fleet'), wipeK = 1 + B.rivalPerWipe * S.meta.wipes;
+      if (plus && available(S, M.idx)) rivalEarn(M, B.plusRate * plus * wipeK * dt);
+      if (fleet && available(S, M.idx)) {
+        M.fleetAcc = (M.fleetAcc || 0) + B.fleetRate * fleet * wipeK * dt;
+        while (M.fleetAcc >= 1) {
+          M.fleetAcc -= 1;
+          var fp = M.fx && M.fx.type === 'nopay' ? 0 : effPrice(S, M.idx);
+          rivalEarn(M, fp, true, S);
+          // Only a few drones are drawn, so the sky stays readable.
+          if (rand(S) < 2 / (2 + fleet)) emit(S, { type: 'sale', machine: M.idx, amount: fp, online: true });
+        }
+      }
       if (hasFeat(M, 'crypto') && available(S, M.idx)) {
         var mined = B.cryptoRate * Math.sqrt(rivalStrength(S, M)) * dt;
         rivalEarn(M, mined);
@@ -1691,7 +1731,7 @@ var Engine = (function () {
           M.stock[dr]--;
           var pay = effPrice(S, M.idx);
           if (M.fx && M.fx.type === 'nopay') pay = 0;
-          rivalEarn(M, pay, true);
+          rivalEarn(M, pay, true, S);
           emit(S, { type: 'sale', machine: M.idx, amount: pay, drink: dr, online: true });
         }
       }
@@ -1793,7 +1833,7 @@ var Engine = (function () {
     if (rand(S) > loyalChance(S, budget)) {
       think(S, null, 'pricey');
       var alt = cheaperRival(S);
-      if (alt >= 0) { var ap = effPrice(S, alt); rivalEarn(R.machines[alt], ap, true); emit(S, { type: 'sale', machine: alt, amount: ap, online: true }); }
+      if (alt >= 0) { var ap = effPrice(S, alt); rivalEarn(R.machines[alt], ap, true, S); emit(S, { type: 'sale', machine: alt, amount: ap, online: true }); }
       return -1;
     }
     var pay = Math.round(effPrice(S, YOU) * (1 + fx(S, 'money', ctx)));
@@ -1828,7 +1868,7 @@ var Engine = (function () {
     L.c = 0;
     if (!c) return;
     var pay = c.pay;
-    if (M.idx !== YOU) rivalEarn(M, pay, true);
+    if (M.idx !== YOU) rivalEarn(M, pay, true, S);
     if (M.idx === YOU) {
       M.cans = (M.cans | 0) + 1; S.meta.totalCans = (S.meta.totalCans || 0) + 1;
       R.cash += pay; score(S, pay);
@@ -2038,7 +2078,7 @@ var Engine = (function () {
     youStats: youStats, rates: rates, perClick: perClick, rivalInfo: rivalInfo, effPrice: effPrice, available: available,
     capOf: capOf, lanesOf: lanesOf, lineMax: lineMax, folLineMax: folLineMax, lifeComplete: lifeComplete, hasHat: hasHat, fmtVer: fmtVer,
     expectedProfitRate: expectedProfitRate, conditions: conditions, filler: filler, thoughtsSummary: thoughtsSummary,
-    metaFx: metaFx, serialize: serialize, deserialize: deserialize, mineRateNow: mineRateNow, hasFeat: hasFeat, rivalUp: rivalUp
+    metaFx: metaFx, serialize: serialize, deserialize: deserialize, mineRateNow: mineRateNow, hasFeat: hasFeat, featLv: featLv, smartTarget: smartTarget, rivalOwnPrice: rivalOwnPrice, rivalUp: rivalUp
   };
 })();
 
