@@ -467,28 +467,29 @@
   // Version 5 (Void Possum's Photoshop layout): ChugGPT, [your slot], VEND-3, [your slot], lamp, Clawd, Grog.
   // VEND-3 in the exact centre (x 240), under the news board. One lamp. The edges stay free for the trees and the menus.
   var LAYOUT = { soon: 67, chug: 135, slotL: 191, you: 240, slotR: 289, clawd: 345, grog: 413 };
-  // A machine under a tarp: the spot for the rival that arrives later.
+  // A big cardboard box: the spot for the rival that arrives later.
   function coveredMachine(g, cx, t) {
-    var x0 = cx - 25, y0 = 106, w = 50, h = 94;
-    R(g, x0, y0 + h, w, 3, 'rgba(40,20,40,0.32)');
-    // the cloth: wider at the bottom, with folds
-    for (var y = 0; y < h; y++) {
-      var k = y / h, inset = Math.round((1 - k) * 3 + (y < 4 ? 4 - y : 0));
-      R(g, x0 + inset - 1, y0 + y, w - inset * 2 + 2, 1, P.ink);
-      R(g, x0 + inset, y0 + y, w - inset * 2, 1, '#6a7a8e');
-    }
-    for (var f = 0; f < 5; f++) {   // folds
-      var fx = x0 + 7 + f * 9;
-      for (var fy = 12; fy < h - 2; fy++) if ((fy + f * 5) % 23 < 18) R(g, fx + Math.round(Math.sin(fy / 9 + f) * 1.5), y0 + fy, 1, 1, f % 2 ? '#4e5c6e' : '#8a9aae');
-    }
-    R(g, x0 + 3, y0 + 4, w - 6, 2, '#8a9aae');
-    R(g, x0 + 1, y0 + h - 4, w - 2, 4, '#4e5c6e');                 // hem on the ground
-    R(g, x0 + 2, y0 + 38, w - 4, 2, '#c8a86a'); R(g, x0 + 2, y0 + 70, w - 4, 2, '#c8a86a');   // rope
-    // a paper tag
-    var tx = cx - 13, ty = y0 + 46, sway = Math.round(Math.sin(t * 1.5));
-    R(g, cx, y0 + 40, 1, 6, '#c8a86a');
-    R(g, tx - 1 + sway, ty - 1, 28, 14, P.ink); R(g, tx + sway, ty, 26, 12, '#f6ecd8');
-    T(g, 'SOON', tx + 5 + sway, ty + 4, '#a8362f');
+    var x0 = cx - 25, y0 = 108, w = 50, h = 92;
+    R(g, x0, y0 + h, w + 2, 3, 'rgba(40,20,40,0.32)');
+    R(g, x0 - 1, y0 - 1, w + 2, h + 1, P.ink);
+    R(g, x0, y0, w, h, '#c8955a');
+    R(g, x0, y0, w, 2, '#e0b27a'); R(g, x0 + w - 6, y0, 6, h, '#a87440'); R(g, x0 + w - 6, y0, 1, h, '#8a5c30');   // light top, shaded side
+    R(g, x0, y0 + 10, w - 6, 1, '#a87440');                                                                     // the lid flap
+    R(g, x0 + 18, y0, 8, h, '#d8c090'); R(g, x0 + 18, y0, 1, h, '#b8a070'); R(g, x0 + 25, y0, 1, h, '#b8a070');   // packing tape
+    R(g, x0, y0 + 4, w - 6, 5, '#d8c090');
+    // "this side up" arrows
+    [x0 + 5, x0 + 32].forEach(function (ax) {
+      R(g, ax + 2, y0 + 14, 1, 1, '#3a2418'); R(g, ax + 1, y0 + 15, 3, 1, '#3a2418'); R(g, ax, y0 + 16, 5, 1, '#3a2418'); R(g, ax + 1, y0 + 17, 3, 5, '#3a2418');
+    });
+    // a fragile label (a broken glass) and a red SOON stamp
+    R(g, x0 + 4, y0 + 30, 12, 14, '#f6ecd8'); R(g, x0 + 4, y0 + 30, 12, 2, P.red);
+    R(g, x0 + 7, y0 + 34, 6, 3, P.red); R(g, x0 + 9, y0 + 37, 2, 4, P.red); R(g, x0 + 7, y0 + 41, 6, 1, P.red);
+    var sy = y0 + 54;
+    R(g, x0 + 5, sy, 34, 13, P.red); R(g, x0 + 6, sy + 1, 32, 11, '#c8955a'); R(g, x0 + 7, sy + 2, 30, 9, P.red); R(g, x0 + 8, sy + 3, 28, 7, '#c8955a');
+    T(g, 'SOON', x0 + 14, sy + 4, P.red);
+    // shipping label
+    R(g, x0 + 28, y0 + 30, 14, 10, '#fffaf0'); for (var l = 0; l < 3; l++) R(g, x0 + 30, y0 + 32 + l * 2, 10 - l * 3, 1, '#8a86a0');
+    R(g, x0 + 2, y0 + h - 3, w - 8, 1, '#a87440');   // a scuff at the bottom
   }
   function drawParkTight(t, full) {
     var W = 480, g = setup(full ? 'tightFull' : 'tight', W, WH, 3), X = LAYOUT;
