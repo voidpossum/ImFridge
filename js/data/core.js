@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.2.7';
+DATA.version = '0.2.8';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -86,6 +86,12 @@ DATA.balance = {
   rivalSpend: 0.4,        // share of each rival sale saved for its machine upgrades
   rivalShopEvery: 6,      // seconds between a rival's shopping checks
   cryptoRate: 35,       // cents per second added to its score, × square root of its strength
+  // Rival-only mods (Sandwich Menu, Drone Fleet, Soda Plus). They arrive on a schedule (rivals.js `mods`),
+  // start at level 1 and grow every month. Not tied to how well you do: a steady curve you can beat.
+  featPerMonth: 3,        // levels added every month
+  snackBonus: 0.15,       // Sandwich Menu: +15% money per can sold, per level
+  fleetRate: 0.6,         // Drone Fleet: online sales per second, per level
+  plusRate: 80,           // Soda Plus: cents per second, per level
   hackLead: 1.5,          // it hacks you only when your quarter sales are this many times its own
   hackWarn: 5,            // seconds of warning before the lock
   hackClicks: 20,         // clicks to reboot

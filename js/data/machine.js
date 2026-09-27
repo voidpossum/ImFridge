@@ -49,7 +49,7 @@ DATA.machine = [
     first: 'Two mouths. Double the soda. Please do not think about it too hard.' },
 
   { id: 'smartprice', name: 'Smart Price', base: 15000, grow: 1, max: 1, icon: 'chip', research: 'r_smartprice',
-    desc: 'Sets your price by itself every hour. You can turn it off.',
+    desc: 'Every hour, sets your price to the average price of the other machines. You can turn it off.',
     fx: [{ k: 'smartPrice', v: 1 }],
     first: 'Now I do math about people. Fun.' }
 ];

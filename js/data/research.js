@@ -37,7 +37,7 @@ DATA.research = [
     desc: 'Adds a Second Dispenser: serve two customers at once.',
     first: 'Plans for a second dispenser. Two lines at once.' },
   { id: 'r_smartprice', name: 'Price Model', cost: 330, icon: 'chip', unlock: 'smartprice',
-    desc: 'Turns on Smart Price: your price sets itself every hour.',
+    desc: 'Turns on Smart Price: every hour, your price moves to the average of the other machines.',
     first: 'I made a model of what people will pay. People are cheaper than they think.' },
 
   // Shop items (hardware and drones)

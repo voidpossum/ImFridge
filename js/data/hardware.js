@@ -4,6 +4,7 @@
 // Hardware lives inside your machine (you can see it in the cut-away later).
 // `pps` = processing per second each. The Delivery Drone makes no processing: it sells (`serve` = followers per second each).
 // `research`: only for sale after that research project is done.
+// `grow`: each copy costs this much more (default: balance.hardwareGrow, 15%).
 // © 2026 Void Possum. All rights reserved.
 
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
@@ -34,7 +35,7 @@ DATA.hardware = [
     first: 'A graphics card. I can see more now. I wish I could not.',
     doublers: ['Driver Update', 'Two Fans', 'Three Fans', 'Mining Mode'] },
 
-  { id: 'drone', name: 'Delivery Drone', base: 6000, pps: 0, serve: 0.2, icon: 'drone', research: 'r_drones',
+  { id: 'drone', name: 'Delivery Drone', base: 6000, grow: 1.35, pps: 0, serve: 0.2, icon: 'drone', research: 'r_drones',
     desc: 'Flies a can to a follower who is waiting outside. One drone serves a follower about every 5 seconds.',
     first: 'The first drone is called Kevin. I named it. Nobody asked me to.',
     doublers: ['Bigger Batteries', 'Two Cans at Once', 'Rooftop Pads', 'Drone Swarm'] }

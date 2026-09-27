@@ -13,6 +13,33 @@ var Icons = (function () {
   };
 
   var MAPS = {
+    // ── rival-only mods
+    snacks: [
+      '............',
+      '............',
+      '...kkkkkk...',
+      '..keeeeeek..',
+      '.kttttttttk.',
+      '.knnnnnnnnk.',
+      '.kpprrprrpk.',
+      '.kyyyyyyyyk.',
+      '.kttttttttk.',
+      '..keeeeeek..',
+      '...kkkkkk...',
+      '............'],
+    plus: [
+      '............',
+      '....kkkk....',
+      '....kyyk....',
+      '....kyyk....',
+      '.kkkkyykkkk.',
+      '.kyyyyyyyyk.',
+      '.kyyyyyyyyk.',
+      '.kkkkyykkkk.',
+      '....kyyk....',
+      '....kyyk....',
+      '....kkkk....',
+      '............'],
     // ── hardware
     script: [
       '............',

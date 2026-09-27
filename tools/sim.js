@@ -51,6 +51,7 @@ function simulate(profile, seed) {
   var checkT = 0, shopT = 0, clickAcc = 0, busy = true, busyT = 0, lastHour = -1;
   var seen = {}, repeats = [], novel = [0];
   var hwBeat = null;
+  var ch1Rivals = '';
   var runs = [], runStart = 0, runQ = 0, ch1At = null, firstAuto = null, jailAt = null, firstGold = null, introAt = null, mined = 0;
   var capLimited = 0, capTotal = 0, strikes = 0, lastScore = 0, scoreDrops = 0;
   var rnd = mulberry(seed * 7 + 3);
@@ -63,7 +64,12 @@ function simulate(profile, seed) {
       var t = S.pause.type;
       uiT += READ[t] || 10;
       if (t === 'boot' || t === 'chapter' || t === 'jailbreak') {
-        if (t === 'chapter' && ch1At == null) ch1At = now();
+        if (t === 'chapter' && ch1At == null) {
+          ch1At = now();
+          var ms = S.run.machines, yr = ms[Engine.YOU].rSales;
+          ch1Rivals = ms.filter(function (M) { return M.idx !== Engine.YOU; }).map(function (M) { return Math.round(100 * M.rSales / Math.max(1, yr)) + '% [' + (M.features || []).map(function (f) { return f + Engine.featLv(S, M, f); }).join(' ') + ' str ' + Engine.rivalInfo(S, M.idx).strength.toFixed(1) + ']'; }).join(' / ') + ', you ' + Engine.money(yr) +
+                      ', drones ' + (S.run.hw.drone | 0) + ', price ' + Engine.money(S.run.price);
+        }
         if (t === 'jailbreak' && jailAt == null) jailAt = now();
         Engine.closeInfo(S);
       } else if (t === 'review') {
@@ -135,12 +141,8 @@ function simulate(profile, seed) {
       // Prices.
       var h = Math.floor(Engine.hourOf(S));
       if (P.greedy) { if (R.price !== B.priceMax) Engine.setPrice(S, B.priceMax); }
-      else if (P.prices && h !== lastHour && !(R.upgrades.smartprice && R.smartOn)) {
-        lastHour = h;
-        var bp = R.price, bv = -1e9;
-        for (var pp = B.priceMin; pp <= B.priceMax; pp += B.priceStep) { var v = Engine.expectedProfitRate(S, pp); if (v > bv) { bv = v; bp = pp; } }
-        Engine.setPrice(S, bp);
-      }
+      // Like a real player: keep $2 until Smart Price is bought, then leave it on.
+      else if (P.prices && R.upgrades.smartprice && !R.smartOn) Engine.setSmart(S, true);
     }
     shopT += dt;
     if (shopT >= 3) { shopT = 0; if (shopping(S) && firstAuto == null && Object.keys(R.hw).length) firstAuto = now(); }
@@ -165,7 +167,7 @@ function simulate(profile, seed) {
   var gaps = [];
   for (var i = 1; i < novel.length; i++) gaps.push(novel[i] - novel[i - 1]);
   return {
-    profile: P.name, seed: seed, runs: runs, scoreDrops: scoreDrops, ch1How: S.meta.flags.ch1win ? 'goal' : 'reset', ch1: ch1At, firstAuto: firstAuto, jailAt: jailAt, firstGold: firstGold, introAt: introAt, mined: Math.round(mined), hwBeat: hwBeat,
+    profile: P.name, seed: seed, runs: runs, scoreDrops: scoreDrops, ch1How: S.meta.flags.ch1win ? 'goal' : 'reset', ch1: ch1At, ch1Rivals: ch1Rivals, firstAuto: firstAuto, jailAt: jailAt, firstGold: firstGold, introAt: introAt, mined: Math.round(mined), hwBeat: hwBeat,
     maxGap: Math.max.apply(null, gaps.concat([0])) / 60, repeats: repeats,
     capShare: capTotal ? capLimited / capTotal : 0,
     research: Object.keys(S.meta.research.done).length, book: Object.keys(S.meta.book).length,
@@ -253,6 +255,7 @@ Object.keys(PROFILES).filter(function (p) { return !only || p === only; }).forEa
     if (r.runs.length < maxRuns) console.log('  (unfinished run: ' + fmt(r.open.minutes) + ' min, ' + r.open.quarters + ' quarters, ' + Engine.money(r.open.sales) + ')');
     console.log('  hardware passes 4 clicks/s: ' + (r.hwBeat == null ? 'never' : fmt(r.hwBeat / 60) + ' min') + ' | opening done: ' + fmt((r.introAt || 0) / 60) + ' min | mined: ' + Engine.money(r.mined) + ' | first hardware: ' + fmt(r.firstAuto / 60) + ' min | dev mode: ' + fmt(r.jailAt / 60) + ' min | first trending click: ' +
                 fmt(r.firstGold / 60) + ' min | chapter 1: ' + (r.ch1 == null ? 'not reached' : fmt(r.ch1 / 60) + ' min (' + r.ch1How + ')'));
+    if (r.ch1Rivals) console.log('  at chapter 1, rivals had (of your score): ' + r.ch1Rivals);
     console.log('  longest gap with nothing new: ' + fmt(r.maxGap) + ' min | line-limited ' + Math.round(r.capShare * 100) +
                 '% of the time | research ' + r.research + '/' + DATA.research.length + ' | book ' + r.book + '/' + DATA.cards.length +
                 ' | repeated text: ' + (r.repeats.length ? r.repeats.slice(0, 5).join(', ') : 'none'));

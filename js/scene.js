@@ -700,6 +700,8 @@ var Scene = (function () {
     }
   }
 
+  // How many drones are in the sky right now (at most about 12 are drawn, so the sky stays readable).
+  function dronesUp() { var n = 0; for (var i = 0; i < parts.length; i++) if (parts[i].k === 'drone') n++; return n; }
   function sparks(x, y, color, n) {
     if (reduced) n = Math.ceil(n / 3);
     for (var i = 0; i < n; i++) parts.push({ k: 'spark', x: x, y: y, vx: (Math.random() - 0.5) * 60, vy: -Math.random() * 50 - 10, t: 0, life: 0.6 + Math.random() * 0.5, c: color });
@@ -720,7 +722,7 @@ var Scene = (function () {
           addText(MX[1] + (Math.random() * 10 - 5), 94, '+' + Engine.money(e.amount, true), e.amount > 0 ? P.gold1 : P.white, 1.3);
           sparks(MX[1] - 6, 190, P.gold1, 3);
         } else if (e.online) {
-          if (parts.length < 80) parts.push({ k: 'drone', x: MX[e.machine], y: 104, vx: (Math.random() - 0.5) * 20, vy: -30, t: 0, life: 3.5, c: DATA.drinks[e.drink] ? DATA.drinks[e.drink].color : null });
+          if (parts.length < 80 && dronesUp() < 12) parts.push({ k: 'drone', x: MX[e.machine], y: 104, vx: (Math.random() - 0.5) * 20, vy: -30, t: 0, life: 3.5, c: DATA.drinks[e.drink] ? DATA.drinks[e.drink].color : null });
         } else if (Math.random() < 0.6) {
           addText(MX[e.machine] + (Math.random() * 10 - 5), 98, '+' + Engine.money(e.amount, true), Sprites.LOOKS[S.run.machines[e.machine].id].glow, 0.9);
         }
@@ -738,7 +740,7 @@ var Scene = (function () {
       case 'fill': for (var fc = 0; fc < (reduced ? 1 : 3); fc++) capsule(S, e.machine, e.drink, fc * 9); break;
       case 'drones':
         for (var dn = 0; dn < Math.min(e.n, reduced ? 1 : 3); dn++) {
-          if (parts.length > 85) break;
+          if (parts.length > 85 || dronesUp() >= 12) break;
           parts.push({ k: 'drone', x: MX[1] - 10 + Math.random() * 20, y: 104 - dn * 6, vx: (Math.random() - 0.5) * 24, vy: -34 - Math.random() * 14, t: 0, life: 4.5, c: DATA.drinks.cola.color });
         }
         if (e.amount > 0 && Math.random() < 0.5) addText(MX[1] + 14, 100, '+' + Engine.money(e.amount, true), P.gold1, 1.1);

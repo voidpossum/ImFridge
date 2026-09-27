@@ -103,6 +103,7 @@ b, strong { font-weight: 700; }
 .mc .mods { grid-column: 1 / -1; display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; min-height: 22px; }
 .mc .mod { display: flex; align-items: center; gap: 2px; padding: 1px 4px 1px 2px; background: var(--panel2); border: 1px solid var(--line2); font: 700 0.72em/1 var(--mono); }
 .mc .mod .ico { width: 16px; height: 16px; }
+.mc .mod.rival { border-color: #a8872a; background: #2e2716; }
 .mc .mods .none { font-size: 0.72em; color: var(--dim); align-self: center; }
 .mc .goalLine { grid-column: 1 / -1; font-size: 0.78em; color: var(--muted); margin-top: 3px; }
 .mc .goalLine .bad { font-weight: 700; }

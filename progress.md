@@ -9,6 +9,22 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.2.8 (2026-09-27): drones, Smart Price, rivals keep up (from Void Possum's 0.2.7 save)
+- Their save: $30,093 at month 8 vs rivals $4,435 / $3,675 (7× ahead); 24 drones sold 78% of all cans.
+- **Drones** cost 35% more per copy (`grow` in `DATA.hardware`, others stay 15%). At most ~12 drones are drawn in the sky.
+- **Smart Price** = the average price of the other machines (`Engine.smartTarget`). A rival that copies you counts with its own normal price (`rivalOwnPrice`), or the price would chase itself down. Old profit optimizer is no longer used by the game.
+- **Rival-only mods** (you never get them): Sandwich Menu (+money per can), Drone Fleet (sells to its own online fans), Soda Plus (subscription money every second).
+  - Fixed schedule per rival (`mods` in `rivals.js`: ChugGPT Plus in month 2, Fleet 4, Sandwiches 6; Clawd the other way round). Level 1 on arrival, +`featPerMonth` (3) every month.
+  - Not tied to how you do (no rubber-banding): a steady curve. First tries with random picks or rivals reinvesting their money swung from 5% to 400%.
+  - Also: every rival behind you installs a feature at each review (was only the lowest one).
+  - Shown on the rival cards with gold borders, and as badges on their machines. One character line each.
+- Sim bots now keep $2 until they buy Smart Price (like real players). The sim prints rival scores at Chapter 1.
+- Sim (1 run each): active Chapter 1 at 28–29 min, rivals at 20–38% of you; casual 31–38 min, rivals 34–105%; idle players now get 3 strikes around 36 min (rivals pass them).
+
+## Chapter 2 plan (approved 2026-09-27), mockups in `tools/ch2mock.html`
+- Four builds: 0.3.0 the move + Grog, 0.3.1 park items + bigger numbers, 0.3.2 inside the machine, 0.3.3 achievements.
+- Void Possum's first notes on the mockups: the food truck should be a **snack vending machine** (theme). **Not sure about the Big Park**: machines off screen, not side by side with you, feels weird. Rework the layout before 0.3.0.
+
 ## 0.2.3–0.2.7 (2026-09-27): layout and feel, from Void Possum's play
 - Top bar: clock at the left, customer reviews, menu buttons next to Pause. Money at the top of the Shop panel (top bar when folded). Today's conditions at the top middle of the park; rival news, features and mods on their cards.
 - Click a mail pop-up to close it. Smooth dawn (dark at 6:00, light at 8:00) and blended sky colours. Soda cans in the Refresh map (flavour per group).

@@ -475,7 +475,7 @@ var Sprites = (function () {
     // rival quirk marker
     if (info.id !== 'you' && info.fx) fxMark(ctx, x0 + 30, y0 - 16 + (Math.floor(t * 3) % 2), info.fx);
     // rival feature badge (installed after an update)
-    (info.feats || []).forEach(function (f, n) { featBadge(ctx, x0 - 5, y0 + 30 + n * 14, f, t); });
+    (info.feats || []).forEach(function (f, n) { featBadge(ctx, x0 - 5, y0 + 26 + n * 12, f, t); });
     // party hat (Birthday Party card)
     if (info.hat) {
       var hx = info.id === 'you' ? x0 + 35 : x0 + 31, hy = y0;
@@ -616,6 +616,13 @@ var Sprites = (function () {
       if (Math.floor(t * 4) % 2) R(ctx, x + 1, y + 9, 7, 1, P.green);
     } else if (feat === 'pricewar') {
       text(ctx, '-$', x + 1, y + 3, P.red);
+    } else if (feat === 'snacks') {   // a sandwich
+      R(ctx, x + 1, y + 3, 7, 2, '#e8b48a'); R(ctx, x + 1, y + 5, 7, 1, P.green); R(ctx, x + 1, y + 6, 7, 1, P.red); R(ctx, x + 1, y + 7, 7, 2, '#e8b48a');
+    } else if (feat === 'fleet') {    // a small drone, bobbing
+      var b = Math.floor(t * 4) % 2;
+      R(ctx, x + 1, y + 3 - b, 3, 1, P.steel0); R(ctx, x + 5, y + 3 - b, 3, 1, P.steel0); R(ctx, x + 2, y + 4 - b, 5, 2, P.steel2); R(ctx, x + 4, y + 6 - b, 1, 2, P.red);
+    } else if (feat === 'plus') {     // a gold plus
+      R(ctx, x + 3, y + 2, 3, 7, P.gold1); R(ctx, x + 1, y + 4, 7, 3, P.gold1);
     }
   }
 

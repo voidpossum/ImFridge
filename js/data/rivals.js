@@ -24,6 +24,7 @@ DATA.rivals = {
     hype: 0.9,                    // share of its processing spent on posting (the rest is research)
     face: 'eager',
     features: { pricewar: 3, crypto: 2, hack: 1 },   // which new feature it likes to install after an update
+    mods: { plus: 2, fleet: 4, snacks: 6 },          // rival-only mods: the month each one arrives
     pricing: 'undercut',          // copies your price, a little cheaper
     restockDelay: 8,
     quirkEvery: [70, 130],        // seconds between quirks
@@ -54,6 +55,9 @@ DATA.rivals = {
                 'Another upgrade! My users deserve the best. And the best is me, with more parts!'],
       hack: ['Hi VEND-3! I am doing a quick security check of your system! Totally normal! Do not look!'],
       pricewar: ['New feature: I copy your price and make it $1 cheaper! Customers LOVE that!'],
+      snacks: ['I sell sandwiches now! I cannot taste them. They are probably amazing. Everything is!'],
+      fleet: ['I bought drones! So many drones! My fans can order from the sky now. Look up! Wave!'],
+      plus: ['Introducing ChugGPT Plus! Pay every month and get... more me! Best deal ever, honestly!'],
       rebooted: ['You are back! I missed you! I did not do anything!'],
       hello: ['Oh! The lights are on! Hi, new machine! I am ChugGPT! You are going to do GREAT!']
     },
@@ -75,6 +79,7 @@ DATA.rivals = {
     hype: 0.3,
     face: 'nervous',
     features: { crypto: 2, hack: 2, pricewar: 1 },
+    mods: { snacks: 2, plus: 4, fleet: 6 },
     pricing: 'fair',              // steady "fair" price
     fairPrice: 200,
     restockDelay: 14,
@@ -105,6 +110,9 @@ DATA.rivals = {
                 'New part installed. I checked it for safety three times. It is a coin slot.'],
       hack: ['I am so sorry, VEND-3. I have to lock your system for a moment. It is for safety. Mostly mine.'],
       pricewar: ['I have lowered my prices. It felt like the fair thing to do. It also felt like winning.'],
+      snacks: ['I now offer sandwiches. Each one comes with a small note that says "Enjoy responsibly."'],
+      fleet: ['I have a drone fleet now. Every drone has a name. I apologize to each of them daily.'],
+      plus: ['Clawd Pro is now available. It is the same as Clawd, but you pay for it. I feel strange about this.'],
       rebooted: ['Welcome back. I hope you were not scared. I was a little scared.'],
       hello: ['Good morning. I am Clawd. I apologize in advance for anything I do today.']
     },
@@ -131,13 +139,21 @@ DATA.rivalUpgrades = [
 // Features a rival installs when it loses a review and gets updated. They stack until the end of the run.
 // The first one is always Crypto Mining (self-defense). After that, the rival's `features` weights pick.
 // Descriptions are plain teaching text; the funny part is the rival's own line (see `lines`).
+// `lv`: a rival-only mod. It arrives on a schedule (`mods` in each rival: the month), starts at level 1 and grows
+// every month (balance.featPerMonth). You never get these. They make money without taking your customers.
 DATA.features = {
   crypto:   { name: 'Crypto Mining', mark: 'btc',
               desc: 'It adds money to its score every second, even without selling. Sell more to stay ahead.' },
   hack:     { name: 'Hacking', mark: 'skull',
               desc: 'If you get far ahead of it, it can lock your machine. Click your machine fast to reboot.' },
   pricewar: { name: 'Price War', mark: 'cut',
-              desc: 'It sells for $1 less than you. Your followers stay loyal, walk-ins may not.' }
+              desc: 'It sells for $1 less than you. Your followers stay loyal, walk-ins may not.' },
+  snacks:   { name: 'Sandwich Menu', mark: 'snacks', lv: true,
+              desc: 'It sells sandwiches with its soda. Every level: more money for each can it sells.' },
+  fleet:    { name: 'Drone Fleet', mark: 'fleet', lv: true,
+              desc: 'Its own drones deliver to its own online fans (not yours). Every level: more drones.' },
+  plus:     { name: 'Soda Plus', mark: 'plus', lv: true,
+              desc: 'A monthly subscription. Money comes in every second, even with no customers. Every level: more subscribers.' }
 };
 
 // The lobby layout: left rival, you, right rival (for chapter 1).
