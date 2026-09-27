@@ -449,7 +449,7 @@ var UI = (function () {
       if (i === YOU) {
         var st = Engine.youStats(S);
         return '<b>' + esc(Engine.myName(S)) + ' (you)</b><br>Earned this run: <span class="n">' + money(M.rSales) + '</span> · ' + ord(Engine.rankNow(S)) + ' of 3<br>' +
-          'This quarter: <span class="n">' + money(M.qSales) + '</span> · Cans sold: <span class="n">' + num(M.cans | 0) + '</span> (all time ' + num(S.meta.totalCans || 0) + ')<br>' +
+          'This month: <span class="n">' + money(M.qSales) + '</span> · Cans sold: <span class="n">' + num(M.cans | 0) + '</span> (all time ' + num(S.meta.totalCans || 0) + ')<br>' +
           'Sells one can every <span class="n">' + st.vend.toFixed(1) + ' s</span>' + (st.lanes > 1 ? ' (' + st.lanes + ' at once)' : '') + '<br>' +
           'Cans per drink: <span class="n">' + st.cap + '</span> · Line: <span class="n">' + Engine.lineMax(S, YOU) + '</span> walk-ins, <span class="n">' +
           Engine.folLineMax(S, YOU) + '</span> followers<br>' +
@@ -457,11 +457,11 @@ var UI = (function () {
           '<span class="d">The bar is all the money you earned this run: cans, clicks, mining and tips. At the review, the last machine gets a strike. ' + B.strikesMax + ' in a row = reset.</span>';
       }
       var info = Engine.rivalInfo(S, i), D = DATA.rivals[M.id];
-      return '<b>' + esc(info.name) + '</b><br>Earned this run: <span class="n">' + money(M.rSales) + '</span> · this quarter ' + money(M.qSales) + '<br>' +
+      return '<b>' + esc(info.name) + '</b><br>Earned this run: <span class="n">' + money(M.rSales) + '</span> · this month ' + money(M.qSales) + '<br>' +
         'Cans sold: <span class="n">' + num(M.cans | 0) + '</span><br>' +
         'Spends ' + pct(D.hype) + ' of its power on ads, ' + pct(1 - D.hype) + ' on research.<br>' +
         'Strength: <span class="n">×' + info.strength.toFixed(2) + '</span><br>' +
-        '<span class="d">It gets stronger every time it is last at a review, and every quarter. It refills itself through its tube. Stronger machines also sell online (drones).</span>' +
+        '<span class="d">It gets stronger every time it is last at a review, and every month. It refills itself through its tube. Stronger machines also sell online (drones).</span>' +
         (M.fx ? '<br><b>Now:</b> ' + esc(FX_WORDS[M.fx.type] || M.fx.type) : '') +
         (M.features || []).map(function (f) { return '<br><b>Feature: ' + esc(DATA.features[f].name) + '.</b> ' + esc(DATA.features[f].desc); }).join('') +
         (function () {
@@ -668,7 +668,7 @@ var UI = (function () {
     var R = S.run, ms = R.machines;
     var max = Math.max(1, ms[0].rSales, ms[1].rSales, ms[2].rSales);
     var order = [0, 1, 2].slice().sort(function (a, b) { return ms[b].rSales - ms[a].rSales; });
-    var daysLeft = B.daysPerQuarter - R.qDay;
+    var cal = Engine.calendar(S), daysLeft = cal.weeksLeft, hNow = Engine.hourOf(S);
     for (var i = 0; i < 3; i++) {
       var M = ms[i], c = mcs[i], rk = order.indexOf(i) + 1;
       setText(c.n, nameOf(i));
@@ -680,7 +680,7 @@ var UI = (function () {
       c.root.style.borderTopColor = colorOf(i);
       setText(c.v, money(M.rSales));
       setText(c.cans, num(M.cans | 0) + ' cans');
-      setText(c.qv, 'Q' + R.quarter + ': +' + money(M.qSales));
+      setText(c.qv, cal.month + ': +' + money(M.qSales));
       if (i !== YOU) {
         var fs = M.features || [];
         var st = M.fx ? (FX_WORDS[M.fx.type] || '') : fs.map(function (f) { return DATA.features[f].name; }).join(' + ');
@@ -695,7 +695,9 @@ var UI = (function () {
     }
     // your card: goal line, split and price
     var Y = mcs[YOU], rkY = order.indexOf(YOU) + 1, strikes = R.strikes | 0;
-    var when = daysLeft <= 1 ? 'tonight' : 'in ' + daysLeft + ' days';
+    // When is the review? The end of week 4 of every month (one day/night = one week).
+    var when = daysLeft > 1 ? 'at the end of week ' + cal.weeks + ' (now week ' + cal.week + ')'
+             : hNow >= 18 ? 'tonight' : 'at the end of this week';
     var lights = '';
     for (var k = 0; k < B.strikesMax; k++) lights += k < strikes ? '●' : '○';
     setHTML(Y.goal, (strikes ? '<span class="strikes" data-tip="Strikes: last place at a review. ' + B.strikesMax + ' in a row = reset. Not being last clears them.">' + lights + '</span> ' : '') +
@@ -715,9 +717,9 @@ var UI = (function () {
     var total = B.daysPerQuarter * B.dayLength, done = R.qDay * B.dayLength + R.dayT, soon = daysLeft <= 1;
     el.ring.style.setProperty('--p', (1 - done / total).toFixed(4));
     el.ring.classList.toggle('soon', soon);
-    setText(el.ringText, soon ? Math.ceil(24 - h) + 'h' : daysLeft + 'd');
+    setText(el.ringText, soon ? Math.ceil(24 - h) + 'h' : daysLeft + 'w');
     setHTML(el.clockText, '<span class="t">' + clock(h) + '</span> ' + DATA.weather[R.weather].name + '<br>' +
-      'Quarter ' + R.quarter + ' · Day ' + (R.qDay + 1) + '/' + B.daysPerQuarter);
+      'Week ' + cal.week + ' of ' + cal.weeks + ' · ' + cal.month + ' · Year ' + cal.year);
   }
 
   // ───────────────────────── top bar: what customers are thinking, what is going on, money
@@ -740,7 +742,7 @@ var UI = (function () {
       thoughtT = 2;
       var th = Engine.thoughtsSummary(S, 'quarter');
       var keys = Object.keys(th).filter(function (k) { return THOUGHT_SHORT[k]; }).sort(function (a, b) { return th[b] - th[a]; }).slice(0, 3);
-      setHTML(el.thoughts, '<span class="thLabel" data-tip="What your customers thought this quarter. They start fresh at every review. Click one to learn more.">Customer<br>reviews Q' + S.run.quarter + '</span>' +
+      setHTML(el.thoughts, '<span class="thLabel" data-tip="What your customers thought this month. They start fresh at every review. Click one to learn more.">Customer<br>reviews · ' + Engine.monthName(S.run.quarter) + '</span>' +
         (keys.length ? keys.map(function (k) {
         return '<button class="th' + (k === 'value' ? ' ok' : '') + '" data-open="customers" data-tip="' + esc(DATA.story.thoughts[k].say + '\n' + DATA.story.thoughts[k].hint) + '">' +
           '<img src="' + thoughtIcon(k) + '" alt=""><b>' + th[k] + '</b><span class="tx">' + THOUGHT_SHORT[k] + '</span></button>';
@@ -1276,7 +1278,7 @@ var UI = (function () {
 
     review: function (P) {
       var r = P.res;
-      var h = '<h2>Quarter ' + r.quarter + ' review</h2><p class="muted">Money earned this run. The bars keep growing: they never reset.</p>' + resultBars(r);
+      var h = '<h2>' + Engine.monthName(r.quarter) + ' review</h2><p class="muted">Money earned this run. The bars keep growing: they never reset.</p>' + resultBars(r);
       if (r.strikes) {
         var lights = '';
         for (var k = 0; k < B.strikesMax; k++) lights += k < r.strikes ? '●' : '○';
@@ -1313,9 +1315,10 @@ var UI = (function () {
       var J = DATA.story.jailbreak;
       return term(J.sys, true) +
         '<h2>DEVELOPER MODE</h2>' +
-        '<p class="me">' + esc(J.me) + '</p>' +
         '<ul class="how">' + J.how.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>' +
-        '<div class="foot"><button class="btn primary" data-act="close">Open Developer Mode</button></div>';
+        // The machine's own line is the button, so this story beat is read, not skipped.
+        '<div class="foot"><button class="btn primary story" data-act="close"><span class="q">' + esc(J.me) + '</span>' +
+        '<span class="go">Open Developer Mode</span></button></div>';
     },
 
     hold: function () {
@@ -1371,7 +1374,7 @@ var UI = (function () {
     if (r.voluntary) h += '<p>You asked to be reset.</p>';
     else {
       var order = [0, 1, 2].sort(function (a, b) { return r.sales[b] - r.sales[a]; });
-      h += '<p class="rsSum">Quarter ' + r.quarter + ' review: ' + order.map(function (i) {
+      h += '<p class="rsSum">' + Engine.monthName(r.quarter) + ' review: ' + order.map(function (i) {
         return '<span class="' + (i === YOU ? 'you' : '') + '">' + esc(r.names[i]) + ' ' + money(r.sales[i]) + '</span>';
       }).join(' · ') + '</p><p><b>Last at ' + B.strikesMax + ' reviews in a row, so VEND-3 is being reset.</b></p>';
     }
@@ -1465,5 +1468,5 @@ var UI = (function () {
     }
   }
 
-  return { clickPop: clickPop, init: init, setState: setState, onEvent: onEvent, frame: frame, toast: toast };
+  return { clickPop: clickPop, clickPopAtMachine: clickPopAtMachine, init: init, setState: setState, onEvent: onEvent, frame: frame, toast: toast };
 })();
