@@ -55,8 +55,9 @@
     var x0 = cx - 21, y0 = 118, w = 42, h = 82;
     R(g, x0 + 2, y0 + h, w, 3, 'rgba(40,20,40,0.3)');
     R(g, x0 - 1, y0 - 1, w + 2, h + 1, P.ink);
-    R(g, x0, y0, w, h, '#f2c040'); R(g, x0 + 1, y0 + 2, 2, h - 8, '#ffe07a'); R(g, x0 + w - 4, y0, 4, h, '#c89020');
-    R(g, x0 + 3, y0 + 3, w - 10, 7, '#1b1826'); T(g, 'SNACKS', x0 + 5, y0 + 4, '#ffe07a');
+    var L = Sprites.LOOKS.you;   // red: it is yours, like VEND-3
+    R(g, x0, y0, w, h, L.main); R(g, x0 + 1, y0 + 2, 2, h - 8, L.light); R(g, x0 + w - 4, y0, 4, h, L.dark);
+    R(g, x0 + 3, y0 + 3, w - 10, 7, '#1b1826'); T(g, 'SNACKS', x0 + 5, y0 + 4, L.accent);
     R(g, x0 + 3, y0 + 12, 28, 56, '#dcf0f2');
     var cols = [['#e0483f', '#ffd24a'], ['#4a78d0', '#fffaf0'], ['#6cd48a', '#2a5a34'], ['#a58ad8', '#fff0a0']];
     for (var r = 0; r < 4; r++) {
@@ -68,10 +69,27 @@
       }
       R(g, x0 + 4, ry + 10, 26, 1, '#9197a8');
     }
-    R(g, x0 + 33, y0 + 12, 5, 30, '#c89020'); R(g, x0 + 34, y0 + 14, 3, 4, '#1b1826');
+    R(g, x0 + 33, y0 + 12, 5, 30, L.deep); R(g, x0 + 34, y0 + 14, 3, 4, '#1b1826');
     for (var b = 0; b < 4; b++) R(g, x0 + 34, y0 + 21 + b * 4, 3, 2, '#fffaf0');
     R(g, x0 + 4, y0 + 71, 26, 7, P.ink); R(g, x0 + 5, y0 + 72, 24, 5, '#15121c');
-    T(g, 'V3', x0 + 33, y0 + 48, '#d9544b');   // it is yours
+    T(g, 'V3', x0 + 33, y0 + 48, L.accent);   // it is yours
+  }
+  function clawMachine(g, cx, t) {
+    var L = Sprites.LOOKS.you, x0 = cx - 18, y0 = 124, w = 36, h = 76;
+    R(g, x0 + 2, y0 + h, w, 3, 'rgba(40,20,40,0.3)');
+    R(g, x0 - 1, y0 - 1, w + 2, h + 1, P.ink);
+    R(g, x0, y0, w, 12, L.main); T(g, 'CLAW', x0 + 10, y0 + 4, L.accent);
+    R(g, x0, y0 + 12, w, 36, '#bfe6f0'); R(g, x0 + 1, y0 + 13, w - 2, 1, '#f6fcfc');
+    var cxp = x0 + 10 + Math.round((Math.sin(t * 1.3) + 1) * 8);
+    R(g, cxp, y0 + 13, 1, 12, P.steel3); R(g, cxp - 3, y0 + 25, 7, 2, P.steel2); R(g, cxp - 3, y0 + 27, 1, 3, P.steel2); R(g, cxp + 3, y0 + 27, 1, 3, P.steel2);
+    [['#ff6b8a', 3], ['#6fe0ff', 11], ['#ffd24a', 19], ['#a58ad8', 26], ['#6cd48a', 7], ['#ff9a5a', 22]].forEach(function (p, i) {
+      var px = x0 + 2 + p[1], py = y0 + 40 - (i > 3 ? 5 : 0);
+      R(g, px, py, 6, 6, p[0]); R(g, px + 1, py + 2, 1, 1, P.ink); R(g, px + 4, py + 2, 1, 1, P.ink);
+    });
+    R(g, x0, y0 + 48, w, h - 48, L.main); R(g, x0 + 1, y0 + 50, 2, h - 52, L.light); R(g, x0 + w - 4, y0 + 48, 4, h - 48, L.dark);
+    R(g, x0 + 6, y0 + 54, 8, 8, P.ink); R(g, x0 + 9, y0 + 50, 2, 6, P.ink); R(g, x0 + 8, y0 + 48, 4, 3, '#ffd24a');   // joystick
+    R(g, x0 + 20, y0 + 55, 7, 5, '#1b1826'); R(g, x0 + 22, y0 + 56, 3, 3, P.gold1);
+    R(g, x0 + 6, y0 + 65, 22, 7, '#15121c');
   }
   function bench(g, x, y) {   // x = left, y = ground
     R(g, x, y - 20, 40, 3, P.ink); R(g, x + 1, y - 19, 38, 1, '#b07a50');
@@ -392,22 +410,22 @@
   // Version 2: everyone side by side on one screen (Void Possum's note). Same 480-wide park as Chapter 1.
   function drawParkTight(t, full) {
     var W = 480, g = setup(full ? 'tightFull' : 'tight', W, WH, 3);
-    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[128, 352]], hello: 'GROG MOVED IN' });
-    tree(g, 26, 199, 1, full); tree(g, 454, 199, -1, full);
-    var X = { chug: 159, you: 213, clawd: 267, grog: 321 };
-    if (full) { snackMachine(g, 92, t); bench(g, 26, 199); busStop(g, 380, 199); lamp(g, 364, 199, true); }
-    else { plot(g, 68, 199, 48, 'SNACKS $', t); plot(g, 8, 199, 50, 'BENCH $', t); plot(g, 364, 199, 90, 'BUS STOP $$', t); }
+    bigPark(g, W, WH, t, full, { tv: 156, plinths: [[112, 384]], hello: 'GROG MOVED IN' });
+    tree(g, 22, 199, 1, full); tree(g, 458, 199, -1, full);
+    var X = { chug: 143, you: 212, clawd: 281, grog: 350 };
+    if (full) { snackMachine(g, 84, t); bench(g, 16, 199); clawMachine(g, 420, t); lamp(g, 392, 199, true); }
+    else { plot(g, 60, 199, 48, 'SNACKS $', t); plot(g, 6, 199, 50, 'BENCH $', t); plot(g, 396, 199, 48, 'CLAW $$', t); }
     Sprites.machine(g, X.chug, { id: 'chug', stock: { cola: 6, lemon: 7, orange: 4 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: { sign: 2 }, feats: ['crypto', 'plus'] });
     Sprites.machine(g, X.you, { id: 'you', name: 'VEND-3', stock: { cola: 10, lemon: 8, orange: 11, grape: 6 }, cap: 12, drinks: ['cola', 'lemon', 'orange', 'grape'], t: t, cold: 1.2, up: { sign: 3, cool: 2 }, hw: { fan: 1, ram: 1 }, pps: 3, lanes: 2 });
     Sprites.machine(g, X.clawd, { id: 'clawd', stock: { cola: 7, lemon: 5, orange: 9 }, cap: 12, drinks: ['cola', 'lemon', 'orange'], t: t, cold: 1, rup: {}, feats: ['snacks'] });
     grogMachine(g, X.grog, 'smirk', t, { feats: ['crypto'] });
     if (full) { g.fillStyle = 'rgba(30,20,70,0.22)'; g.fillRect(0, 0, W, WH); }
-    person(g, 'office', 156, 213, t, { st: 'buy' }); person(g, 'kid', 161, 224, t);
-    person(g, 'boss', 210, 213, t, { st: 'buy' }); person(g, 'gym', 215, 223, t, { fol: 1 }); person(g, 'intern', 212, 233, t, { fol: 1 }); person(g, 'office', 214, 243, t);
-    person(g, 'intern', 265, 214, t, { st: 'buy' });
-    person(g, 'gym', 319, 213, t, { st: 'buy' }); person(g, 'office', 323, 224, t);
-    person(g, 'boss', 60, 250, t, { st: 'in', tx: 200 }); person(g, 'kid', 400, 250, t, { st: 'in', tx: 300 });
-    if (full) person(g, 'office', 92, 214, t, { sipT: 0.5, drink: 'cola', st: 'out', tx: 92 });
+    person(g, 'office', 140, 213, t, { st: 'buy' }); person(g, 'kid', 145, 224, t);
+    person(g, 'boss', 209, 213, t, { st: 'buy' }); person(g, 'gym', 214, 223, t, { fol: 1 }); person(g, 'intern', 211, 233, t, { fol: 1 }); person(g, 'office', 213, 243, t);
+    person(g, 'intern', 279, 214, t, { st: 'buy' });
+    person(g, 'gym', 348, 213, t, { st: 'buy' }); person(g, 'office', 352, 224, t);
+    person(g, 'boss', 60, 250, t, { st: 'in', tx: 200 }); person(g, 'kid', 420, 250, t, { st: 'in', tx: 300 });
+    if (full) { person(g, 'office', 84, 214, t, { sipT: 0.5, drink: 'cola', st: 'out', tx: 84 }); person(g, 'kid', 420, 214, t, { st: 'look' }); }
   }
 
   var t = 3.3;
