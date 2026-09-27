@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OUT OF ORDER — customer lineup</title>
+<style>body { background: #1c1720; color: #f4e9dc; font: 14px system-ui, sans-serif; margin: 16px; } canvas { image-rendering: pixelated; }</style>
+</head>
+<body>
+<p>Customer lineup: every type, three different people each, plus one walking. Saves a snapshot through the dev server.</p>
+<canvas id="c"></canvas>
+<script src="../js/data/core.js"></script>
+<script src="../js/data/cards.js"></script>
+<script src="../js/data/rivals.js"></script>
+<script src="../js/sprites.js"></script>
+<script>
+(function () {
+  var GROUPS = [
+    { type: 'office', name: 'Office worker' },
+    { type: 'intern', name: 'Intern' },
+    { type: 'gym', name: 'Gym person' },
+    { type: 'boss', name: 'Boss' },
+    { type: 'kid', name: 'Kid' },
+    { type: 'night', name: 'Night shift' },
+    { type: 'office', name: 'Follower (any type)', phone: true },
+    { type: 'office', name: 'Influencer (any type)', gold: true },
+    { type: 'office', name: 'Regulars', regs: ['tanya', 'greg'] }
+  ];
+  var LOOKS = [0, 21201, 42467, 63084];
+  var CELL = 24, PER = 4, GW = CELL * PER + 14, ROWH = 70, COLS = 3;
+  var LW = COLS * GW + 10, LH = Math.ceil(GROUPS.length / COLS) * ROWH + 6;
+  var cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  cv.width = LW; cv.height = LH;
+
+  function draw() {
+    ctx.fillStyle = '#e8d2b0'; ctx.fillRect(0, 0, LW, LH);
+    GROUPS.forEach(function (g, gi) {
+      var gx = 8 + (gi % COLS) * GW, gy = 6 + Math.floor(gi / COLS) * ROWH;
+      ctx.fillStyle = 'rgba(120,80,50,0.12)'; ctx.fillRect(gx - 3, gy, GW - 8, ROWH - 8);
+      for (var i = 0; i < PER; i++) {
+        var walking = i === PER - 1;
+        var c = { look: LOOKS[i], reg: g.regs ? g.regs[i % 2] : null };
+        var type = g.regs ? DATA.regulars[g.regs[i % 2]].type : g.type;
+        if (g.phone || g.gold) type = ['office', 'gym', 'boss', 'intern'][i];
+        var spec = { type: type, pal: Sprites.palette(c), dir: walking ? 1 : 0, walking: walking, frame: walking ? 0 : 0,
+                     breath: false, blink: false, happy: false, phone: !!g.phone, selfie: !!g.gold, shades: !!g.gold, can: null, sip: false, umbrella: false, fan: false, gold: !!g.gold };
+        var img = Sprites.personSprite(spec);
+        var x = gx + 12 + i * CELL, y = gy + 52;
+        if (g.gold) {
+          var gl = ctx.createRadialGradient(x, y - 12, 2, x, y - 12, 16);
+          gl.addColorStop(0, 'rgba(255,225,110,0.55)'); gl.addColorStop(1, 'rgba(255,225,110,0)');
+          ctx.fillStyle = gl; ctx.fillRect(x - 16, y - 28, 32, 32);
+        }
+        ctx.fillStyle = 'rgba(40,20,40,0.28)'; ctx.fillRect(x - 5, y, 11, 2);
+        ctx.drawImage(img, x - 16, y - 43);
+      }
+    });
+  }
+
+  window.runLineup = function (name) {
+    draw();
+    var k = 6, o = document.createElement('canvas');
+    o.width = LW * k; o.height = LH * k + 0;
+    var g = o.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(cv, 0, 0, LW * k, LH * k);
+    g.font = '700 22px system-ui, sans-serif'; g.fillStyle = '#3a2418'; g.textBaseline = 'top';
+    GROUPS.forEach(function (gr, gi) {
+      var gx = 8 + (gi % COLS) * GW, gy = 6 + Math.floor(gi / COLS) * ROWH;
+      g.fillText(gr.name, (gx - 1) * k, (gy + 56) * k - 4);
+    });
+    return fetch('/__snap?name=' + (name || 'lineup'), { method: 'POST', body: o.toDataURL('image/png') }).then(function (r) { return r.text(); });
+  };
+})();
+</script>
+</body>
+</html>

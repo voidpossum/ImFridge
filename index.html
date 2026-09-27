@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OUT OF ORDER</title>
+<meta name="author" content="Void Possum">
+<meta name="description" content="An incremental game about a soda machine between two AI soda machines.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect x='3' y='1' width='10' height='14' fill='%23d9534f'/%3E%3Crect x='4' y='2' width='8' height='3' fill='%231c1a28'/%3E%3Crect x='5' y='3' width='1' height='1' fill='%238affc8'/%3E%3Crect x='10' y='3' width='1' height='1' fill='%238affc8'/%3E%3Crect x='4' y='6' width='5' height='6' fill='%239fc8d4'/%3E%3Crect x='10' y='6' width='2' height='6' fill='%239c3431'/%3E%3Crect x='4' y='13' width='6' height='1' fill='%23141218'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <form id="gateForm" class="gateBox">
+    <h1 id="gateTitle">OUT OF ORDER</h1>
+    <p class="gateNote"><b>Early test build.</b> The art is placeholder and there are visual glitches (yes, the trees look strange). The numbers and balance will change too.</p>
+    <p class="gateNote">What helps most: tell Void Possum what felt fun, what was confusing, and when you got bored.</p>
+    <label for="gatePass">Password</label>
+    <div class="gateRow"><input id="gatePass" type="password" autocomplete="off" spellcheck="false"><button class="btn primary" type="submit">Enter</button></div>
+    <p id="gateMsg" aria-live="polite"></p>
+  </form>
+</div>
+<div id="app">
+  <header id="hud">
+    <div id="thoughts" aria-label="What customers are thinking"></div>
+    <div id="now"></div>
+    <div id="money">
+      <b id="cash">ƒ0</b>
+      <span id="allTime"></span>
+      <div id="rates"></div>
+    </div>
+    <button id="btnPause" data-tip="Pause the game. (Key: P or Esc)" aria-label="Pause"></button>
+  </header>
+  <main id="main">
+    <section id="stage">
+      <div id="sceneBox">
+        <div id="sceneWrap">
+          <canvas id="scene" width="480" height="270" aria-label="The lobby with three soda machines"></canvas>
+          <div id="tvText" aria-live="polite"><span></span></div>
+          <div id="bubbles"></div>
+        </div>
+        <div id="toasts" aria-live="polite"></div>
+        <button id="skipIntro" hidden>Skip tutorial</button>
+      </div>
+      <div id="bar">
+        <div id="machines" aria-label="Sales this quarter"></div>
+        <div id="clockBox" data-tip="Time left until the review. At the review, the lowest seller is reset.">
+          <div id="ring"><span id="ringText"></span></div>
+          <div id="clockText" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+    <aside id="drawer">
+      <div id="panelWrap">
+        <div id="panelHead"><h2 id="panelTitle"></h2><button id="btnFold" title="Hide this panel" aria-label="Hide panel">»</button></div>
+        <div id="panel"></div>
+      </div>
+      <nav id="rail" role="tablist" aria-label="Menus"></nav>
+    </aside>
+  </main>
+</div>
+<div id="modal" hidden><div id="modalBox" role="dialog" aria-modal="true"></div></div>
+<div id="resetScreen" hidden role="dialog" aria-modal="true"></div>
+<div id="tip" hidden></div>
+<div id="tipBubble" hidden></div>
+<div id="debug" hidden></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+
+<script src="js/data/core.js"></script>
+<script src="js/data/cards.js"></script>
+<script src="js/data/rivals.js"></script>
+<script src="js/data/story.js"></script>
+<script src="js/data/machine.js"></script>
+<script src="js/data/hardware.js"></script>
+<script src="js/data/research.js"></script>
+<script src="js/data/tree.js"></script>
+<script src="js/data/news.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/save.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+<script src="js/gate.js"></script>
+</body>
+</html>

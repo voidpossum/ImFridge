@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OUT OF ORDER — art mockup</title>
+<style>
+  body { background: #1c1720; color: #f4e9dc; font: 14px system-ui, sans-serif; margin: 16px; }
+  canvas { image-rendering: pixelated; display: block; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<p>Art mockup: builds staged scenes and saves snapshots through the dev server (<code>tools/devserver.py</code>).</p>
+<canvas id="scene"></canvas>
+<script src="../js/data/core.js"></script>
+<script src="../js/data/cards.js"></script>
+<script src="../js/data/rivals.js"></script>
+<script src="../js/data/story.js"></script>
+<script src="../js/data/machine.js"></script>
+<script src="../js/data/hardware.js"></script>
+<script src="../js/data/research.js"></script>
+<script src="../js/data/tree.js"></script>
+<script src="../js/data/news.js"></script>
+<script src="../js/engine.js"></script>
+<script src="../js/sprites.js"></script>
+<script src="../js/scene.js"></script>
+<script>
+(function () {
+  var cv = document.getElementById('scene');
+  Scene.init(cv);
+  Scene.resize(520 * 2, 300 * 2);
+
+  function stage(hour, weather) {
+    var S = Engine.newGame(7);
+    Engine.closeInfo(S);
+    S.meta.flags.jailbreak = 1;
+    S.meta.runs = 4;
+    var R = S.run;
+    R.weather = weather;
+    R.dayT = DATA.balance.dayLength * (hour - 6) / 18;
+    R.upgrades = { sign: 4, cool: 3, coin: 2, autorestock: 1, dispenser2: 1, grape: 1, smartprice: 1, slots: 2 };
+    R.drinks = ['cola', 'lemon', 'orange', 'grape'];
+    R.hw = { script: 8, ram: 3, fan: 1 };
+    var Y = R.machines[1];
+    Y.stock = { cola: 9, lemon: 5, orange: 12, grape: 7 };
+    R.machines[0].stock = { cola: 5, lemon: 8, orange: 3 };
+    R.machines[2].stock = { cola: 8, lemon: 2, orange: 7 };
+    R.machines[2].fx = null;
+    var id = 1;
+    function C(o) {
+      var c = { id: id++, type: 'office', look: id * 7919, x: 0, y: 230, tx: 0, ty: 230, st: 'queue', m: -1, icon: null, iconT: 0,
+                iconD: null, want: 'cola', fol: -1, gold: false, sipT: 0, drink: null, exitDoor: 0, reg: null };
+      for (var k in o) c[k] = o[k];
+      if (c.tx === 0) c.tx = c.x;
+      R.customers.push(c);
+      return c;
+    }
+    // A line at your machine: a follower (phone), an office worker, a boss.
+    C({ type: 'office', x: 238, y: 213, st: 'buy', m: 1, look: 12 });
+    C({ type: 'boss', x: 241, y: 223, st: 'queue', m: 1, look: 5501, fol: 1 });
+    C({ type: 'intern', x: 239, y: 233, st: 'go', m: 1, tx: 239, ty: 233, look: 90210, icon: 'phone', iconT: 1, fol: 1 });
+    // At ChugGPT: a kid; at Clawd: a gym person.
+    C({ type: 'kid', x: 170, y: 214, st: 'queue', m: 0, look: 16385 * 3 });
+    C({ type: 'gym', x: 311, y: 214, st: 'queue', m: 2, look: 4099 });
+    // Walking around, with thoughts.
+    C({ type: 'office', x: 130, y: 244, st: 'look', icon: 'want', want: 'orange', look: 777 });
+    C({ type: 'intern', x: 350, y: 252, st: 'out', tx: 430, ty: 252, drink: 'grape', sipT: 0.5, look: 31337, icon: 'value', iconT: 1 });
+    C({ type: 'boss', x: 205, y: 256, st: 'in', tx: 260, ty: 256, look: 424242, icon: 'pricey', iconT: 1 });
+    C({ type: 'gym', x: 100, y: 236, st: 'out', tx: 60, ty: 236, drink: 'lemon', look: 8080 });
+    C({ type: hour >= 21 ? 'night' : 'kid', x: 285, y: 246, st: 'look', look: 60000, icon: hour >= 21 ? 'line' : 'sold', iconD: 'grape', want: 'grape' });
+    C({ type: hour >= 21 ? 'night' : 'office', x: 400, y: 238, st: 'in', tx: 330, ty: 238, look: 123456 });
+    // A trending customer.
+    C({ type: 'office', x: 72, y: 250, st: 'gold', tx: 400, ty: 250, gold: true, look: 999 });
+    return S;
+  }
+
+  function snap(name, S, t, headline, bubble) {
+    Scene.draw(S, t, 0.016);
+    var k = 3, sz = Scene.size();
+    var o = document.createElement('canvas'); o.width = sz.W * k; o.height = sz.H * k;
+    var g = o.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(cv, 0, 0, sz.W * k, sz.H * k);
+    // What the HTML overlays will add on top (TV text, a speech bubble)
+    var tvr = Scene.tvRect(), m = k / (cv.clientWidth / sz.W);
+    g.fillStyle = '#d6f3ff'; g.font = '600 ' + Math.round(tvr.h * m * 0.42) + 'px system-ui, sans-serif';
+    g.textBaseline = 'middle';
+    g.save(); g.beginPath(); g.rect(tvr.x * m, tvr.y * m, tvr.w * m, tvr.h * m); g.clip();
+    g.fillText(headline, tvr.x * m + 10, (tvr.y + tvr.h / 2) * m);
+    g.restore();
+    if (bubble) {
+      var p = Scene.toScreen(bubble.x, bubble.y);
+      var bx = p.x * m, by = p.y * m, pad = 10;
+      g.font = '600 15px system-ui, sans-serif';
+      var w = Math.max(g.measureText(bubble.text).width, g.measureText(bubble.who).width) + pad * 2;
+      g.fillStyle = '#fffaf0'; g.fillRect(bx - w / 2, by - 58, w, 50);
+      g.fillStyle = bubble.color; g.font = '800 12px system-ui, sans-serif'; g.fillText(bubble.who.toUpperCase(), bx - w / 2 + pad, by - 44);
+      g.fillStyle = '#2a1f28'; g.font = '500 15px system-ui, sans-serif'; g.fillText(bubble.text, bx - w / 2 + pad, by - 24);
+    }
+    return fetch('/__snap?name=' + name, { method: 'POST', body: o.toDataURL('image/png') }).then(function (r) { return r.text(); });
+  }
+
+  window.runMockup = function () {
+    var day = stage(11.5, 'normal');
+    var night = stage(22.3, 'normal');
+    night.run.machines[2].fx = { type: 'closed', t: 10, dur: 20, mult: 1, id: 'x' };
+    var rain = stage(16.2, 'rain');
+    var hot = stage(13, 'hot');
+    hot.run.machines[0].fx = { type: 'free', t: 10, dur: 20, mult: 1, id: 'y' };
+    return Promise.all([
+      snap('mock_day', day, 3.1, 'LUNCH RUSH: 60% more customers until 14:00.', { x: 170, y: 104, who: 'ChugGPT-5', text: 'What an AMAZING choice!', color: '#1f8a6a' }),
+      snap('mock_night', night, 7.4, 'Night shift reports vending machines "talking".', { x: 310, y: 104, who: 'Clawd 4.5', text: 'I will deliver it in person.', color: '#b25a30' }),
+      snap('mock_rain', rain, 11.9, 'RAINY DAY: fewer customers walk in today.'),
+      snap('mock_hot', hot, 5.3, 'HOT DAY: customers want cold drinks.')
+    ]);
+  };
+})();
+</script>
+</body>
+</html>
