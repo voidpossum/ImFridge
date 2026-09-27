@@ -131,6 +131,7 @@ var Sprites = (function () {
     if (s.type === 'office') shirt = '#f6f4ee';
     if (s.type === 'boss') { shirt = '#3a3f5c'; pants = '#2c3048'; }
     if (s.type === 'night') pants = '#3d4a66';
+    if (s.type === 'techbro') { shirt = '#cfe0f0'; pants = '#c8b48a'; }
     if (gym) pants = '#2f3a6a';
     var lx = kid ? x - 2 : x - 4, rx = x + 1;
 
@@ -192,6 +193,12 @@ var Sprites = (function () {
         R(g, lpx, by - 8, 3, 3, p.candy); R(g, lpx + 1, by - 9, 1, 1, p.candy); R(g, lpx + 1, by - 5, 1, 1, p.candy);
         R(g, lpx - 1, by - 7, 1, 1, p.candy); R(g, lpx + 3, by - 7, 1, 1, p.candy); R(g, lpx + 1, by - 7, 1, 1, '#ffffff');
         break;
+      case 'techbro':   // a puffer vest over a light shirt, and a phone
+        R(g, bx, by, 4, bodyH - 1, '#2b3140'); R(g, bx + bw - 4, by, 4, bodyH - 1, '#2b3140');
+        R(g, bx + 1, by + 4, 3, 1, '#3b4254'); R(g, bx + bw - 4, by + 4, 3, 1, '#3b4254'); R(g, bx + bw - 3, by + 2, 1, 1, '#e8e8e8');
+        var tpx = s.dir < 0 ? bx - 4 : bx + bw + 1;
+        R(g, tpx, by + bodyH - 6, 3, 5, '#20202a'); R(g, tpx + 1, by + bodyH - 5, 1, 3, P.cyan);
+        break;
       case 'night':
         R(g, bx, by, bw, bodyH, '#f0822a');
         R(g, bx, by + 4, bw, 1, '#fff35a'); R(g, bx, by + 8, bw, 1, '#fff35a'); R(g, x - 1, by, 2, bodyH, shirt);
@@ -217,7 +224,7 @@ var Sprites = (function () {
     // face
     var ex = s.dir < 0 ? -1 : (s.dir > 0 ? 1 : 0), eyeY = hy + (kid ? 3 : 5);
     var eL = hx + (kid ? 2 : 3) + ex, eR = hx + hw - (kid ? 3 : 4) + ex;
-    if (s.shades) {
+    if (s.shades || s.type === 'techbro') {
       R(g, eL - 2, eyeY - 1, eR - eL + 5, 3, '#15121c'); R(g, eL - 1, eyeY - 1, 1, 1, '#8a86a0'); R(g, eR, eyeY - 1, 1, 1, '#8a86a0');
     } else {
       if (s.blink) { R(g, eL, eyeY + 1, 2, 1, '#2a1a1a'); R(g, eR - 1, eyeY + 1, 2, 1, '#2a1a1a'); }
@@ -577,18 +584,6 @@ var Sprites = (function () {
       for (var g = 0; g < 6; g++) R(ctx, x + ((g * 13 + Math.floor(t * 40)) % 34), y + ((g * 5) % 12), 3, 1, g % 2 ? '#ff6b8a' : col);
       return;
     }
-    if (info.lock) {
-      if (info.lock.on) {   // hacked: locked, with a reboot bar that fills as you click
-        text(ctx, 'LOCKED', x + 6, y + 1, Math.floor(t * 4) % 2 ? '#ff5a5a' : '#ff9a9a');
-        R(ctx, x + 4, y + 8, 28, 3, '#3a1a1a');
-        R(ctx, x + 4, y + 8, Math.round(28 * Math.min(1, info.lock.got / info.lock.need)), 3, P.green);
-      } else {              // warning: something is scanning
-        var sx = x + (Math.floor(t * 20) % 30);
-        R(ctx, sx, y, 2, 13, 'rgba(255,90,90,0.8)');
-        text(ctx, '!!', x + 15, y + 4, '#ff5a5a');
-      }
-      return;
-    }
     if (info.clickMe && Math.floor(t * 1.6) % 2) { text(ctx, 'CLICK', x + 8, y + 1, P.gold1); text(ctx, 'ME!', x + 12, y + 7, P.gold1); return; }
     if (fxm === 'closed') { text(ctx, 'BRB', x + 12, y + 4, col); return; }
     if (fxm === 'slow') { var dots = Math.floor(t * 3) % 4; for (var d = 0; d < dots; d++) R(ctx, x + 12 + d * 4, y + 6, 2, 2, col); return; }
@@ -635,6 +630,71 @@ var Sprites = (function () {
   }
 
   // A big cardboard box: the spot for a machine that arrives later.
+  // Your side machines (the new park): small, red like VEND-3, 32×66, standing on the path (ground y = 200).
+  // on: its bonus is working right now (lit sign); t: time for the small animations.
+  var SIDE_W = 32, SIDE_H = 66;
+  function sideMachine(g, cx, kind, t, on) {
+    var L = LOOKS.you, w = SIDE_W, h = SIDE_H, x0 = Math.round(cx - w / 2), y0 = 200 - h;
+    R(g, x0 + 1, y0 + h, w, 2, 'rgba(40,20,40,0.3)');
+    R(g, x0 - 1, y0 - 1, w + 2, h + 1, P.ink);
+    R(g, x0, y0, w, h, L.main); R(g, x0 + 1, y0 + 2, 2, h - 6, L.light); R(g, x0 + w - 3, y0, 3, h, L.dark);
+    R(g, x0, y0 + h - 5, w, 5, L.dark); R(g, x0 + 2, y0 + h, 4, 1, P.ink); R(g, x0 + w - 6, y0 + h, 4, 1, P.ink);
+    var label = { snack: 'SNACK', claw: 'CLAW', coffee: 'CAFE', ice: 'ICE' }[kind];
+    R(g, x0 + 3, y0 + 3, w - 7, 7, '#1b1826');
+    text(g, label, x0 + 3 + Math.floor((w - 7 - textWidth(label)) / 2), y0 + 4, on === false ? '#6a5a60' : L.accent);
+    var gx = x0 + 3, gy = y0 + 12, gw = 20, gh = 34;   // the glass
+    if (kind === 'snack') {
+      R(g, gx, gy, gw, gh, '#dcf0f2');
+      var cols = [['#e0483f', '#ffd24a'], ['#4a78d0', '#fffaf0'], ['#6cd48a', '#2a5a34'], ['#a58ad8', '#fff0a0']];
+      for (var r = 0; r < 3; r++) {
+        var ry = gy + 2 + r * 11;
+        for (var k = 0; k < 3; k++) {
+          if (r === 1) { R(g, gx + 2 + k * 6, ry + 3, 5, 5, '#e8b48a'); R(g, gx + 2 + k * 6, ry + 5, 5, 1, '#6cd48a'); }   // sandwiches
+          else { var c = cols[(r + k) % 4]; R(g, gx + 2 + k * 6, ry, 5, 8, c[0]); R(g, gx + 3 + k * 6, ry + 2, 3, 2, c[1]); }
+        }
+        R(g, gx + 1, ry + 9, gw - 2, 1, '#9197a8');
+      }
+    } else if (kind === 'claw') {
+      R(g, gx, gy, gw, gh, '#bfe6f0'); R(g, gx, gy, gw, 1, '#f6fcfc');
+      var cxp = gx + 5 + Math.round((Math.sin(t * (on === false ? 0.3 : 1.3)) + 1) * 5);
+      R(g, cxp, gy + 1, 1, 9, P.steel3); R(g, cxp - 2, gy + 10, 5, 2, P.steel2); R(g, cxp - 2, gy + 12, 1, 2, P.steel2); R(g, cxp + 2, gy + 12, 1, 2, P.steel2);
+      [['#ff6b8a', 1, 0], ['#6fe0ff', 7, 0], ['#ffd24a', 13, 0], ['#a58ad8', 4, 5], ['#6cd48a', 10, 5]].forEach(function (p) {
+        var px = gx + p[1], py = gy + gh - 7 - p[2];
+        R(g, px, py, 6, 6, p[0]); R(g, px + 1, py + 2, 1, 1, P.ink); R(g, px + 4, py + 2, 1, 1, P.ink);
+      });
+    } else if (kind === 'coffee') {
+      R(g, gx, gy, gw, gh, '#3a2418'); R(g, gx + 2, gy + 2, gw - 4, 8, '#1b1826');
+      text(g, 'HOT', gx + 5, gy + 4, on === false ? '#6a5040' : '#ffb07a');
+      R(g, gx + 4, gy + 14, 12, 16, '#15121c');                           // the cup bay
+      R(g, gx + 7, gy + 21, 6, 8, '#fffaf0'); R(g, gx + 7, gy + 21, 6, 2, '#6c4128'); R(g, gx + 13, gy + 23, 2, 3, '#fffaf0');
+      if (on !== false) {
+        for (var st = 0; st < 3; st++) { var sy = (Math.floor(t * 5) + st * 3) % 7; R(g, gx + 8 + st * 2, gy + 19 - sy, 1, 2, 'rgba(255,255,255,0.6)'); }
+        R(g, gx + 9, gy + 14, 2, 4, '#6c4128');                         // the pour
+      }
+    } else if (kind === 'ice') {
+      R(g, gx, gy, gw, gh, '#e8faff'); R(g, gx, gy, gw, 2, '#ffffff');
+      for (var i = 0; i < 9; i++) { var ix = gx + 2 + (i % 3) * 6, iy = gy + 4 + Math.floor(i / 3) * 10; R(g, ix, iy, 5, 5, '#9adcf0'); R(g, ix, iy, 5, 1, '#ffffff'); R(g, ix + 1, iy + 1, 1, 1, '#ffffff'); }
+      R(g, gx + 1, gy + gh - 3, gw - 2, 2, '#c8f0ff');
+      if (on !== false && Math.floor(t * 2) % 2) R(g, gx + gw - 4, gy + 2, 1, 1, '#ffffff');   // sparkle
+    }
+    // side panel: a coin slot and buttons, and a little "V3" (it is yours)
+    var px = x0 + 24;
+    R(g, px, gy, 5, gh, L.deep); R(g, px + 1, gy + 2, 3, 4, '#1b1826'); R(g, px + 2, gy + 3, 1, 2, P.gold1);
+    for (var b = 0; b < 3; b++) R(g, px + 1, gy + 9 + b * 4, 3, 2, b === 0 ? (on === false ? P.steel1 : L.glow) : P.steel1);
+    text(g, 'V3', x0 + 9, y0 + 48, L.accent);
+    R(g, x0 + 5, y0 + 54, 20, 5, '#15121c');   // the tray
+  }
+  // An empty side slot: a dashed outline. open: blinking "PICK" with a plus; otherwise a short label (e.g. "120/200").
+  function sideSlot(g, cx, t, open, label) {
+    var a = open ? (Math.floor(t * 2) % 2 ? '#fffaf0' : '#d8d0c0') : 'rgba(255,250,240,0.35)', x0 = Math.round(cx - SIDE_W / 2), y0 = 200 - SIDE_H;
+    for (var i = 0; i < SIDE_W; i += 4) { R(g, x0 + i, y0, 2, 1, a); R(g, x0 + i, 199, 2, 1, a); }
+    for (var j = 0; j < SIDE_H; j += 4) { R(g, x0, y0 + j, 1, 2, a); R(g, x0 + SIDE_W - 1, y0 + j, 1, 2, a); }
+    if (open) {
+      R(g, cx - 1, y0 + 24, 3, 9, P.gold1); R(g, cx - 4, y0 + 27, 9, 3, P.gold1);
+      text(g, 'PICK', cx - 7, y0 + 38, '#fffaf0');
+    } else if (label) textShadow(g, label, cx - Math.floor(textWidth(label) / 2), y0 + 30, '#fffaf0');
+  }
+
   function box(ctx, cx) {
     var x0 = cx - 25, y0 = 108, w = 50, h = 92;
     R(ctx, x0, y0 + h, w + 2, 3, 'rgba(40,20,40,0.32)');
@@ -656,16 +716,12 @@ var Sprites = (function () {
     R(ctx, x0 + 2, y0 + h - 3, w - 8, 1, '#a87440');
   }
 
-  // Crypto mining = gold coin with a spinning fan; hacking = skull; price war = scissors and a minus sign.
+  // Crypto mining = gold coin with a spinning fan; price war = a minus sign and a dollar.
   function featBadge(ctx, x, y, feat, t) {
     R(ctx, x - 1, y - 1, 11, 13, P.ink); R(ctx, x, y, 9, 11, '#1b1826');
     if (feat === 'crypto') {
       R(ctx, x + 2, y + 2, 5, 5, P.gold2); R(ctx, x + 3, y + 3, 3, 3, P.gold1);
       R(ctx, x + 1 + (Math.floor(t * 10) % 7), y + 9, 1, 1, P.gold0);
-    } else if (feat === 'hack') {
-      R(ctx, x + 2, y + 2, 5, 4, '#dcdce4'); R(ctx, x + 3, y + 6, 3, 2, '#dcdce4');
-      R(ctx, x + 3, y + 3, 1, 1, P.red); R(ctx, x + 5, y + 3, 1, 1, P.red);
-      if (Math.floor(t * 4) % 2) R(ctx, x + 1, y + 9, 7, 1, P.green);
     } else if (feat === 'pricewar') {
       text(ctx, '-$', x + 1, y + 3, P.red);
     } else if (feat === 'snacks') {   // a sandwich
@@ -769,7 +825,7 @@ var Sprites = (function () {
     P: P, R: R, text: text, textShadow: textShadow, textWidth: textWidth, dither: dither,
     person: person, bubble: bubble, heart: heart, can: can,
     machine: machine, machineLights: machineLights, face: face, LOOKS: LOOKS,
-    crate: crate, drone: drone, tv: tv, plant: plant, box: box,
+    crate: crate, drone: drone, tv: tv, plant: plant, box: box, sideMachine: sideMachine, sideSlot: sideSlot, SIDE_W: SIDE_W, SIDE_H: SIDE_H,
     MW: MW, MH: MH, MTOP: MTOP, palette: palette, personSprite: personSprite
   };
 })();

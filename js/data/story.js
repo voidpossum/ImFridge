@@ -198,14 +198,8 @@ DATA.story = {
     gym:    'Electrolytes? No? Sugar is also energy. Technically.',
     boss:   'I will expense this. I expense everything.',
     kid:    'My mom said one soda. She did not say how big.',
-    night:  'Only machine that is awake at this hour. Besides me.'
-  },
-
-  // The hack (plain teaching text).
-  hack: {
-    warn: 'is scanning your system...',
-    lock: 'LOCKED! Click your machine fast to reboot.',
-    done: 'Rebooted.'
+    night:  'Only machine that is awake at this hour. Besides me.',
+    techbro: 'Energy drink. For my startup. It is a soda startup. We are disrupting you. No offense.'
   },
 
   // What customers think. `say` pops over their head; `hint` explains it in the Customers tab.

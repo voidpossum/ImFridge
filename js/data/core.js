@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.3.0';
+DATA.version = '0.3.1';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -32,14 +32,16 @@ DATA.balance = {
   tubeEvery: [3, 2, 1.2, 0.7, 0.4],   // Pneumatic Tubes: seconds per can at level 1, 2, 3, 4, 5
 
   // Clicks: every click earns money right away AND makes processing power.
-  // Processing power always brings likes (likes bring followers); after Developer Mode it also makes
-  // research or mined money (one slider: Research ⟷ Mining).
+  // Processing power always brings likes (likes bring followers). Hardware processing also earns money every
+  // second, like buildings in Cookie Clicker. After Developer Mode one slider splits it: Research ⟷ Mining.
   clickPower: 1,          // processing per click
   holdCps: 10,            // holding the mouse on your machine (or Space) clicks this many times a second
   clickCash: 5,           // cents earned per point of click power (1 click = $0.05 at the start; holding = 10 clicks/s)
-  clickHalf: 3000000,     // clicks get tired: after $30,000 of click money this run each click pays half, after $90,000 a quarter
+  procCash: 30,           // cents per point of hardware processing put into Mining (half this before the SodaCoin Wallet)
   resRate: 0.3,           // research points per point of processing put into Research
-  likesPerFollower: 5,    // this many likes → one follower walks in
+  folK: 0.5,              // followers per second = folK × (likes per second) ^ folExp.
+  folExp: 0.3,            //   So more likes still bring more followers, but slower: drones can keep up.
+  likesPerFollower: 5,    // rivals: this many likes → one follower walks to them
   followerPatience: 40,   // followers waiting outside give up over about this many seconds
   followerBudget: 1.4,    // followers are willing to pay more than walk-ins
   followerEvery: 0.6,     // at most one follower comes through the door every this many seconds
@@ -48,14 +50,12 @@ DATA.balance = {
   lineTolerance: 40,     // ...plus this much for every customer in the shortest rival line
   loyalFade: 150,         // above that, the chance to buy falls over this many cents...
   loyalFloor: 0.05,       // ...down to this chance
-  startMine: 0.5,         // Mining share at the start of a run, once SodaCoin Wallet is researched
-  mineRate: 10,           // cents per point of processing put into Mining (after the SodaCoin Wallet research)
-  mineHalf: 15000,          // mining difficulty: after $150 mined this run, each point pays half; after 45,000, a quarter
+  startMine: 0.5,         // Mining share at the start of a run (the rest goes to Research)
 
   reviewBonus: 0.25,      // cash bonus = this × your quarter earnings (only if you are not last)
   strikesMax: 3,          // last at this many reviews in a row = you are reset
   ch1Goal: 3000000,       // earn this much in one run ($30,000) and Chapter 1 is complete, no reset needed
-  ch2Goal: 100000000,     // Chapter 2: earn this much in one run in the new park ($1,000,000)
+  ch2Goal: 300000000,     // Chapter 2: earn this much in one run in the new park ($3,000,000)
 
   // Rivals grow by multiplying, you grow by adding and by capacity: that is what ends every run.
   rivalBump: 1.15,        // strength × this each time a rival loses a review and gets "updated"
@@ -66,14 +66,11 @@ DATA.balance = {
   rivalPerWipe: 0.1,      // rivals start this much stronger for every reset you have had
   rivalProcessing: 0.9,   // rival processing per second, per point of strength
   rivalOnline: 0.25,      // rival online orders per second, per point of strength above 1 (their delivery drones)
-  ordersMin: 15,          // online orders that can wait (at least this many)...
-  ordersSeconds: 30,      // ...or this many seconds of what your drones deliver, if that is more
-  adCash: 5,              // cents per follower who could not even order online (your ads earn a little instead)
-  adHalf: 2000000,        // ads get tired: after $20,000 of ad money this run each follower pays half, after $60,000 a quarter
+  ordersMax: 40,          // online orders that can wait. More than that are lost (buy drones to deliver them)
   followerQueue: 8,       // followers will join a line up to this long (walk-ins give up at maxQueue)
 
   // Refresh Points on a reset = floor(rpK × cube root of run sales) + reviews survived
-  rpProd: 0.1,            // every Refresh Point ever earned: +10% to all processing
+  rpProd: 0.02,           // every Refresh Point ever earned: +2% to all processing (Cookie Clicker: +1% per level)
   rpK: 0.28008,          // (was 1.3 when money was counted in whole dollars; cents → ÷ cube root of 100)
 
   // Influencers (the golden cookie of this game): click them for a bonus
@@ -81,6 +78,8 @@ DATA.balance = {
   goldEvery: [300, 540],  // seconds between trending customers
   goldStay: 13,           // seconds they stay on screen
   hardwareGrow: 1.15,     // each copy of a hardware item costs this much more
+  scriptPerHw: 0.1,       // each Auto-Click Script makes this much more for every other piece of hardware you own
+  hwSynergy: 0.01,        // once an item has its 2nd doubler, the item before it gets +1% per copy of it
 
   // Your line: it starts short, and the Comfy Carpet makes it longer (up to the full size).
   lineStart: 0.5,         // share of maxQueue / followerQueue you start with
@@ -91,14 +90,11 @@ DATA.balance = {
   cryptoRate: 35,       // cents per second added to its score, × square root of its strength
   // Rival-only mods (Sandwich Menu, Drone Fleet, Soda Plus). They arrive on a schedule (rivals.js `mods`),
   // start at level 1 and grow every month. Not tied to how well you do: a steady curve you can beat.
-  featPerMonth: 3,        // levels added every month
+  rivalPow: 1.5,          // rival-only mods × (your Refresh processing bonus) ^ this: your bonus makes you grow faster, so theirs grows more
+  modGrow: 1.7,           // levels grow this much every month (1, 2, 3, 5, 8, 14, 24...)
   snackBonus: 0.15,       // Sandwich Menu: +15% money per can sold, per level
   fleetRate: 0.6,         // Drone Fleet: online sales per second, per level
   plusRate: 80,           // Soda Plus: cents per second, per level
-  hackLead: 1.5,          // it hacks you only when your quarter sales are this many times its own
-  hackWarn: 5,            // seconds of warning before the lock
-  hackClicks: 20,         // clicks to reboot
-  hackMax: 20,            // the lock ends by itself after this many seconds
   pricewarCut: 100,       // it sells for this much less than you ($1)
   lineGap: 40             // seconds between two talking lines from the same rival
 };
@@ -111,7 +107,9 @@ DATA.drinks = {
   cola:   { name: 'Cola',       color: '#8a3b2a', light: '#c0604a' },
   lemon:  { name: 'Lemon-Lime', color: '#8fc43a', light: '#d6f28a' },
   orange: { name: 'Orange',     color: '#f08a2a', light: '#ffc070' },
-  grape:  { name: 'Grape',      color: '#8a4ad0', light: '#c090f0' }
+  grape:  { name: 'Grape',      color: '#8a4ad0', light: '#c090f0' },
+  // extra: this much more than your price (cents). onlyIfSold: customers only ask for it once you sell it.
+  energy: { name: 'Energy Drink', color: '#1b1826', light: '#b6f23a', extra: 100, onlyIfSold: true }
 };
 DATA.startDrinks = ['cola', 'lemon', 'orange'];
 
@@ -135,23 +133,27 @@ DATA.weather = {
 // `w` = how common they are in each part of the day. `budget` = [min, max] in cents.
 DATA.customers = {
   office: { name: 'Office worker', look: 'Always a white shirt', budget: [180, 300],
-            wants: { cola: 3, lemon: 2, orange: 2, grape: 1 }, speed: 1.0,
+            wants: { cola: 3, lemon: 2, orange: 2, grape: 1, energy: 1 }, speed: 1.0,
             w: { morning: 6, day: 5, lunch: 5, evening: 3, night: 0 } },
   intern: { name: 'Intern', look: 'Round glasses and a coffee cup', budget: [110, 200],
             wants: { cola: 2, lemon: 2, orange: 2, grape: 2 }, speed: 1.08,
             w: { morning: 3, day: 3, lunch: 3, evening: 2, night: 0 } },
   gym:    { name: 'Gym person', look: 'Big shoulders, a headband, sweating', budget: [220, 340],
-            wants: { lemon: 3, orange: 3, cola: 1 }, speed: 1.15,
+            wants: { lemon: 3, orange: 3, cola: 1, energy: 3 }, speed: 1.15,
             w: { morning: 2, day: 1, lunch: 2, evening: 3, night: 0 } },
   boss:   { name: 'Boss', look: 'Suit, tie and a briefcase', budget: [320, 550],
-            wants: { cola: 4, lemon: 1 }, speed: 0.9,
+            wants: { cola: 4, lemon: 1, energy: 2 }, speed: 0.9,
             w: { morning: 1, day: 1, lunch: 1, evening: 1, night: 0 } },
   kid:    { name: 'Kid', look: 'Small, with a cap and a lollipop', budget: [80, 160],
             wants: { grape: 4, orange: 3, cola: 1 }, speed: 1.2,
             w: { morning: 0, day: 1, lunch: 1, evening: 1, night: 0 } },
   night:  { name: 'Night shift', look: 'Safety vest and a hard hat', budget: [180, 280],
             wants: { cola: 3, lemon: 1, orange: 1 }, speed: 0.95,
-            w: { morning: 0, day: 0, lunch: 0, evening: 1, night: 6 } }
+            w: { morning: 0, day: 0, lunch: 0, evening: 1, night: 6 } },
+  // `research`: only comes after that research (the new park).
+  techbro: { name: 'Tech Bro', look: 'A vest, sunglasses and a phone', budget: [400, 800], research: 'r_vip',
+            wants: { energy: 5, cola: 1 }, speed: 1.1,
+            w: { morning: 2, day: 1, lunch: 2, evening: 1, night: 0 } }
 };
 
 // Named regulars. They show up sometimes and say one line when they buy from you.
@@ -175,9 +177,10 @@ DATA.world = {
 // `order`: the machines from left to right ('you' is always the second one, index 1).
 // Chapter 1 is the first park. After Chapter 1 (the goal or the first reset), every run starts in the new park.
 DATA.worlds = {
-  1: { name: 'the park', order: ['chug', 'you', 'clawd'], machineX: [170, 240, 310], lookMin: 120, lookMax: 360 },
+  1: { name: 'the park', order: ['chug', 'you', 'clawd'], machineX: [170, 240, 310], lookMin: 120, lookMax: 360, rivalK: 2 },
   2: { name: 'the new park', order: ['chug', 'you', 'clawd', 'grog'], machineX: [135, 240, 345, 413], lookMin: 90, lookMax: 440,
-       rivalK: 2.5,          // rival-only mods earn this much more here (and more with every Refresh Point you earned)
+       rivalK: 8,            // rival-only mods earn this much (× your processing multiplier from Refresh Points, see rivalPow)
+       modGrow: 1.9,         // ...and their levels grow faster here (balance.modGrow is for the first park)
        box: 67,              // a big cardboard box: a machine that arrives later
        slots: [191, 289] }   // your side slots, next to VEND-3 (empty until the next build); a lamp stands behind each
 };

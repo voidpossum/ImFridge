@@ -454,6 +454,7 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
 .row .mid { min-width: 0; }
 .row .nm { font-weight: 800; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .cost { font-family: var(--mono); font-size: 0.86em; color: var(--gold); }
+.row .gain { font-family: var(--mono); font-size: 0.8em; color: var(--good); margin-left: 8px; }
 .row .d { display: block; font-size: 0.8em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .own { font: 800 1.6em/1 var(--mono); color: var(--line2); min-width: 1.5em; text-align: right; }
 .row.off { cursor: default; box-shadow: none; }
@@ -661,8 +662,6 @@ details.doneRes summary { cursor: pointer; color: var(--muted); font-weight: 700
 .patch p { margin: 4px 0 0; }
 .patch.feat { background: #3a1a22; border-left-color: var(--bad); }
 .patch.feat b { color: var(--bad); }
-.bubble.reboot { pointer-events: none; background: #2a0e14; color: #ffd0d0; border: 2px solid var(--bad); font-weight: 700; animation: none; }
-.bubble.reboot .who { color: var(--bad); }
 .chip.lock, .chip.feat { border-color: var(--bad); color: var(--bad); }
 .bonus { color: var(--gold); font-weight: 700; }
 
@@ -800,3 +799,18 @@ html[data-reduced="1"] *, html[data-reduced="1"] *::before { animation-duration:
   .res .tag { grid-column: 1 / -1; }
   .rsTop { grid-template-columns: 1fr; }
 }
+
+/* Side machines (0.3.1): the pick menu and the Shop rows */
+.sidePick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.sideOpt { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 10px; background: var(--panel2); color: inherit;
+  border: 2px solid var(--line); cursor: pointer; font: inherit; }
+.sideOpt:hover:not([disabled]) { border-color: var(--gold); }
+.sideOpt.off { opacity: 0.55; }
+.sideOpt[disabled] { cursor: default; }
+.sideOpt img { width: 54px; height: 105px; image-rendering: pixelated; flex: none; }
+.sideOpt .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sideOpt .when { font-size: 0.8em; color: var(--gold); text-transform: uppercase; letter-spacing: 0.04em; }
+.sideOpt .d { font-size: 0.85em; color: var(--muted); }
+.sideOpt .cost { font-family: var(--mono); color: var(--gold); }
+.row .gain.on { color: var(--gold); }
+@media (max-width: 640px) { .sidePick { grid-template-columns: 1fr; } }

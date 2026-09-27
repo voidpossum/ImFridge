@@ -14,12 +14,13 @@ var Wiki = (function () {
     machine: 'machine.js', hardware: 'hardware.js', doublerAt: 'hardware.js', doublerCost: 'hardware.js',
     research: 'research.js', tree: 'tree.js', treeGroups: 'tree.js',
     cards: 'cards.js', lifeChapters: 'cards.js', rarity: 'cards.js',
-    rivals: 'rivals.js', rivalUpgrades: 'rivals.js', features: 'rivals.js'
+    rivals: 'rivals.js', rivalUpgrades: 'rivals.js', features: 'rivals.js',
+    side: 'side.js', sideSlots: 'side.js'
   };
 
   // Balance numbers that are money (cents): shown and edited in dollars.
-  var MONEY_KEYS = { canCost: 1, startCash: 1, startPrice: 1, priceMin: 1, priceMax: 1, priceStep: 1, clickHalf: 1, mineHalf: 1,
-    ch1Goal: 1, ch2Goal: 1, loyalMargin: 1, lineTolerance: 1, loyalFade: 1, adHalf: 1, pricewarCut: 1 };
+  var MONEY_KEYS = { canCost: 1, startCash: 1, startPrice: 1, priceMin: 1, priceMax: 1, priceStep: 1,
+    ch1Goal: 1, ch2Goal: 1, loyalMargin: 1, lineTolerance: 1, loyalFade: 1, pricewarCut: 1 };
 
   // What each effect key means (cards, research, the Refresh tree, machine upgrades).
   var FX = {
@@ -52,7 +53,8 @@ var Wiki = (function () {
     cardChoices: ['+{v} card to choose from at every review', ''],
     keepCard: ['keep your best card when you are reset', ''],
     prod: ['+{p} processing', ''],
-    mine: ['+{p} mining', ''],
+    mine: ['+{p} money from hardware (mining)', ''],
+    boost: ['+{p} of all your money', ''],
     traffic: ['+{p} walk-in customers', ''],
     drone: ['drones +{p} faster', '']
   };
@@ -77,6 +79,8 @@ var Wiki = (function () {
       if (c.price_ge != null) t += ' while your price is ' + money(c.price_ge) + ' or more';
       if (c.daypart) t += ' ' + (DAYPART[c.daypart] || c.daypart);
       if (c.weather) t += ' on ' + c.weather + ' days';
+      if (c.dayparts) t += ' ' + c.dayparts.map(function (d) { return DAYPART[d] || d; }).join(' and ');
+      if (c.line_ge != null) t += ' while ' + c.line_ge + ' or more people are in your line';
       if (c.cust) t += ' with ' + ((D && D.customers && D.customers[c.cust] && D.customers[c.cust].name) || c.cust) + 's';
     }
     return t;
@@ -175,7 +179,8 @@ var Wiki = (function () {
     // 1. Overview
     S.push({ id: 'overview', title: 'Overview', blocks: [
       text('Game version ' + D.version + '. Everything below is read from the game\'s data files (js/data/*.js), so it is always up to date.'),
-      text('**How money works.** There is one number: money earned this run (the score at every review). It comes from: cans sold in person and by drone; clicks (each click earns money right away); mining (processing put into Mining); ads (followers who could not even order online); tips and influencer bonuses. Clicks, ads and mining get less effective the more of each you earned this run (the "…Half" numbers).'),
+      text('**How money works.** There is one number: money earned this run (the score at every review). It comes from: hardware (like Cookie Clicker buildings: every point of processing in Mining earns ' + money(B.procCash) + ' a second, half before the SodaCoin Wallet); cans sold in person and by drone; clicks (each click earns money right away); tips and influencer bonuses. Side machines (the new park) add a % of all of it while their condition is true.'),
+      text('**Followers and drones.** Followers per second = ' + B.folK + ' × (likes per second)^' + B.folExp + '. They order online (at most ' + B.ordersMax + ' orders wait) and walk to your line when there is room. Drones deliver online orders; when more orders come in than drones deliver, the extra ones are lost.'),
       text('**Reviews.** At the end of every month (4 weeks). Last place = a strike; ' + B.strikesMax + ' strikes in a row = reset. Not being last: a card (1 of 3) and a cash bonus of ' + pct(B.reviewBonus) + ' of the month\'s earnings.'),
       text('**Chapters.** Chapter 1: earn ' + money(B.ch1Goal) + ' in one run (or reset once). Chapter 2 (the new park): earn ' + money(B.ch2Goal) + ' in one run there.'),
       text('**Resets (prestige).** Refresh Points = floor(' + B.rpK + ' × cube root of the run\'s money in cents) + reviews survived. Every Refresh Point ever earned: +' + pct(B.rpProd) + ' to all processing. Spend them in the Refresh tree.')
@@ -231,12 +236,30 @@ var Wiki = (function () {
     });
     S.push({ id: 'hardware', title: 'Hardware', intro: headerOf(src['hardware.js']), blocks: [
       table('Hardware (processing when you are not clicking)', ['', 'Item', 'Needs research', 'Base cost', 'Growth', 'Per second (each)', 'Cost of copy 1 / 10 / 25', 'Processing per $ (copy 1 / 10 / 25)', 'Description'], hwRows,
-        'Processing per second is before doublers and your Refresh Point bonus. The drone is not processing: it delivers online orders.'),
-      table('When doublers unlock and what they cost', ['Doubler', 'Own this many', 'Cost (× the item\'s base cost)'], [0, 1, 2, 3].map(function (i) {
+        'Processing per second is before doublers and your Refresh Point bonus. Each point in Mining earns ' + money(B.procCash) + '/s. Auto-Click Script: +' + B.scriptPerHw + ' per other hardware owned. Once an item has its 2nd doubler, the item before it gets +' + pct(B.hwSynergy) + ' per copy of it. The drone is not processing: it delivers online orders.'),
+      table('When doublers unlock and what they cost', ['Doubler', 'Own this many', 'Cost (× the item\'s base cost)'], D.doublerAt.map(function (x, i) {
         return [{ t: 'Doubler ' + (i + 1) }, ed(D, 'doublerAt.' + i, 'num', 'Hardware › doubler ' + (i + 1) + ' › own'), ed(D, 'doublerCost.' + i, 'num', 'Hardware › doubler ' + (i + 1) + ' › cost ×')];
       })),
       table('Doublers (each one doubles that item)', ['Item', 'Name', 'Unlocks at', 'Cost'], dblRows)
     ] });
+
+    // 4b. Side machines (the new park)
+    if (D.side) {
+      S.push({ id: 'side', title: 'Side machines', intro: headerOf(src['side.js']), blocks: [
+        table('Slots', ['Slot', 'Needs research', 'Followers this run'], D.sideSlots.map(function (sl, i) {
+          return [{ t: sl.name }, { t: rname(sl.research) }, ed(D, 'sideSlots.' + i + '.followers', 'num', 'Side machines › ' + sl.name + ' › followers needed')];
+        })),
+        table('Machines (pick one per slot, then buy levels)', ['', 'Machine', 'Works', 'Price to pick', 'Growth', 'Max level', 'Effect per level', 'Description', 'Cost of each level'],
+          D.side.map(function (m) {
+            var L = 'Side machines › ' + m.name + ' › ', costs = [];
+            for (var l = 0; l < m.max; l++) costs.push(money(Math.round(m.base * Math.pow(m.grow, l))));
+            return [{ icon: 'side' + m.id.charAt(0).toUpperCase() + m.id.slice(1) }, ed(D, 'side[' + m.id + '].name', 'text', L + 'name'), ed(D, 'side[' + m.id + '].short', 'text', L + 'when it works'),
+              ed(D, 'side[' + m.id + '].base', 'money', L + 'price to pick'), ed(D, 'side[' + m.id + '].grow', 'num', L + 'growth'), ed(D, 'side[' + m.id + '].max', 'num', L + 'max level'),
+              { t: fxList(m.fx, D), sub: ed(D, 'side[' + m.id + '].fx.0.v', 'num', L + 'bonus per level') },
+              ed(D, 'side[' + m.id + '].desc', 'text', L + 'description'), { t: costs.join(', '), small: true }];
+          }))
+      ] });
+    }
 
     // 5. Research
     S.push({ id: 'research', title: 'Research', intro: headerOf(src['research.js']), blocks: [
@@ -247,7 +270,7 @@ var Wiki = (function () {
             ed(D, 'research[' + r.id + '].cost', 'num', L + 'cost'),
             { t: (r.req || []).map(rname).join(', ') || '—' },
             { t: r.unlock || '—' },
-            { t: r.when ? Object.keys(r.when).map(function (k) { return r.when[k] + ' ' + k + ' waiting'; }).join(', ') : '—' },
+            { t: (r.when ? Object.keys(r.when).map(function (k) { return r.when[k] + ' ' + k + ' waiting'; }).join(', ') : '') + (r.world ? (r.when ? ', ' : '') + 'new park only' : '') || '—' },
             r.repeat ? ed(D, 'research[' + r.id + '].repeat', 'num', L + 'cost × per level') : { t: '—' },
             r.fx && r.fx.length === 1 ? { t: fxText(r.fx[0], D), sub: ed(D, 'research[' + r.id + '].fx.0.v', 'num', L + 'effect value') } : { t: fxList(r.fx, D) },
             ed(D, 'research[' + r.id + '].desc', 'text', L + 'description')];
@@ -327,12 +350,12 @@ var Wiki = (function () {
       })));
     rivBlocks.push(table('Features and rival-only mods', ['Name', 'Kind', 'Description (what players read)', 'Numbers (Balance)'], Object.keys(D.features).map(function (f) {
       var F = D.features[f];
-      var nums = { crypto: 'cryptoRate ' + B.cryptoRate + '¢/s × √strength', hack: 'hackLead ×' + B.hackLead + ', ' + B.hackClicks + ' clicks to reboot',
-        pricewar: 'pricewarCut ' + money(B.pricewarCut), snacks: 'snackBonus +' + pct(B.snackBonus) + ' per level', fleet: 'fleetRate ' + B.fleetRate + ' sales/s per level',
+      var nums = { crypto: 'cryptoRate ' + B.cryptoRate + '¢/s × √strength',
+        pricewar: 'pricewarCut ' + money(B.pricewarCut) + ', one month, one rival at a time', snacks: 'snackBonus +' + pct(B.snackBonus) + ' per level', fleet: 'fleetRate ' + B.fleetRate + ' sales/s per level',
         plus: 'plusRate ' + B.plusRate + '¢/s per level' }[f] || '';
-      return [ed(D, 'features.' + f + '.name', 'text', 'Features › ' + F.name + ' › name'), { t: F.lv ? 'rival-only mod (levels: +' + B.featPerMonth + ' per month)' : 'feature (after losing a review)' },
+      return [ed(D, 'features.' + f + '.name', 'text', 'Features › ' + F.name + ' › name'), { t: F.lv ? 'rival-only mod (levels ×' + B.modGrow + ' per month, ×' + ((D.worlds[2] && D.worlds[2].modGrow) || B.modGrow) + ' in the new park)' : 'feature (after losing a review)' },
         ed(D, 'features.' + f + '.desc', 'text', 'Features › ' + F.name + ' › description'), { t: nums }];
-    }), 'Rival-only mods earn ×' + (D.worlds[2] && D.worlds[2].rivalK) + ' in the new park, and more with every Refresh Point you earned (× square root of your processing multiplier).'));
+    }), 'Rival-only mods earn ×' + ((D.worlds[1] && D.worlds[1].rivalK) || 1) + ' in the first park and ×' + (D.worlds[2] && D.worlds[2].rivalK) + ' in the new park, times (your Refresh processing bonus)^' + B.rivalPow + '.'));
     S.push({ id: 'rivals', title: 'Rivals', intro: headerOf(src['rivals.js']), blocks: rivBlocks });
 
     // 9. The park
@@ -352,9 +375,10 @@ var Wiki = (function () {
         return [{ t: D.weather[w].name }, ed(D, 'weather.' + w + '.chance', 'num', 'Park › weather ' + w + ' › chance'), ed(D, 'weather.' + w + '.traffic', 'num', 'Park › weather ' + w + ' › walk-ins ×')];
       })),
       table('Drinks', ['Drink', 'Colour'], Object.keys(D.drinks).map(function (d) { return [{ t: D.drinks[d].name }, { t: D.drinks[d].color, swatch: D.drinks[d].color }]; }), 'You start with: ' + D.startDrinks.join(', ') + '. Grape is a research.'),
-      table('The parks', ['Park', 'Machines (left to right)', 'Machine x positions', 'Rival-only mods ×'], Object.keys(D.worlds).map(function (w) {
+      table('The parks', ['Park', 'Machines (left to right)', 'Machine x positions', 'Rival-only mods ×', 'Mod levels × per month'], Object.keys(D.worlds).map(function (w) {
         var W = D.worlds[w];
-        return [{ t: w + ': ' + W.name }, { t: W.order.join(', ') }, { t: W.machineX.join(', ') }, W.rivalK ? ed(D, 'worlds.' + w + '.rivalK', 'num', 'Park › ' + W.name + ' › rival-only mods ×') : { t: '1' }];
+        return [{ t: w + ': ' + W.name }, { t: W.order.join(', ') }, { t: W.machineX.join(', ') }, W.rivalK ? ed(D, 'worlds.' + w + '.rivalK', 'num', 'Park › ' + W.name + ' › rival-only mods ×') : { t: '1' },
+          W.modGrow ? ed(D, 'worlds.' + w + '.modGrow', 'num', 'Park › ' + W.name + ' › mod levels × per month') : { t: B.modGrow + ' (balance.modGrow)' }];
       }))
     ] });
     return S;

@@ -49,13 +49,14 @@
       hold.on = true; hold.over = true; hold.acc = -0.15; hold.x = e.clientX; hold.y = e.clientY;   // keep holding = auto-click
     }
     else if (what.kind === 'crate') Engine.restock(S);
+    else if (what.kind === 'slot') UI.sideSlot(what.i);
   });
   canvas.addEventListener('mousemove', function () {
     canvas.classList.toggle('pointer', !!Scene.hoverTarget(S));
   });
 
   // Hold the mouse on your machine (or hold Space) = it clicks for you, B.holdCps times a second.
-  // Faster than that: click yourself. Held clicks do not count for a hack reboot (see Engine.promote).
+  // Faster than that: click yourself.
   var hold = { on: false, over: false, key: false, acc: 0, popT: 0, x: 0, y: 0 };
   function holdStop() { hold.on = false; hold.key = false; }
   canvas.addEventListener('pointermove', function (e) {
@@ -165,7 +166,6 @@
       ['Influencer', function () { S.run.goldT = 0; }],
       ['Quirk L', function () { S.run.machines[0].fx = null; S.run.machines[0].quirkT = 0; }],
       ['Quirk R', function () { S.run.machines[2].fx = null; S.run.machines[2].quirkT = 0; }],
-      ['Hack me', function () { var M = S.run.machines[0]; if (!Engine.hasFeat(M, 'hack')) M.features.push('hack'); M.hackUsed = false; S.run.qDay = Math.max(1, S.run.qDay); S.run.machines[1].rSales = M.rSales * 2 + 1600; }],
       ['Crypto R', function () { var M = S.run.machines[2]; if (!Engine.hasFeat(M, 'crypto')) M.features.push('crypto'); M.saySoon = 'crypto'; }],
       ['Carpet+', function () { var u = S.run.upgrades; u.carpet = Math.min(5, (u.carpet | 0) + 1); }],
       ['Win now', function () { var Y = S.run.machines[1]; Y.rSales = Math.max(Y.rSales, S.run.machines[0].rSales, S.run.machines[2].rSales) + 1000; endDay(B.daysPerQuarter - 1); }],
@@ -213,7 +213,7 @@
         if (R.machines[3]) { R.machines[3].features = ['crypto', 'fleet']; R.machines[3].featAt = { fleet: 2 }; R.machines[3].up = { sign: 3, coin: 2 }; }
         if (demo === 'bling') {
           R.upgrades.sign = 8; R.upgrades.cool = 6; R.upgrades.coin = 6;
-          R.machines[0].up = { coin: 5, sign: 6, cool: 4 }; R.machines[2].features = ['crypto', 'hack'];
+          R.machines[0].up = { coin: 5, sign: 6, cool: 4 }; R.machines[2].features = ['crypto', 'pricewar'];
         }
         for (var i = 0; i < 900; i++) { if (i % 4 === 0) Engine.promote(S); Engine.tick(S, 0.1); }
       } else if (demo === 'jail') {

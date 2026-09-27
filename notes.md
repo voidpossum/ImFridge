@@ -19,6 +19,13 @@ What a new session needs to know to keep working without re-deriving anything.
 - Bash heredocs with single quotes inside JS can break. Write snippets to the scratchpad with the Write tool, then splice them in with Python.
 
 ## Design decisions (locked)
+- **0.3.1 (2026-09-27): Cookie Clicker money.**
+  - Hardware processing in Mining pays a fixed amount per second, with no "tired" rates. The Refresh bonus is +2% per point.
+  - Followers grow with likes^0.3, and the online-order limit is fixed (40), so drones can catch up.
+  - No hacking. Price War lasts one month, one rival at a time.
+  - Side machines (new park) boost all money by % under a condition.
+  - Rival-only mods grow ×1.7/month (×1.9 in the new park) × (Refresh bonus)^1.5: a fixed curve, not tied to this run.
+  - Next: Gnorp-style talents as chips on VEND-3's board (0.3.2).
 - **0.3.0 (2026-09-27): worlds.** Chapter 1 = run 1 in the first park; every later run is in the new park (4 machines, VEND-3 centred, Grog). Processing → money (clicks, ads, mining) slows down within a run (`clickHalf`, `adHalf`, `mineHalf`), because Refresh Points multiply processing without limit. Rival-only mods scale with √ of your processing multiplier.
 - **0.2.8 (2026-09-27): rivals keep up with rival-only mods on a fixed monthly schedule** (not rubber-banding: not tied to your score). Smart Price = average of the rivals' own prices. Drones cost +35% per copy.
 - **0.2.1 (2026-09-27): research starts over every run.** Only the Refresh tree (constellations) and the Memory Book are permanent; tree "start with" stars give head starts. Followers who cannot fit in your line are online orders (drones deliver them); reviews come only from people at your machine and count per quarter.

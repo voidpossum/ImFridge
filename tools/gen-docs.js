@@ -9,7 +9,7 @@ var path = require('path');
 var vm = require('vm');
 
 var root = path.join(__dirname, '..');
-var files = ['core.js', 'cards.js', 'rivals.js', 'story.js', 'machine.js', 'hardware.js', 'research.js', 'tree.js', 'news.js'];
+var files = ['core.js', 'cards.js', 'rivals.js', 'story.js', 'machine.js', 'hardware.js', 'research.js', 'tree.js', 'news.js', 'side.js'];
 var src = {};
 files.forEach(function (f) {
   src[f] = fs.readFileSync(path.join(root, 'js/data', f), 'utf8');
