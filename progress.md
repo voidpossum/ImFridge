@@ -9,6 +9,26 @@ Last updated: 2026-09-28. Full design: the plan file, kept outside this repo (it
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
 
+## 0.3.3 (2026-09-28): inside the machine + talent chips
+- **Inside VEND-3:** the new Inside button (left of the menu buttons) or the I key; Esc or "Back to the park" closes it.
+  - `Scene.drawInside` is based on the approved mockup: the main board with the chip sockets, your real sodas, and hardware floors (Logic, Cooling, Graphics, Server Room, Drone Hangar).
+  - Items are drawn per copy with "×N"; locked ones show a padlock. Click one to buy it (with sparks).
+  - The DO NOT OPEN door gives three lines, once each (the wetware teaser).
+  - The game keeps running. VEND-3's lines show as notes while you are inside.
+  - The clickable parts are HTML buttons over the canvas (`#insideSpots`), so tooltips and the keyboard work.
+- **Talent chips** (`js/data/chips.js`, like Gnorp talents):
+  - 4 groups open by Refresh Points ever earned (25 / 150 / 500 / 1,500). Each group gives 1 socket and 1 free chip that is always on (Spare Parts, Regulars, Bulk Deal, Good Impression).
+  - 16 more chips to choose from, for example: Night Shift, Slow Burn, Two Cans, Word of Mouth, Flavor Lab, Emergency Can, Underdog, Momentum, Last-Minute Push.
+  - Chips stay through resets. A new chip warms up (amber light) and starts working at the next review or reset (Void Possum's choice).
+  - `Engine.chipGroups`, `chipSockets`, `chipChoices`, `activeChips` (cached), `openChips`, `setChip`, `knockDoor`. `fx()` includes active chips.
+  - New effect keys: `hw`, `hwRamp`, `free7`, `carry`, `fanSoft`, `lineMoney`, `noLeave`, `extraMult`, `reserve`, `streak`, `quirkSlow`.
+  - New conditions: `week_ge`, `notFirst`.
+  - `boostK` works without side machines now.
+  - `R.streak` counts reviews in a row where you were not last.
+- **Text:** VEND-3 says a line when a group opens, a Management mail explains chips, and a tutorial tip points at the Inside button. The Shop shows "Free (Spare Parts)".
+- **Save v10:** `meta.chips`, `run.streak`, `run.reserveT`. Void Possum's save opens the Board group (44 RP).
+- **Docs:** the wiki and `docs/game-data.md` have a Talent chips section. The wiki now also reads `side.js` and `chips.js` for their comments.
+
 ## 0.3.2 (2026-09-28): keep everything when you move, fans, sodas with their own price, stock that matters
 From Void Possum's Chapter 2 saves (`_8`, `_9`) and notes.
 - **Moving keeps everything.** After the Chapter 1 goal, "Move now" (or the new "Move to the new park" button in the pause menu) is not a reset.

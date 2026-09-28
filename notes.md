@@ -19,6 +19,10 @@ What a new session needs to know to keep working without re-deriving anything.
 - Bash heredocs with single quotes inside JS can break. Write snippets to the scratchpad with the Write tool, then splice them in with Python.
 
 ## Design decisions (locked)
+- **0.3.3 (2026-09-28): inside the machine + talent chips.**
+  - The Inside button (or I) shows VEND-3 cut open: the main board with sockets, your sodas, your hardware (click to buy) and the DO NOT OPEN door (the wetware, later).
+  - Chips are Gnorp-style talents in 4 groups, opened by Refresh Points ever earned (25 / 150 / 500 / 1,500). Each group gives 1 socket and 1 free chip that is always on.
+  - Chips stay through resets. You can swap anytime, but a new chip only starts working at the next review or reset (Void Possum's choice).
 - **0.3.2 (2026-09-28):**
   - Moving to the new park after the Chapter 1 goal is not a reset: you keep everything (Void Possum's choice).
   - No likes and no posting any more. Fans come from sales (soft cap), order online, and drones deliver them with cans from your machine.

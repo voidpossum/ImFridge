@@ -13,7 +13,7 @@ var vm = require('vm');
 
 var root = path.join(__dirname, '..');
 ['js/data/core.js', 'js/data/cards.js', 'js/data/rivals.js', 'js/data/story.js', 'js/data/machine.js',
- 'js/data/hardware.js', 'js/data/research.js', 'js/data/tree.js', 'js/data/news.js', 'js/data/side.js', 'js/engine.js'].forEach(function (f) {
+ 'js/data/hardware.js', 'js/data/research.js', 'js/data/tree.js', 'js/data/news.js', 'js/data/side.js', 'js/data/chips.js', 'js/engine.js'].forEach(function (f) {
   vm.runInThisContext(fs.readFileSync(path.join(root, f), 'utf8'), { filename: f });
 });
 
@@ -113,8 +113,10 @@ function simulate(profile, seed) {
         if (S.pause.res.strikes) strikes++;
         runs.push({ world: S.run.world, minutes: (now() - runStart) / 60, quarters: runQ, sales: Math.round(S.run.sales), rp: S.pause.res.rp, strikes: strikes, asked: !!S.pause.res.voluntary,
                     pps: Engine.pps(S), research: Object.keys(S.meta.research.done).length,
+                    chips: Engine.activeChips(S).map(function (c) { return c.id; }).join(' '),
                     side: (S.run.side || []).filter(Boolean).map(function (x) { return x.id + ' ' + x.lv; }).join(', '), hw: JSON.stringify(S.run.hw) });
         spendTree(S);
+        fillChips(S);
         Engine.startShift(S);
         runStart = now(); runQ = 0; strikes = 0; lastScore = 0;
       }
@@ -195,7 +197,7 @@ function simulate(profile, seed) {
       if (e.novel) novel.push(now());
       if (e.type === 'mine') mined += e.amount;
       if (e.type === 'restock') spend('restock', e.cost);
-      if (e.type === 'tube') spend('restock', DATA.balance.canCost);
+      if (e.type === 'tube' && !e.free) spend('restock', DATA.balance.canCost);
     });
     S.ev.length = 0;
   }
@@ -290,6 +292,17 @@ function shopping(S) {
   return Engine.buyUpgrade(S, best.id);
 }
 
+// Talent chips: fill every empty socket (a person would), with a fixed favourite order.
+function fillChips(S) {
+  var pref = ['burn', 'mouth', 'flavorlab', 'momentum', 'night', 'pleaser', 'emergency', 'underdog'];
+  Engine.chipSockets(S).forEach(function (s) {
+    if (s.id) return;
+    var free = Engine.chipChoices(S).filter(function (c) { return !c.used; }).map(function (c) { return c.id; });
+    var pick = pref.filter(function (id) { return free.indexOf(id) >= 0; })[0] || free[0];
+    if (pick) Engine.setChip(S, s.i, pick);
+  });
+}
+
 function spendTree(S) {
   var order = ['root', 'walletStart', 'carpetStart', 'spare', 'viral', 'notes', 'droneStart', 'face', 'signStart', 'reroll', 'refurb',
                'goldeye', 'autopilot', 'notebook', 'crate', 'fanMail', 'second', 'keepsake'];
@@ -318,7 +331,7 @@ Object.keys(PROFILES).filter(function (p) { return !only || p === only; }).forEa
     r.runs.forEach(function (run, n) {
       console.log('  run ' + (n + 1) + ' (world ' + run.world + '): ' + fmt(run.minutes) + ' min, ' + run.quarters + ' quarters, ' + Engine.money(run.sales) +
                   ', +' + run.rp + ' RP, processing ' + run.pps.toFixed(1) + '/s, research done ' + run.research + (run.asked ? ' (chose to reset)' : ' (3 strikes)') +
-                  (run.side ? ' | side: ' + run.side : '') + (args.indexOf('--hw') >= 0 ? ' | ' + run.hw : ''));
+                  (run.side ? ' | side: ' + run.side : '') + (run.chips ? ' | chips: ' + run.chips : '') + (args.indexOf('--hw') >= 0 ? ' | ' + run.hw : ''));
     });
     if (r.runs.length < maxRuns) console.log('  (unfinished run: ' + fmt(r.open.minutes) + ' min, ' + r.open.quarters + ' quarters, ' + Engine.money(r.open.sales) + ')');
     console.log('  hardware passes 4 clicks/s: ' + (r.hwBeat == null ? 'never' : fmt(r.hwBeat / 60) + ' min') + ' | opening done: ' + fmt((r.introAt || 0) / 60) + ' min | mined: ' + Engine.money(r.mined) + ' | first hardware: ' + fmt(r.firstAuto / 60) + ' min | dev mode: ' + fmt(r.jailAt / 60) + ' min | first trending click: ' +

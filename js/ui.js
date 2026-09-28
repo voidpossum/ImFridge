@@ -95,6 +95,7 @@ var UI = (function () {
     });
 
     el.rail.addEventListener('click', function (e) {
+      if (e.target.closest('[data-inside]')) { toggleInside(); return; }
       var b = e.target.closest('[data-tab]');
       if (!b) return;
       if (b.dataset.tab === tab && !settings.folded) { fold(true); panelSig = ''; Sfx.play('click'); renderRail(); }
@@ -194,7 +195,9 @@ var UI = (function () {
   function onKey(e) {
     if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
     var k = e.key.toLowerCase();
+    if (k === 'escape' && !e.repeat && !S.pause && Scene.view() === 'inside') { toggleInside(); e.preventDefault(); return; }
     if ((k === 'p' || k === 'escape') && !e.repeat && (!S.pause || S.pause.type === 'hold')) { togglePause(); e.preventDefault(); return; }
+    if (k === 'i' && !e.repeat && !S.pause && !S.run.intro) { toggleInside(); e.preventDefault(); return; }
     if (S.pause) {
       if (S.pause.type === 'review' && /^[1-4]$/.test(k)) { choose(+k - 1); e.preventDefault(); }
       if (k === 'enter' && !el.modal.hidden) { var p = el.modalBox.querySelector('.foot .primary'); if (p) { p.click(); e.preventDefault(); } }
@@ -212,6 +215,8 @@ var UI = (function () {
   function onEvent(e, quiet) {
     switch (e.type) {
       case 'say':
+        // Inside VEND-3 the park is hidden: lines come as a note instead of a speech bubble.
+        if (!quiet && Scene.view() === 'inside' && !e.delay) { toast(e.who, e.text, 'say'); if (tab !== 'log') dots.log = 1; break; }
         if (!quiet) {
           if (e.delay) setTimeout(function () { bubble(e); }, e.delay * 1000);
           else bubble(e);
@@ -507,6 +512,19 @@ var UI = (function () {
         (s.lv < D.max ? '<br>Next level: <span class="n">' + money(Engine.sideCost(s.id, s.lv)) + '</span>' : '<br>Fully upgraded.') +
         '<br><span class="d">Side machines are lost when you are reset.</span>';
     },
+    socket: function (i) {
+      var sk = Engine.chipSockets(S)[+i];
+      if (!sk) return '';
+      if (!sk.id) return '<b>Socket ' + (+i + 1) + ' (empty)</b><br>Click to put a chip in it.<br><span class="d">A new chip starts working at the next review.</span>';
+      var C = Engine.CHIP[sk.id];
+      return '<b>' + esc(C.name) + '</b> <span class="n">socket ' + (+i + 1) + '</span><br>' + esc(C.desc) + '<br>' +
+        (sk.warm ? '<b>Warming up:</b> it starts working at the next review.' : '<b>Working.</b>') + '<br><span class="d">Click to change it. Chips stay when you reset.</span>';
+    },
+    chip: function (id) {
+      var C = Engine.CHIP[id];
+      return C ? '<b>' + esc(C.name) + '</b> <span class="n">always on</span><br>' + esc(C.desc) + '<br><span class="d">Every group of sockets has one free chip that always works.</span>' : '';
+    },
+    door: function () { return '<b>DO NOT OPEN</b><br><span class="d">It is locked.</span>'; },
     wait: function () {
       var rt = Engine.rates(S), dr = Engine.droneRate(S);
       return '<b>' + Math.floor(S.run.waiting) + ' of ' + Engine.ordersCap(S) + ' online orders.</b><br>You have ' + num(rt.fans) + ' fans. They order online, then walk to your line when there is room.<br>' +
@@ -565,6 +583,7 @@ var UI = (function () {
     t += dt;
     placeBubbles();
     ordersSpot();
+    insideSpots();
     tvFrame(dt);
     faceT -= dt;
     if (faceT <= 0) { faceT = 0.12; drawFaces(); }
@@ -818,6 +837,7 @@ var UI = (function () {
       return Rs.points >= Engine.resCost(S, 'r_mining') ? 'research_pick' : 'research_bar';
     }
     if (Rs.done.r_mining && !tut.mine) return 'mine';
+    if (!tut.inside && Engine.chipGroups(S).length && Scene.view() !== 'inside') return 'inside';
     if (!tut.flavor && R.drinks.length === 1 && Engine.upgradeAvailable(S, 'lemon') && R.cash >= Engine.upgradeCost('lemon', 0)) return shopOpen() ? 'flavorRow' : 'flavor';
     var fresh = newItems();
     if (shopOpen()) fresh.forEach(function (k) { tut['nt_' + k] = 1; });
@@ -854,6 +874,7 @@ var UI = (function () {
         var g = R.customers.filter(function (c) { return c.gold; })[0];
         return g ? scene(g.x, g.y - 40, 'down') : null;
       case 'hardware': case 'flavor': return dom(el.rail.querySelector('[data-tab="shop"]'), 'right');
+      case 'inside': return dom(el.rail.querySelector('[data-inside]'), 'right');
       case 'flavorRow': return dom(el.panel.querySelector('[data-act="up"][data-id="lemon"]'), 'right');
       case 'hardwareRow': return dom(el.panel.querySelector('[data-act="hw"][data-id="script"]'), 'right');
       case 'price': return dom(mcs[YOU].price, 'down');
@@ -883,7 +904,9 @@ var UI = (function () {
   function renderRail() {
     var vis = TABS.filter(function (x) { return x.show(); });
     if (!vis.some(function (x) { return x.id === tab; })) tab = 'shop';
-    el.rail.innerHTML = vis.map(function (x) {
+    el.rail.innerHTML = (S.run.intro ? '' : '<button class="tab insideBtn' + (Scene.view() === 'inside' ? ' on' : '') + '" data-inside="1" data-tip="Inside VEND-3 (I)" aria-label="Inside VEND-3">' +
+        Icons.img('tabInside') + (insideDot() ? '<span class="dot"></span>' : '') + '</button>') +
+      vis.map(function (x) {
       return '<button class="tab' + (x.id === tab && !settings.folded ? ' on' : '') + '" data-tab="' + x.id + '" role="tab" data-tip="' + esc(x.name) + '" aria-label="' + esc(x.name) + '">' +
         Icons.img(x.icon) + (dots[x.id] && (x.id !== tab || settings.folded) ? '<span class="dot"></span>' : '') + '</button>';
     }).join('');
@@ -892,10 +915,10 @@ var UI = (function () {
     panelSig = '';
   }
 
-  var lastTabCount = 0;
+  var lastTabCount = 0, lastRailKey = '';
   function renderPanel() {
-    var vis = TABS.filter(function (x) { return x.show(); }).length;
-    if (vis !== lastTabCount) { lastTabCount = vis; renderRail(); }
+    var vis = TABS.filter(function (x) { return x.show(); }).length, rk = vis + (insideDot() ? 'd' : '') + (S.run.intro ? 'i' : '');
+    if (rk !== lastRailKey) { lastRailKey = rk; lastTabCount = vis; renderRail(); }
     if (settings.folded) return;
     var P = PANELS[tab];
     var sig = tab + '|' + P.sig();
@@ -976,7 +999,7 @@ var UI = (function () {
         var R = S.run;
         el.panel.querySelectorAll('.row[data-act="hw"]').forEach(function (b) {
           var id = b.dataset.id, n = buyCount(id), cost = Engine.hwCostN(S, id, n);
-          setText(b.querySelector('.cost'), money(cost) + (n > 1 ? '  (×' + n + ')' : ''));
+          setText(b.querySelector('.cost'), (cost > 0 ? money(cost) : 'Free (Spare Parts)') + (n > 1 ? '  (×' + n + ')' : ''));
           // What one more copy adds (Cookie Clicker shows this too): money per second, or deliveries for drones.
           var g = Engine.HW[id].pps ? Engine.hwGain(S, id) : 0;
           setText(b.querySelector('.gain'), Engine.HW[id].pps ? (g > 0 ? '+' + money(g) + '/s' : '') :
@@ -1287,6 +1310,60 @@ var UI = (function () {
     return h;
   }
   // A click on a side slot (in the park or in the Shop).
+  // ───────────────────────── inside VEND-3 (the cut-away with the chip sockets)
+  function insideDot() {
+    return Engine.chipSockets(S).some(function (s) { return !s.id; }) && !S.meta.tut.chipPlaced;
+  }
+  function toggleInside() {
+    var on = Scene.view() !== 'inside';
+    Scene.setView(on ? 'inside' : 'park');
+    el.bubbles.parentNode.classList.toggle('inside', on);
+    if (on) S.meta.tut.inside = 1;
+    insideSig = '';
+    renderRail();
+    Sfx.play('click');
+  }
+  // Buttons over the parts of the cut-away (so they have tooltips and work with the keyboard).
+  var insideBox = null, insideSig = '';
+  function insideSpots() {
+    var on = Scene.view() === 'inside';
+    if (!insideBox) {
+      insideBox = document.createElement('div');
+      insideBox.id = 'insideSpots';
+      insideBox.addEventListener('click', function (e) {
+        var b = e.target.closest('button');
+        if (!b || S.pause) return;
+        api.unlock();
+        var k = b.dataset.kind, id = b.dataset.id;
+        if (k === 'back') toggleInside();
+        else if (k === 'hw') { if (Engine.buyHardware(S, id, 1) > 0) { Sfx.play('coin'); Scene.insideSpark(id); } else Sfx.play('nope'); }
+        else if (k === 'socket') { if (Engine.openChips(S, +id)) Sfx.play('click'); }
+        else if (k === 'door') { Engine.knockDoor(S); Sfx.play('thunk'); }
+      });
+      el.bubbles.parentNode.appendChild(insideBox);
+    }
+    insideBox.hidden = !on;
+    if (!on) return;
+    var rects = Scene.insideRects(), sz = Scene.size();
+    var sig = sz.W + 'x' + sz.H + ':' + $('scene').clientWidth + ':' + rects.map(function (r) { return r.kind + (r.id != null ? r.id : r.i); }).join(',');
+    if (sig === insideSig) return;
+    insideSig = sig;
+    var tip = { hw: 'hw:', socket: 'socket:', free: 'chip:', door: 'door' };
+    insideBox.innerHTML = '<button class="btn back" data-kind="back">&larr; Back to the park <span class="hintKey">Esc</span></button>' +
+      rects.map(function (r) {
+        var a = Scene.toScreen(r.x, r.y), b = Scene.toScreen(r.x + r.w, r.y + r.h), id = r.id != null ? r.id : r.i;
+        return '<button class="spot" data-kind="' + r.kind + '" data-id="' + id + '" data-tipfn="' + tip[r.kind] + (r.kind === 'door' ? '' : id) + '" aria-label="' + esc(r.kind + ' ' + id) + '" style="left:' + a.x + 'px;top:' + a.y + 'px;width:' + (b.x - a.x) + 'px;height:' + (b.y - a.y) + 'px"></button>';
+      }).join('');
+  }
+  var chipImgs = {};
+  function chipImg(id) {
+    if (chipImgs[id]) return chipImgs[id];
+    var C = Engine.CHIP[id], c = document.createElement('canvas'); c.width = 22; c.height = 16;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    Sprites.chip(g, 2, 3, Scene.chipLabel(C.name), Scene.chipColor(C.group), null, 0);
+    return (chipImgs[id] = c.toDataURL());
+  }
+
   function sideSlot(i) {
     var s = Engine.sideSlots(S)[i];
     if (!s) return;
@@ -1301,6 +1378,7 @@ var UI = (function () {
     var P = S.pause;
     var show = P && P.type !== 'reset';
     var sig = show ? P.type + (P.id || '') + JSON.stringify(P.res ? [P.res.offer, P.res.rerolls] : '') + (P.type === 'hold' ? PANELS.settings.sig() : '') +
+      (P.type === 'chips' ? P.slot + JSON.stringify(S.meta.chips) : '') +
       (P.type === 'side' ? P.slot + DATA.side.map(function (d) { return S.run.cash >= Engine.sideCost(d.id, 0) ? 1 : 0; }).join('') : '') : '';
     if (sig === modalSig) return;
     modalSig = sig;
@@ -1341,6 +1419,26 @@ var UI = (function () {
 
   var MODALS = {
     // Pick a side machine for an empty slot (the game waits while this is open).
+    chips: function (P) {
+      var sk = Engine.chipSockets(S)[P.slot] || {}, choices = Engine.chipChoices(S), socks = Engine.chipSockets(S);
+      var h = '<h2>Socket ' + (P.slot + 1) + ': pick a chip</h2>' +
+        '<p class="muted">A new chip starts working at the next review. You can change it anytime. Chips stay when you reset.</p>';
+      Engine.chipGroups(S).forEach(function (g) {
+        var F = Engine.CHIP[g.free];
+        h += '<h3 class="chipGroup" style="color:' + g.color + '">' + esc(g.name) + ' <span class="muted">· always on: ' + esc(F.name) + '</span></h3><div class="chipPick">';
+        choices.filter(function (c) { return Engine.CHIP[c.id].group === g.id; }).forEach(function (c) {
+          var C = Engine.CHIP[c.id], here = sk.id === c.id, where = -1;
+          socks.forEach(function (s2) { if (s2.id === c.id) where = s2.i; });
+          h += '<button class="chipOpt' + (here ? ' here' : '') + '" data-act="chippick" data-id="' + c.id + '">' +
+            '<img src="' + chipImg(c.id) + '" alt=""><span class="txt"><b>' + esc(C.name) + '</b><span class="d">' + esc(C.desc) + '</span>' +
+            (here ? '<span class="when">In this socket' + (sk.warm ? ' (warming up)' : '') + '</span>' : where >= 0 ? '<span class="when">In socket ' + (where + 1) + ': moves here</span>' : '') +
+            '</span></button>';
+        });
+        h += '</div>';
+      });
+      return h + '<div class="foot">' + (sk.id ? '<button class="btn" data-act="chipout">Take it out</button>' : '') + '<button class="btn primary" data-act="close">Done</button></div>';
+    },
+
     side: function (P) {
       var h = '<h2>Pick a machine for the ' + (P.slot ? 'right' : 'left') + ' slot</h2>' +
         '<p class="muted">It stands next to VEND-3 and earns for you this run. Buy more levels in the Shop.</p><div class="sidePick">';
@@ -1448,6 +1546,8 @@ var UI = (function () {
     else if (act === 'pick') choose(+b.dataset.n);
     else if (act === 'reroll') { Engine.reroll(S); Sfx.play('card'); }
     else if (act === 'close') { Engine.closeInfo(S); Sfx.play('click'); }
+    else if (act === 'chippick') { if (Engine.setChip(S, S.pause.slot, b.dataset.id)) Sfx.play('coin'); }
+    else if (act === 'chipout') { Engine.setChip(S, S.pause.slot, null); Sfx.play('click'); }
     else if (act === 'sidepick') { if (Engine.pickSide(S, S.pause.slot, b.dataset.id)) Sfx.play('coin'); else Sfx.play('nope'); }
     else if (act === 'move') { Engine.closeInfo(S); Engine.moveWorld(S); Sfx.play('click'); }   // Chapter 2: move to the new park (no reset)
     else onPanelClick(e);   // settings inside the pause menu

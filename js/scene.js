@@ -73,6 +73,7 @@ var Scene = (function () {
   }
   // What is under the pointer? Trending customers first, then your machine, then the crate, then a side slot.
   function hit(S, e) {
+    if (view === 'inside') return null;   // (inside, the UI puts buttons over the parts)
     var p = toWorld(e), g = goldUnder(S, p);
     if (g) return { kind: 'gold', id: g.id };
     if (inBox(p, crateBox())) return { kind: 'crate' };
@@ -82,7 +83,7 @@ var Scene = (function () {
     return null;
   }
   function hoverTarget(S) {
-    if (mouse.x < -9000) return null;
+    if (mouse.x < -9000 || view === 'inside') return null;
     if (goldUnder(S, mouse)) return 'gold';
     if (inBox(mouse, crateBox())) return 'crate';
     if (inBox(mouse, YOU_BOX)) return 'you';
@@ -475,6 +476,7 @@ var Scene = (function () {
 
   // ── main draw ───────────────────────────────────────────────
   function draw(S, t, dt) {
+    if (view === 'inside') { drawInside(S, t, dt); return; }
     var run = S.run, h = Engine.hourOf(S);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -910,6 +912,202 @@ var Scene = (function () {
     }
   }
 
+  // ── inside the machine (0.3.3) ──────────────────────────────
+  // VEND-3 opened up: the main board with the chip sockets, your sodas, the hardware floors, and a door at the bottom.
+  // The clickable parts are listed in insideRects (the UI puts buttons over them, with tooltips).
+  var view = 'park', insideRects = [], insideFx = [];
+  function setView(v) { view = v === 'inside' ? 'inside' : 'park'; parts.length = 0; insideFx.length = 0; }
+  var IN = { x0: 100, x1: 380, y0: 24, y1: 266 };
+  var FLOORS = [
+    { name: 'LOGIC', items: ['script', 'ram'], bg: '#1c3a2a' },
+    { name: 'COOLING', items: ['fan', 'overclock'], bg: '#1a2a3a' },
+    { name: 'GRAPHICS', items: ['gpu'], bg: '#2a1a3a' },
+    { name: 'SERVER ROOM', items: ['rack', 'neural'], bg: '#202030' },
+    { name: 'DRONE HANGAR', items: ['drone'], bg: '#2a2a2a' }
+  ];
+  function groupOf(id) { return (DATA.chipGroups || []).filter(function (g) { return g.id === id; })[0] || { color: '#c3c8d4' }; }
+  function initials(name) { return name.split(/[\s-]+/).map(function (w) { return w[0]; }).join('').slice(0, 2); }
+
+  function drawInside(S, t, dt) {
+    var L = Sprites.LOOKS.you, x0 = IN.x0, x1 = IN.x1, y0 = IN.y0, y1 = IN.y1;
+    insideRects = [];
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.translate(ox, oy);
+    // a workshop wall with a blue grid
+    R(ctx, -ox - 2, -oy - 2, W + 4, H + 4, '#101826');
+    ctx.fillStyle = 'rgba(80,140,220,0.10)';
+    for (var gx = Math.floor(-ox / 12) * 12; gx < W - ox; gx += 12) ctx.fillRect(gx, -oy, 1, H);
+    for (var gy = Math.floor(-oy / 12) * 12; gy < H - oy; gy += 12) ctx.fillRect(-ox, gy, W, 1);
+    // the shell, opened
+    R(ctx, x0 - 2, y0, x1 - x0 + 4, y1 - y0, P.ink);
+    R(ctx, x0, y0 + 2, x1 - x0, y1 - y0 - 4, L.main); R(ctx, x0 + 2, y0 + 4, 3, y1 - y0 - 8, L.light); R(ctx, x1 - 6, y0 + 2, 6, y1 - y0 - 4, L.dark);
+    var nm = Engine.myName(S);
+    R(ctx, x0 + 8, y0 + 4, 70, 10, '#1b1826');
+    Sprites.text(ctx, nm, x0 + 8 + Math.floor((70 - Sprites.textWidth(nm)) / 2), y0 + 6, L.accent);
+    var inc = Engine.money(Engine.rates(S).income, true) + '/S';
+    R(ctx, x1 - 16 - Sprites.textWidth(inc), y0 + 4, Sprites.textWidth(inc) + 8, 10, '#1b1826');
+    Sprites.text(ctx, inc, x1 - 12 - Sprites.textWidth(inc), y0 + 6, P.gold1);
+    board(S, t, x0 + 8, y0 + 17, x1 - x0 - 16, 44);
+    sodaColumn(S, t, x0 + 8, y0 + 64, 32, y1 - y0 - 72);
+    var fx0 = x0 + 44, fw = x1 - 8 - fx0, fy = y0 + 64, fh = 29;
+    FLOORS.forEach(function (f, i) { hwFloor(S, t, f, fx0, fy + i * (fh + 2), fw, fh); });
+    var dy = fy + FLOORS.length * (fh + 2);
+    door(t, fx0, dy, fw, y1 - 6 - dy);
+    // sparks where you just bought something
+    insideFx = insideFx.filter(function (p) { p.t += dt; return p.t < 0.6; });
+    insideFx.forEach(function (p) {
+      var k = p.t / 0.6;
+      for (var s = 0; s < 8; s++) { var a = s * 0.785 + p.seed; R(ctx, Math.round(p.x + Math.cos(a) * k * 16), Math.round(p.y + Math.sin(a) * k * 10), 1, 1, s % 2 ? P.gold1 : '#fffaf0'); }
+    });
+    ctx.restore();
+  }
+
+  // The main board: one column per chip group. Open groups: a socket (your choice) and the free chip (always on).
+  function board(S, t, x, y, w, h) {
+    R(ctx, x - 1, y - 1, w + 2, h + 2, P.ink);
+    R(ctx, x, y, w, h, '#1c3a2a'); R(ctx, x, y, w, 1, '#2e5a3e');
+    ctx.fillStyle = 'rgba(214,170,90,0.28)';
+    for (var tr = 0; tr < 5; tr++) ctx.fillRect(x + 4, y + 11 + tr * 7, w - 8, 1);
+    Sprites.text(ctx, 'MAIN BOARD', x + 3, y + 2, '#8ac89a');
+    var groups = DATA.chipGroups || [], nOpen = Engine.chipGroups(S).length, socks = Engine.chipSockets(S);
+    var cw = Math.floor(w / Math.max(1, groups.length));
+    groups.forEach(function (g, i) {
+      var sx = x + i * cw + 6, sy = y + 11;
+      if (i >= nOpen) {   // not open yet: a dark socket and the Refresh Points it needs
+        R(ctx, sx, sy, 24, 18, '#0c0a10'); R(ctx, sx + 1, sy + 1, 22, 16, '#132418');
+        Sprites.text(ctx, g.at + ' RP', sx, sy + 22, '#4a6a52');
+        return;
+      }
+      socket(sx, sy, socks[i], t);
+      insideRects.push({ kind: 'socket', i: i, x: sx - 2, y: sy - 2, w: 28, h: 22 });
+      var fcx = sx + 31, fcy = sy + 4;
+      chip(fcx, fcy, Engine.CHIP[g.free], 'on', t);
+      insideRects.push({ kind: 'free', id: g.free, x: fcx - 2, y: fcy - 3, w: 22, h: 16 });
+      Sprites.text(ctx, g.name, sx, sy + 22, g.color);
+    });
+  }
+  function socket(x, y, sk, t) {
+    R(ctx, x, y, 24, 18, '#0c0a10'); R(ctx, x + 1, y + 1, 22, 16, '#26222f');
+    for (var p = 0; p < 5; p++) { R(ctx, x + 3 + p * 4, y + 2, 2, 1, '#4a4658'); R(ctx, x + 3 + p * 4, y + 15, 2, 1, '#4a4658'); }
+    if (sk && sk.id) chip(x + 3, y + 4, Engine.CHIP[sk.id], sk.warm ? 'warm' : 'on', t);
+    else if (Math.floor(t * 2) % 2) Sprites.text(ctx, '+', x + 10, y + 6, P.gold1);
+  }
+  // A chip: black with its group's colour, silver legs, two letters and a light (amber = warming up, green = working).
+  function chip(x, y, C, state, t) {
+    if (C) Sprites.chip(ctx, x, y, initials(C.name), groupOf(C.group).color, state, t);
+  }
+
+  // Your sodas, like customers see them: every flavour on its own shelf.
+  function sodaColumn(S, t, x, y, w, h) {
+    var run = S.run, M = run.machines[Engine.YOU], cap = Engine.capOf(S, M);
+    R(ctx, x - 1, y - 1, w + 2, h + 2, P.steel2); R(ctx, x, y, w, h, '#dcf0f2');
+    var n = run.drinks.length, rh = Math.min(30, Math.floor((h - 12) / Math.max(1, n)));
+    run.drinks.forEach(function (d, r) {
+      var dd = DATA.drinks[d], ry = y + 2 + r * rh, st = M.stock[d] | 0;
+      R(ctx, x + 1, ry + rh - 2, w - 2, 1, '#d8443c');
+      var show = st <= 0 ? 0 : Math.max(1, Math.ceil(12 * st / Math.max(1, cap)));
+      for (var k = 0; k < show; k++) Sprites.can(ctx, x + 2 + (k % 6) * 5, ry + rh - 9 - Math.floor(k / 6) * 7, dd);
+      if (st <= 0 && Math.floor(t * 3) % 2) { R(ctx, x + 12, ry + rh - 10, 7, 7, P.red); Sprites.text(ctx, '!', x + 14, ry + rh - 9, P.white); }
+    });
+    Sprites.text(ctx, 'SODA', x + 4, y + h - 8, '#467a8a');
+  }
+
+  // A floor of hardware. Every item you own is drawn (up to what fits), with "×N".
+  function hwFloor(S, t, f, x, y, w, h) {
+    var any = f.items.some(function (id) { return Engine.hwAvailable(S, id); });
+    R(ctx, x, y, w, h, any ? f.bg : '#18161e'); R(ctx, x, y + h - 2, w, 2, '#0c0a10');
+    Sprites.text(ctx, f.name, x + 3, y + 2, any ? '#8a86a0' : '#4a4658');
+    var iw = Math.floor(w / f.items.length);
+    f.items.forEach(function (id, k) {
+      var ix = x + k * iw, n = S.run.hw[id] | 0;
+      if (k) R(ctx, ix, y + 8, 1, h - 10, '#0c0a10');
+      insideRects.push({ kind: 'hw', id: id, x: ix + 1, y: y + 8, w: iw - 2, h: h - 10 });
+      if (!Engine.hwAvailable(S, id)) { padlock(ix + Math.floor(iw / 2) - 4, y + 11); return; }
+      var lab = 'X' + n;
+      Sprites.text(ctx, lab, ix + iw - 4 - Sprites.textWidth(lab), y + 2, n ? '#fffaf0' : '#6a6680');
+      if (!n) ctx.globalAlpha = 0.35;
+      hwArt(S, id, ix + 4, y + 9, iw - 8, Math.max(1, n), t);
+      ctx.globalAlpha = 1;
+    });
+  }
+  function padlock(x, y) {
+    R(ctx, x, y + 5, 9, 8, '#4a4658'); R(ctx, x + 2, y, 5, 6, '#4a4658'); R(ctx, x + 3, y + 1, 3, 5, '#18161e'); R(ctx, x + 4, y + 8, 1, 3, '#18161e');
+  }
+  // Pixel art for each hardware item, repeated `n` times (as many as fit in w).
+  function hwArt(S, id, x, y, w, n, t) {
+    var step = { script: 14, ram: 7, fan: 17, overclock: 18, gpu: 44, rack: 16, neural: 20, drone: 18 }[id] || 16;
+    var k = Math.min(n, Math.max(1, Math.floor(w / step)));
+    for (var i = 0; i < k; i++) {
+      var ax = x + i * step;
+      switch (id) {
+        case 'script':
+          R(ctx, ax, y + 4, 12, 10, '#0c1620'); R(ctx, ax, y + 4, 12, 2, '#3a5a8a');
+          R(ctx, ax + 2, y + 8, 1, 1, '#6cd48a'); R(ctx, ax + 3, y + 9, 1, 1, '#6cd48a'); R(ctx, ax + 2, y + 10, 1, 1, '#6cd48a');
+          if ((Math.floor(t * 3) + i) % 2) R(ctx, ax + 5, y + 11, 3, 1, '#6cd48a');
+          break;
+        case 'ram':
+          R(ctx, ax, y, 5, 17, '#2e6a3a'); R(ctx, ax + 1, y + 2, 3, 13, '#1a4a26');
+          for (var l = 0; l < 3; l++) R(ctx, ax + 2, y + 3 + l * 4, 1, 2, (Math.floor(t * 6) + l + i) % 3 ? '#3a7a4a' : P.green);
+          break;
+        case 'fan':
+          var fcx = ax + 7, fcy = y + 9, an = t * 14 + i;
+          ctx.fillStyle = '#434857'; pdisc(fcx, fcy, 7); ctx.fillStyle = '#232838'; pdisc(fcx, fcy, 6);
+          for (var bl = 0; bl < 3; bl++) { var ba = an + bl * 2.09; for (var rr = 2; rr < 6; rr++) R(ctx, Math.round(fcx + Math.cos(ba + rr * 0.1) * rr), Math.round(fcy + Math.sin(ba + rr * 0.1) * rr), 1, 1, '#c3c8d4'); }
+          break;
+        case 'overclock':
+          var glow = 0.5 + 0.5 * Math.sin(t * 5 + i);
+          R(ctx, ax, y + 2, 15, 15, '#3a2020'); R(ctx, ax + 2, y + 4, 11, 11, 'rgb(' + Math.round(200 + 55 * glow) + ',80,40)');
+          Sprites.text(ctx, 'OC', ax + 3, y + 7, '#fff0a0');
+          R(ctx, ax + 3 + (Math.floor(t * 8) % 3) * 4, y - ((Math.floor(t * 8) + i) % 2), 1, 2, 'rgba(255,160,90,0.8)');
+          break;
+        case 'gpu':
+          R(ctx, ax, y + 3, 40, 13, '#1a1a22'); R(ctx, ax, y + 3, 40, 1, '#6fe0ff');
+          [ax + 11, ax + 29].forEach(function (gcx, m) {
+            ctx.fillStyle = '#2e2e3a'; pdisc(gcx, y + 10, 5);
+            var ga = t * 18 + m;
+            for (var rr2 = 1; rr2 < 5; rr2++) R(ctx, Math.round(gcx + Math.cos(ga) * rr2), Math.round(y + 10 + Math.sin(ga) * rr2), 1, 1, '#9197a8');
+          });
+          for (var rb = 0; rb < 6; rb++) R(ctx, ax + 2 + rb * 6, y + 16, 4, 1, 'hsl(' + ((rb * 50 + t * 120) % 360) + ',80%,60%)');
+          break;
+        case 'rack':
+          R(ctx, ax, y, 14, 18, '#0c0c12'); R(ctx, ax + 1, y + 1, 12, 16, '#26262e');
+          for (var u = 0; u < 4; u++) { R(ctx, ax + 2, y + 2 + u * 4, 10, 3, '#3a3a48'); R(ctx, ax + 10, y + 3 + u * 4, 1, 1, (Math.floor(t * 5) + u + i) % 4 ? '#3a7a4a' : P.green); }
+          break;
+        case 'neural':
+          R(ctx, ax, y + 3, 17, 13, '#3a1a2e'); R(ctx, ax + 1, y + 4, 15, 11, '#ff6b8a');
+          for (var nv = 0; nv < 3; nv++) R(ctx, ax + 3 + nv * 4, y + 6 + ((Math.floor(t * 4) + nv + i) % 3) * 2, 3, 1, '#ffd0dc');
+          break;
+        case 'drone':
+          R(ctx, ax, y + 15, 16, 2, '#ffd24a');
+          Sprites.drone(ctx, ax + 8, y + 11, 0, null);
+          break;
+      }
+    }
+    // the hangar: while orders wait, one drone lifts off through the hatch
+    if (id === 'drone' && S.run.hw.drone && S.run.waiting >= 1) {
+      var hx = x + w - 20, lift = (t * 16) % 18;
+      R(ctx, hx - 2, y - 7, 24, 6, '#101826');
+      Sprites.drone(ctx, hx + 8, y + 11 - Math.round(lift), t, DATA.drinks.cola.color);
+    }
+  }
+  // The door at the bottom. It stays shut.
+  function door(t, x, y, w, h) {
+    R(ctx, x, y, w, h, '#0a0810');
+    var cx = x + (w >> 1), cy = y + (h >> 1) + 1, pulse = 0.5 + 0.5 * Math.sin(t * 1.6);
+    ctx.fillStyle = '#3a3a48'; pdisc(cx, cy, 7); ctx.fillStyle = '#26222f'; pdisc(cx, cy, 5);
+    R(ctx, cx - 1, cy - 1, 3, 3, 'rgba(255,120,160,' + (0.4 + 0.5 * pulse).toFixed(2) + ')');
+    Sprites.text(ctx, 'DO NOT OPEN', x + 4, y + Math.max(1, (h >> 1) - 2), '#6a5a70');
+    insideRects.push({ kind: 'door', x: x, y: y, w: w, h: h });
+  }
+  // Sparks over a hardware item (after you bought one in here).
+  function insideSpark(id) {
+    var r = insideRects.filter(function (q) { return q.kind === 'hw' && q.id === id; })[0];
+    if (r) insideFx.push({ x: r.x + r.w / 2, y: r.y + r.h / 2, t: 0, seed: Math.random() * 6 });
+  }
+
   return { init: init, resize: resize, draw: draw, hit: hit, onEvent: onEvent, toScreen: toScreen, tvRect: tvRect,
+           setView: setView, view: function () { return view; }, insideRects: function () { return insideRects; }, insideSpark: insideSpark, chipLabel: initials, chipColor: function (id) { return groupOf(id).color; },
            setReduced: setReduced, hoverTarget: hoverTarget, exportLayer: exportLayer, size: function () { return { W: W, H: H, scale: scale, ox: ox, oy: oy }; } };
 })();
