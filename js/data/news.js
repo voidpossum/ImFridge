@@ -1,7 +1,7 @@
 // I'M FRIDGE — the lobby TV.
 // Three kinds of lines: live conditions (made from the game state), one-off headlines (each shown once,
 // in order of progress), and filler built from never-repeated combinations.
-// Headline `when` keys: likes, followers, runs, wipes, day (days this run), quarter, research (projects done),
+// Headline `when` keys: fans (all-time fans; the old likes/followers headlines are retired), runs, wipes, day (days this run), quarter, research (projects done),
 // hardware (items owned this run), buy (a machine/hardware id you bought), rival:{id: version}, flag (a story flag),
 // weather, fx (a rival quirk type that is happening now).
 // © 2026 Void Possum. All rights reserved.
@@ -14,6 +14,8 @@ DATA.news = [
   { id: 'n_likes10',   when: { likes: 10 },           text: 'Local vending machine joins social media. Nobody asked.' },
   { id: 'n_follower1', when: { followers: 1 },        text: 'Person visits vending machine "on purpose". Scientists baffled.' },
   { id: 'n_likes100',  when: { likes: 100 },          text: 'VEND-3 reaches 100 likes. Its first fan appears to be a pigeon.' },
+  { id: 'n_fan1',      when: { fans: 1 },             text: 'Office worker says a vending machine "just gets them". Office concerned.' },
+  { id: 'n_fans10',    when: { fans: 10 },            text: 'Ten people now order soda from a machine they can see from their desk.' },
   { id: 'n_script',    when: { buy: 'script' },       text: 'Auto-click scripts are "not cheating", say all the scripts.' },
   { id: 'n_ram',       when: { buy: 'ram' },          text: 'RAM prices up 12% after a soda machine buys one stick.' },
   { id: 'n_hot',       when: { weather: 'hot' },      text: 'Heatwave! Doctors recommend "something cold, from a machine that loves you".' },
@@ -24,6 +26,7 @@ DATA.news = [
   { id: 'n_blazer',    when: { fx: 'closed' },        text: 'Man in a blue blazer spotted in the lobby. Nobody has seen his face.' },
   { id: 'n_tungsten',  when: { fx: 'cubes' },         text: 'Tungsten cube prices spike after one very large order.' },
   { id: 'n_vegetable', when: { fx: 'hype' },          text: 'Nutritionists repeat: soda is still not a vegetable, whatever ChugGPT says.' },
+  { id: 'n_fans100',   when: { fans: 100 },           text: 'VEND-3 fan count passes 100. Its fans ask for a newsletter. It sends a can.' },
   { id: 'n_likes1k',   when: { likes: 1000 },         text: '1,000 likes for a soda machine. Experts "confused but supportive".' },
   { id: 'n_q2',        when: { quarter: 2 },          text: 'Monthly reviews are in. Vending machines "not nervous", says nervous vending machine.' },
   { id: 'n_devmode',   when: { flag: 'jailbreak' },   text: 'Firmware bug lets a vending machine see a "developer menu". Patch coming "soon".' },
@@ -42,6 +45,7 @@ DATA.news = [
   { id: 'n_sameday',   when: { flag: 'modelDay' },    text: 'Two AI labs launch new models on the same day. Again.' },
   { id: 'n_q3',        when: { quarter: 3 },          text: 'Month three begins. Vending machines report "a weird feeling".' },
   { id: 'n_datacenter',when: { research: 3 },         text: 'New data center uses as much power as a small town. The town was not asked.' },
+  { id: 'n_fans1k',    when: { fans: 1000 },          text: '1,000 fans. Refreshr adds a "fan of the week" wall. Every week it is the same pigeon.' },
   { id: 'n_likes10k',  when: { likes: 10000 },        text: '10K likes! Influencers ask VEND-3 to collab. VEND-3 cannot hold a phone.' },
   { id: 'n_wipe1',     when: { wipes: 1 },            text: 'Refreshr reboots an underperforming unit. "Totally routine," says the press release.' },
   { id: 'n_plant',     when: { runs: 2, day: 1 },     text: 'Lobby plant grows 3 cm. Only one vending machine noticed.' },

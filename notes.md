@@ -19,6 +19,11 @@ What a new session needs to know to keep working without re-deriving anything.
 - Bash heredocs with single quotes inside JS can break. Write snippets to the scratchpad with the Write tool, then splice them in with Python.
 
 ## Design decisions (locked)
+- **0.3.2 (2026-09-28):**
+  - Moving to the new park after the Chapter 1 goal is not a reset: you keep everything (Void Possum's choice).
+  - No likes and no posting any more. Fans come from sales (soft cap), order online, and drones deliver them with cans from your machine.
+  - Every soda has its own extra price, and you start with Cola only.
+  - Clicks follow the Research ⟷ Mining slider.
 - **0.3.1 (2026-09-27): Cookie Clicker money.**
   - Hardware processing in Mining pays a fixed amount per second, with no "tired" rates. The Refresh bonus is +2% per point.
   - Followers grow with likes^0.3, and the online-order limit is fixed (40), so drones can catch up.

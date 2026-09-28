@@ -8,7 +8,7 @@
 //   cold     cold bonus (stronger on hot days)
 //   restock  restock cost reduction
 //   click    extra processing per click
-//   likes    more likes from posting
+//   fans     more fans from customers
 //   review   extra review cash bonus
 // Conditions (c): price_le / price_ge (your price), daypart, weather, cust (customer type)
 // © 2026 Void Possum. All rights reserved.

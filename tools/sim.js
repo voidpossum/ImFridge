@@ -61,7 +61,7 @@ function simulate(profile, seed) {
   var ch1Rivals = '', ch2 = null;
   var runs = [], runStart = 0, runQ = 0, ch1At = null, firstAuto = null, jailAt = null, firstGold = null, introAt = null, mined = 0;
   var capLimited = 0, capTotal = 0, strikes = 0, lastScore = 0, scoreDrops = 0;
-  var droneT = 0, droneKeep = 0, droneZero = 0, dIn = 0, dOut = 0, lineN = 0, lineMonths = 0;
+  var droneT = 0, droneKeep = 0, droneZero = 0, dIn = 0, dOut = 0, lineN = 0, lineMonths = 0, moveAt = null, emptyT = 0, liveT = 0, soldN = 0, flavorN = 0;
   JUMPS = { any: [], first: [] };
   var rnd = mulberry(seed * 7 + 3);
   var guard = 0;
@@ -83,23 +83,25 @@ function simulate(profile, seed) {
         var chId = t === 'chapter' ? S.pause.id : null;
         if (chId === 'ch2win') {
           var ms2 = S.run.machines, y2 = ms2[Engine.YOU].rSales;
-          ch2 = fmt(now() / 60) + ' min into the game, ' + fmt((now() - runStart) / 60) + ' min into run ' + (runs.length + 1) + ' | rivals had ' +
+          ch2 = fmt(now() / 60) + ' min into the game, ' + fmt((now() - Math.max(runStart, moveAt || 0)) / 60) + ' min ' + (moveAt != null && moveAt > runStart ? 'after the move' : 'into run ' + (runs.length + 1)) + ' | rivals had ' +
                 ms2.filter(function (M) { return M.idx !== Engine.YOU; }).map(function (M) { return M.id + ' ' + Math.round(100 * M.rSales / Math.max(1, y2)) + '%'; }).join(', ');
         }
         Engine.closeInfo(S);
-        if (chId === 'ch1win') Engine.requestReset(S);   // "Move now" to the new park
+        if (chId === 'ch1win') { Engine.moveWorld(S); moveAt = now(); }   // "Move now": the same run goes on in the new park
       } else if (t === 'review') {
         runQ++;
         if (S.pause.res.strikes) strikes++;
         var lastQ = S.meta.stats.q[S.meta.stats.q.length - 1];
-        if (lastQ && lastQ.thoughts) { lineN += lastQ.thoughts.line || 0; lineMonths++; }
+        if (lastQ && lastQ.thoughts) { lineN += lastQ.thoughts.line || 0; soldN += lastQ.thoughts.sold || 0; flavorN += lastQ.thoughts.flavor || 0; lineMonths++; }
         if (CURVE) console.log('    run ' + (runs.length + 1) + ' month ' + S.pause.res.quarter + ' (' + fmt((now() - runStart) / 60) + ' min): ' +
           S.run.machines.map(function (M) { return M.id + ' ' + Engine.money(M.rSales, true); }).join(', ') +
           ' | pps ' + Math.round(Engine.pps(S)) + ', drones ' + (S.run.hw.drone | 0) + ', hw ' + JSON.stringify(S.run.hw) +
           ', prod ×' + Engine.prodMult(S).toFixed(2) + ', mine ' + Engine.splitOf(S).mine.toFixed(2) + ', repeat ' +
           DATA.research.filter(function (r) { return r.repeat && S.meta.research.done[r.id]; }).map(function (r) { return r.id + ' ' + S.meta.research.done[r.id]; }).join(' ') +
           ', side ' + (S.run.side || []).filter(Boolean).map(function (x) { return x.id + x.lv; }).join(' ') + ' boost ×' + Engine.boostK(S).toFixed(2) +
-          ', income/s ' + Engine.money(incomeNow(S)));
+          ', income/s ' + Engine.money(incomeNow(S)) +
+          ', fans ' + (S.run.fans | 0) + ' (orders ' + Engine.orderRate(S).toFixed(2) + '/s, drones ' + Engine.droneRate(S).toFixed(1) + '/s), tubes ' + (S.run.upgrades.tubes | 0) + '+' + (S.run.upgrades.tubenet | 0) +
+          ', drinks ' + S.run.drinks.length + ', cans ' + (S.run.machines[Engine.YOU].cans | 0));
         var offer = S.pause.res.offer || [], best = 0, bestScore = -1;
         offer.forEach(function (id, n) {
           var sc = { legendary: 3, rare: 2, common: 1 }[Engine.CARD[id].rarity] + rnd() * 0.5;
@@ -130,11 +132,12 @@ function simulate(profile, seed) {
     capTotal++;
     if (hwBeat == null && Engine.pps(S) >= 4) hwBeat = now();
     if (R.waiting >= 2) capLimited++;
+    if (!R.intro) { liveT++; var Ye = R.machines[Engine.YOU]; if (R.drinks.some(function (d) { return (Ye.stock[d] | 0) <= 0; })) emptyT++; }
     // Drones: once you own some, how often do they keep up, and how often is the order counter empty?
     if ((R.hw.drone | 0) > 0 && !R.intro) {
       var rr = Engine.rates(S);
-      droneT++; dIn += rr.followers; dOut += rr.drones;
-      if (rr.drones >= rr.followers) droneKeep++;
+      droneT++; dIn += rr.orders; dOut += rr.drones;
+      if (rr.drones >= rr.orders) droneKeep++;
       if (R.waiting < 1) droneZero++;
     }
 
@@ -150,14 +153,14 @@ function simulate(profile, seed) {
     if (checkT >= P.check) {
       checkT = 0;
       // Resetting is the player's choice: bots cash in their Refresh Points after 45 minutes of a run.
-      if ((now() - runStart) > 45 * 60 && Engine.canReset(S)) { Engine.requestReset(S); continue; }
+      // (after moving, the clock starts again in the new park)
+      if ((now() - Math.max(runStart, moveAt || 0)) > 45 * 60 && Engine.canReset(S)) { Engine.requestReset(S); continue; }
       // Trending customers.
       R.customers.forEach(function (c) { if (c.gold && rnd() < P.gold * P.check / 6) { if (firstGold == null) firstGold = now(); Engine.clickGold(S, c.id); } });
-      // Restock when low.
-      if (!R.upgrades.tubes || R.upgrades.tubes < 3) {
-        var Y = R.machines[Engine.YOU], cap = Engine.capOf(S, Y);
-        if (R.drinks.some(function (d) { return (Y.stock[d] | 0) <= Math.floor(cap / 4); })) Engine.restock(S);
-      }
+      // Restock when low (with fast tubes: only when a soda is empty and the crate blinks).
+      var Y = R.machines[Engine.YOU], cap = Engine.capOf(S, Y);
+      if ((!R.upgrades.tubes || R.upgrades.tubes < 3) ? R.drinks.some(function (d) { return (Y.stock[d] | 0) <= Math.floor(cap / 4); })
+                                                       : R.drinks.some(function (d) { return (Y.stock[d] | 0) <= 0; }) && rnd() < 0.5) Engine.restock(S);
       // The opening: players who do not click get stuck, so they press "Skip tutorial".
       if (R.intro && gameT > 60) Engine.skipIntro(S);
       if (!R.intro && introAt == null) introAt = now();
@@ -209,7 +212,8 @@ function simulate(profile, seed) {
     spend: SPEND,
     jumps: JUMPS,
     drones: droneT ? { keep: droneKeep / droneT, zero: droneZero / droneT, inRate: dIn / droneT, outRate: dOut / droneT } : null,
-    linePerMonth: lineMonths ? lineN / lineMonths : 0
+    linePerMonth: lineMonths ? lineN / lineMonths : 0, soldPerMonth: lineMonths ? soldN / lineMonths : 0, flavorPerMonth: lineMonths ? flavorN / lineMonths : 0,
+    emptyShare: liveT ? emptyT / liveT : 0
   };
 }
 
@@ -225,7 +229,7 @@ function shopping(S) {
   var perProc = sp.mine * Engine.mineRateNow(S) + sp.res * DATA.balance.resRate * 10;
   var sales = Math.max(5, r.sales);                                     // cents per second from sales now
   // Drones are worth buying while more orders come in than they deliver.
-  var droneNeed = r.followers > r.drones * 0.9 && R.waiting > 2 ? 1 : 0.1;
+  var droneNeed = r.orders > r.drones * 0.9 && R.waiting > 2 ? 1 : 0.1;
   DATA.hardware.forEach(function (h) {
     if (!Engine.hwAvailable(S, h.id)) return;
     var c = Engine.hwCost(S, h.id), gain;
@@ -240,7 +244,8 @@ function shopping(S) {
   });
   // Machine upgrades: roughly what share of today's sales each one adds.
   var share = { coin: capLimited ? 0.12 : 0.03, dispenser2: capLimited ? 0.5 : 0.1, slots: 0.03, sign: 0.06,
-                cool: R.weather === 'hot' ? 0.06 : 0.02, tubes: 0.1, grape: 0.08, smartprice: 0.05, carpet: capLimited ? 0.08 : 0.02 };
+                cool: R.weather === 'hot' ? 0.06 : 0.02, tubes: 0.1, tubenet: r.dry || R.drinks.some(function (d) { return !(R.machines[Engine.YOU].stock[d] > 0); }) ? 0.4 : 0.05, grape: 0.12, energy: 0.12, lemon: 0.3, orange: 0.2,
+                smartprice: 0.05, carpet: capLimited ? 0.08 : 0.02 };
   DATA.machine.forEach(function (u) {
     if (!Engine.upgradeAvailable(S, u.id)) return;
     var lvl = R.upgrades[u.id] | 0;
@@ -265,7 +270,7 @@ function shopping(S) {
   }
   opts.sort(function (a, b) { return b.value - a.value; });
   // Like a person: when orders pile up and a drone costs less than a minute of income, buy a drone.
-  if (Engine.hwAvailable(S, 'drone') && r.followers > r.drones && R.waiting > 5 && Engine.hwCost(S, 'drone') < 60 * Math.max(50, incomeNow(S)))
+  if (Engine.hwAvailable(S, 'drone') && r.orders > r.drones && R.waiting > 5 && Engine.hwCost(S, 'drone') < 60 * Math.max(50, incomeNow(S)))
     opts.unshift({ kind: 'hw', id: 'drone', cost: Engine.hwCost(S, 'drone'), value: 1 });
   var best = opts[0];
   if (!best || R.cash - reserve < best.cost) return false;
@@ -329,7 +334,8 @@ Object.keys(PROFILES).filter(function (p) { return !only || p === only; }).forEa
                 (js.length ? Math.round((js[0] - 1) * 1000) / 10 : 0) + '% | first of each: ' + r.jumps.first.join(', '));
     if (r.drones) console.log('  drones: orders in ' + r.drones.inRate.toFixed(1) + '/s, delivered up to ' + r.drones.outRate.toFixed(1) + '/s | drones keep up ' +
                 Math.round(r.drones.keep * 100) + '% of the time | counter at 0: ' + Math.round(r.drones.zero * 100) + '%');
-    console.log('  rival features installed: ' + r.features + ' | "line too long" reviews per month: ' + r.linePerMonth.toFixed(1));
+    console.log('  rival features installed: ' + r.features + ' | per month: "line too long" ' + r.linePerMonth.toFixed(1) + ', "out of their drink" ' + r.soldPerMonth.toFixed(1) +
+                ', "wanted another soda" ' + r.flavorPerMonth.toFixed(1) + ' | a soda was empty ' + Math.round(r.emptyShare * 100) + '% of the time');
     console.log('  strikes per run: ' + r.runs.map(function (x) { return x.strikes; }).join(', ') + ' | your score went down: ' + (r.scoreDrops ? r.scoreDrops + ' times (BUG)' : 'never'));
   });
 });

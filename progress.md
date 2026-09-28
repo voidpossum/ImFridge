@@ -1,6 +1,6 @@
 # I'm Fridge — progress (was called OUT OF ORDER)
 
-Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (its newest "UPDATE" is the current milestone).
+Last updated: 2026-09-28. Full design: the plan file, kept outside this repo (its newest "UPDATE" is the current milestone).
 
 ## 2026-09-27 (later): Void Possum's notes
 - Game renamed **I'm Fridge** (title, start screen, file headers, README, LICENSE). Save keys (`outoforder_*`) and `window.OOO` are unchanged on purpose, so saves keep working.
@@ -8,6 +8,51 @@ Last updated: 2026-09-27. Full design: the plan file, kept outside this repo (it
 - Idea, not built: prices that go up later in the game (Void Possum said "maybe").
 - Cherry blossoms moved down onto the branches, plus clusters on every branch tip (no bare branches at the edges).
 - Settings tab removed from the rail (the pause menu already has it). Pause menu has an About box: avatar (`art/voidpossum.jpg`), version (`DATA.version` = 0.1.8), carrd link, bug mail. The start screen has the same box at the bottom.
+
+## 0.3.2 (2026-09-28): keep everything when you move, fans, sodas with their own price, stock that matters
+From Void Possum's Chapter 2 saves (`_8`, `_9`) and notes.
+- **Moving keeps everything.** After the Chapter 1 goal, "Move now" (or the new "Move to the new park" button in the pause menu) is not a reset.
+  - `Engine.moveWorld`: the same run goes on in the new park, with money, sales, upgrades, hardware, research and cards.
+  - ChugGPT and Clawd come along. Their rival-only mods start again at level 1. Grog arrives with their average versions.
+  - That run uses gentler rival numbers (`worlds[2].movedK` 2, `movedGrow` 1.6), since it has no new Refresh Points yet.
+  - Rival mod months count from when each rival arrived (`M.fromQ`).
+- **Fans instead of likes and followers:**
+  - Clicks and hardware only make money and research now.
+  - Every can you sell (in your line or by drone) brings a fan with chance `fanChance` 0.3 ÷ (1 + fans / `fanSoft` 100).
+  - Each fan orders 0.02 cans a second. Orders walk in, or drones deliver them.
+  - A lost order makes a fan leave 5% of the time.
+  - The top bar shows fans. The Management mail "fans" explains it once.
+  - Old `likes` effects became `fans`: Sipstagram, FizzTok, Fine-Tune, and the Viral Instinct star.
+  - Like headlines were retired, and new fan headlines added.
+  - The Trending customer shows a star.
+- **Sodas with their own price:**
+  - Every machine sells a soda for its price + the soda's extra: Lemon-Lime +$0.25, Orange +$0.50, Grape +$1, Energy +$2.
+  - You start with Cola only; Lemon-Lime ($150) and Orange ($1,000) are Shop upgrades with no research. Rivals sell `DATA.rivalDrinks`.
+  - Customers have a favourite. Without it a machine scores ×0.75 and they buy another soda. The new thought is "wanted another soda".
+  - There is a tutorial tip for the first flavour.
+- **Honest reasons.** `whyNotYou()` in `decide()` gives a reason only when it was about your machine: price, empty, flavour, line.
+  - Before, a customer who liked no machine was counted as "out of their drink".
+  - A rival running out also counted in your reviews.
+- **Stock matters:**
+  - Drones take a can from your machine. With no cans the order waits: the counter shows a red "!" and the tooltip says why.
+  - Tube Network (new-park research, 3 levels) makes tubes 6–8 much faster (up to 66 cans/s).
+  - The crate alert also shows when a soda is at 0.
+- **Clicks follow the slider:** click money = click power × clickCash × Mining share. The click pop-up shows money and research, with no hearts.
+- **Park drawing:**
+  - At night, people are on their own layer (darkened, drawn after the lit signs).
+  - City window lights only show where the windows are really visible (read from the picture once a second).
+  - Parked drones squash with VEND-3.
+  - The glass always has 3 shelves, split into halves for 4–6 sodas.
+  - Rivals buy a Comfy Carpet (their own style: mint zigzag, orange tassels, black with flames), and get side light strips at sign level 4+.
+- **Save v9:** fans = followers this run, capped at what the old order rate needs. The likes fields are dropped, and rivals get `fromQ`.
+- **Sim:**
+  - Chapter 1: active 25–30 min, casual 30–33, idle 32–35.
+  - Chapter 2: about 40–45 min after the move, rivals at 47–109% (miners 7–22%).
+  - Drones keep up 13–60% of the time. A soda is empty 3–18% of the time.
+  - "Line too long" 2–6 a month (now real: fans fill your line).
+- **Next:**
+  - 0.3.3: inside the machine plus talent chips.
+  - 0.3.4: achievements and the balance pass (rivals in runs 3+).
 
 ## 0.3.1 (2026-09-27): money like Cookie Clicker, drones that catch up, no hacking, side machines
 From Void Possum's 0.3.0 save and notes. They asked for all of it in one build. The Cookie Clicker and Gnorp pages they sent were read: Cookie Clicker's code through a copy on GitHub; Gnorp's pages they pasted.
