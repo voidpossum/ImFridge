@@ -378,6 +378,15 @@ var Sprites = (function () {
   }
 
   function can(ctx, x, y, d) { R(ctx, x, y, 3, 6, d.color); R(ctx, x, y, 3, 1, '#e8e8e8'); R(ctx, x + 1, y + 2, 1, 3, d.light); }
+  // A talent chip (18×10 plus legs): black with its group colour, two letters, and a light.
+  // led: 'warm' (amber, blinking: starts working at the next review), 'on' (green), or null.
+  function chip(ctx, x, y, label, color, led, t) {
+    for (var p = 0; p < 4; p++) { R(ctx, x + 2 + p * 4, y - 2, 2, 2, '#c3c8d4'); R(ctx, x + 2 + p * 4, y + 10, 2, 2, '#c3c8d4'); }
+    R(ctx, x - 1, y - 1, 20, 12, P.ink);
+    R(ctx, x, y, 18, 10, '#1b1826'); R(ctx, x, y, 18, 1, color);
+    text(ctx, label, x + 2, y + 3, color);
+    if (led) R(ctx, x + 14, y + 3, 2, 2, led === 'warm' ? (Math.floor((t || 0) * 3) % 2 ? '#ffb03a' : '#6a4a1a') : P.green);
+  }
   function star(ctx, x, y, color) {
     R(ctx, x, y - 3, 1, 7, color); R(ctx, x - 3, y, 7, 1, color); R(ctx, x - 1, y - 1, 3, 3, color);
     R(ctx, x - 2, y + 2, 1, 1, color); R(ctx, x + 2, y + 2, 1, 1, color); R(ctx, x, y, 1, 1, '#fff6d0');
@@ -852,7 +861,7 @@ var Sprites = (function () {
 
   return {
     P: P, R: R, text: text, textShadow: textShadow, textWidth: textWidth, dither: dither,
-    person: person, bubble: bubble, heart: heart, can: can,
+    person: person, bubble: bubble, heart: heart, can: can, chip: chip,
     machine: machine, machineLights: machineLights, face: face, LOOKS: LOOKS,
     crate: crate, drone: drone, tv: tv, plant: plant, box: box, sideMachine: sideMachine, sideSlot: sideSlot, SIDE_W: SIDE_W, SIDE_H: SIDE_H,
     MW: MW, MH: MH, MTOP: MTOP, palette: palette, personSprite: personSprite

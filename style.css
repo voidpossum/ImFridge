@@ -814,3 +814,22 @@ html[data-reduced="1"] *, html[data-reduced="1"] *::before { animation-duration:
 .sideOpt .cost { font-family: var(--mono); color: var(--gold); }
 .row .gain.on { color: var(--gold); }
 @media (max-width: 640px) { .sidePick { grid-template-columns: 1fr; } }
+
+/* Inside VEND-3 (0.3.3): buttons over the cut-away, and the chip pick menu */
+#sceneWrap.inside #bubbles, #sceneWrap.inside #tvText, #sceneWrap.inside #ordersSpot { display: none; }
+#insideSpots .spot { position: absolute; padding: 0; background: none; border: 1px solid transparent; cursor: pointer; }
+#insideSpots .spot:hover, #insideSpots .spot:focus-visible { border-color: rgba(255, 210, 74, 0.8); outline: none; }
+#insideSpots .spot[data-kind="free"] { cursor: help; }
+#insideSpots .back { position: absolute; left: 8px; top: 8px; z-index: 2; }
+.tab.insideBtn { margin-right: 4px; }
+.chipGroup { margin: 12px 0 4px; font-size: 1em; }
+.chipPick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.chipOpt { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 8px; background: var(--panel2); color: inherit;
+  border: 2px solid var(--line); cursor: pointer; font: inherit; }
+.chipOpt:hover { border-color: var(--gold); }
+.chipOpt.here { border-color: var(--green, #6cd48a); }
+.chipOpt img { width: 55px; height: 40px; image-rendering: pixelated; flex: none; }
+.chipOpt .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.chipOpt .d { font-size: 0.85em; color: var(--muted); }
+.chipOpt .when { font-size: 0.8em; color: var(--gold); text-transform: uppercase; letter-spacing: 0.04em; }
+@media (max-width: 640px) { .chipPick { grid-template-columns: 1fr; } }

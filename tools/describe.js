@@ -15,7 +15,7 @@ var Wiki = (function () {
     research: 'research.js', tree: 'tree.js', treeGroups: 'tree.js',
     cards: 'cards.js', lifeChapters: 'cards.js', rarity: 'cards.js',
     rivals: 'rivals.js', rivalUpgrades: 'rivals.js', features: 'rivals.js',
-    side: 'side.js', sideSlots: 'side.js'
+    side: 'side.js', sideSlots: 'side.js', chips: 'chips.js', chipGroups: 'chips.js'
   };
 
   // Balance numbers that are money (cents): shown and edited in dollars.
@@ -56,7 +56,18 @@ var Wiki = (function () {
     mine: ['+{p} money from hardware (mining)', ''],
     boost: ['+{p} of all your money', ''],
     traffic: ['+{p} walk-in customers', ''],
-    drone: ['drones +{p} faster', '']
+    drone: ['drones +{p} faster', ''],
+    hw: ['hardware makes +{p}', ''],
+    hwRamp: ['hardware +{p} for every month of this run', ''],
+    free7: ['every 7th copy of any hardware is free', ''],
+    carry: ['every drone delivery sells 2 cans; drones {p} slower', ''],
+    fanSoft: ['new fans come +{p} more easily', ''],
+    lineMoney: ['+{p} money per person in your line', ''],
+    noLeave: ['lost orders never make fans leave', ''],
+    extraMult: ['soda extra prices +{p}', ''],
+    reserve: ['an empty soda gets {v} free cans (once a minute)', ''],
+    streak: ['+{p} money per review in a row not last', ''],
+    quirkSlow: ['rival quirks come +{p} less often', '']
   };
   var DAYPART = { morning: 'in the morning', day: 'in the daytime', lunch: 'at lunch', evening: 'in the evening', night: 'at night' };
 
@@ -81,6 +92,8 @@ var Wiki = (function () {
       if (c.weather) t += ' on ' + c.weather + ' days';
       if (c.dayparts) t += ' ' + c.dayparts.map(function (d) { return DAYPART[d] || d; }).join(' and ');
       if (c.line_ge != null) t += ' while ' + c.line_ge + ' or more people are in your line';
+      if (c.week_ge != null) t += ' from week ' + c.week_ge + ' of the month';
+      if (c.notFirst) t += ' while you are not 1st';
       if (c.cust) t += ' with ' + ((D && D.customers && D.customers[c.cust] && D.customers[c.cust].name) || c.cust) + 's';
     }
     return t;
@@ -244,10 +257,25 @@ var Wiki = (function () {
       table('Doublers (each one doubles that item)', ['Item', 'Name', 'Unlocks at', 'Cost'], dblRows)
     ] });
 
+    // 4a. Talent chips (sockets on VEND-3's board)
+    if (D.chips) {
+      S.push({ id: 'chips', title: 'Talent chips', intro: headerOf(src['chips.js']), blocks: [
+        table('Groups (each open group: 1 socket and 1 free chip that is always on)', ['Group', 'Opens at Refresh Points earned', 'Free chip'], D.chipGroups.map(function (g) {
+          var fc = D.chips.filter(function (c) { return c.id === g.free; })[0] || {};
+          return [ed(D, 'chipGroups[' + g.id + '].name', 'text', 'Chips › group ' + g.name + ' › name'), ed(D, 'chipGroups[' + g.id + '].at', 'num', 'Chips › group ' + g.name + ' › Refresh Points needed'), { t: fc.name || g.free }];
+        })),
+        table('Chips', ['Chip', 'Group', 'Effect (the numbers)', 'Description (what players read)'], D.chips.map(function (c) {
+          var L = 'Chips › ' + c.name + ' › ';
+          return [ed(D, 'chips[' + c.id + '].name', 'text', L + 'name'), { t: c.group + (D.chipGroups.some(function (g) { return g.free === c.id; }) ? ' (free)' : '') },
+            { t: fxList(c.fx, D), sub: ed(D, 'chips[' + c.id + '].fx.0.v', 'num', L + 'number') }, ed(D, 'chips[' + c.id + '].desc', 'text', L + 'description')];
+        }), 'Slow Burn stops at +' + pct(B.chipRampMax) + ', Momentum at +' + pct(B.chipStreakMax) + '. A new chip starts working at the next review (or reset).')
+      ] });
+    }
+
     // 4b. Side machines (the new park)
     if (D.side) {
       S.push({ id: 'side', title: 'Side machines', intro: headerOf(src['side.js']), blocks: [
-        table('Slots', ['Slot', 'Needs research', 'Followers this run'], D.sideSlots.map(function (sl, i) {
+        table('Slots', ['Slot', 'Needs research', 'Fans this run'], D.sideSlots.map(function (sl, i) {
           return [{ t: sl.name }, { t: rname(sl.research) }, ed(D, 'sideSlots.' + i + '.fans', 'num', 'Side machines › ' + sl.name + ' › fans needed')];
         })),
         table('Machines (pick one per slot, then buy levels)', ['', 'Machine', 'Works', 'Price to pick', 'Growth', 'Max level', 'Effect per level', 'Description', 'Cost of each level'],

@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.3.2';
+DATA.version = '0.3.3';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -47,7 +47,9 @@ DATA.balance = {
   fanOrder: 0.02,         // orders per second per fan (about one every 50 seconds)
   fanLeave: 0.05,         // an order nobody took: this chance that one fan gives up on you
   goldFans: 10,           // a Trending customer you click brings this many fans
-  otherDrink: 0.75,       // how much a customer still likes a machine without their favourite soda (they buy another one)
+  otherDrink: 0.75,
+  chipRampMax: 2,         // Slow Burn chip: hardware bonus stops growing at +200%
+  chipStreakMax: 0.5,     // Momentum chip: at most +50% of all money       // how much a customer still likes a machine without their favourite soda (they buy another one)
   likesPerFollower: 5,    // rivals: this many likes → one follower walks to them
   followerPatience: 40,   // followers waiting outside give up over about this many seconds
   followerBudget: 1.4,    // followers are willing to pay more than walk-ins

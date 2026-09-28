@@ -36,6 +36,7 @@ DATA.story = {
     newShop:       'Research unlocked something new. Open the Shop to see it.',
     mine:          'New: this slider, set to half Mining, half Research. Move it to choose. All money counts at the review.',
     post:     'Click your machine, or hold it down (or hold Space). Every click earns money.',
+    inside:   'You can open yourself now. Click Inside (or press I) and put a chip in the socket.',
     flavor:   'Buy a new flavor in the Shop. Every new flavor sells for more than Cola.',
     flavorRow: 'Buy Lemon-Lime. It sells for $0.25 more than Cola, and many customers like it best.',
     restock:  'Cans are running low. Click the crate on top of your machine to refill (or press R).',
@@ -103,6 +104,11 @@ DATA.story = {
       'VEND-3, you have a fan! Some happy customers become fans.',
       'Fans order online from their phones. When your line has room they walk over. Delivery Drones bring the rest.',
       'Every order is a can from your machine. Keep it full.'
+    ] },
+    chips: { who: 'Management', lines: [
+      'VEND-3, our records show your board has a free socket. Please do not put anything in it.',
+      'If you do: open yourself with the Inside button (or the I key) and click the socket. Chips change how you work.',
+      'A new chip starts working at the next review. Each group of sockets also has one chip that is always on. Please do not tell the other machines.'
     ] },
     moved: { who: 'Management', lines: [
       'Good news, VEND-3! You have been moved to a new park. New park, new customers.',
@@ -219,6 +225,13 @@ DATA.story = {
     gaveup: { say: 'I waited too long.',          hint: 'They stood in your line and got tired. Sell faster (Fast Coin Slot, Second Dispenser), or get the Comfy Carpet (people wait longer).' },
     hot:    { say: 'So hot. I need something cold.', hint: 'It is a hot day. Better Cooling matters more today.' }
   },
+
+  // The door at the bottom of VEND-3 (the inside view). One line per knock, each only once.
+  door: [
+    'It is locked from the inside. I am the inside. So who locked it?',
+    'I put my ear on the door. I do not have ears. I heard breathing anyway.',
+    'Management says the door is "legacy hardware". They also said: do not open.'
+  ],
 
   // Chapter 1 complete by reaching the goal (no reset needed). `move` / `stay`: the two buttons.
   ch1win: {

@@ -7,14 +7,14 @@ var Engine = (function () {
   'use strict';
 
   var B = DATA.balance, W = DATA.world;
-  var SAVE_VERSION = 9;
+  var SAVE_VERSION = 10;
   var YOU = 1;
   // Machine x positions of the current world. The same array is kept (the scene reads Engine.MX), only its contents change.
   var MX = W.machineX.slice();
   var MAX_CUSTOMERS = 30;
 
   function index(list) { var o = {}; list.forEach(function (x) { o[x.id] = x; }); return o; }
-  var CARD = index(DATA.cards), MACH = index(DATA.machine), HW = index(DATA.hardware), SIDE = index(DATA.side || []);
+  var CARD = index(DATA.cards), MACH = index(DATA.machine), HW = index(DATA.hardware), SIDE = index(DATA.side || []), CHIP = index(DATA.chips || []);
   var RES = index(DATA.research), TREE = index(DATA.tree);
 
   // ───────────────────────── random numbers (seeded, so the simulator is repeatable)
@@ -63,7 +63,7 @@ var Engine = (function () {
       wipes: 0, refresh: 0, rpEarned: 0, name: 'VEND-3',
       tree: {}, book: {}, seen: {}, flags: {}, tut: {}, guide: {}, met: {},
       chapter: 1, runs: 0, bestRun: 0, totalSales: 0, playTime: 0,
-      totalFans: 0, totalCans: 0,
+      totalFans: 0, totalCans: 0, chips: [],
       rivalVer: {}, patchIdx: {}, log: [],
       research: { done: {}, points: 0 },
       stats: freshStats()
@@ -132,7 +132,7 @@ var Engine = (function () {
       split: m.flags.jailbreak ? startSplit(S) : { res: 0, mine: 0 }, strikes: 0,
       fans: 0, fanBank: 0, orderAcc: 0, waiting: 0, gaveBank: 0, folT: 0,
       machines: [], customers: [], nextId: 1, spawnT: 1,
-      tubeT: 0, droneAcc: 0, lastHour: -1, banterDay: -1, regularsToday: {},
+      tubeT: 0, droneAcc: 0, streak: 0, reserveT: {}, lastHour: -1, banterDay: -1, regularsToday: {},
       goldT: m.runs === 1 && !m.flags.goldSeen ? B.goldFirst : 0,
       buffs: {}, thoughts: [], newsT: 5, liveKey: {},
       rate: { salesNow: 0, orders: 0, clicks: 0, salesEMA: 0, ordersEMA: 0, clicksEMA: 0, clickNow: 0, clickEMA: 0 }
@@ -151,6 +151,7 @@ var Engine = (function () {
     setWorld(S);
     R.machines = worldOf(S).order.map(function (id, i) { return id === 'you' ? makeYou(S) : makeRival(S, id, i); });
     R.side = [];   // your side machines (the new park): [{ id, lv }] per slot
+    warmChips(S);  // chips put in while the last run ended start working now
     R.machines.forEach(function (M) { fillAll(S, M); });
     // Refresh tree head starts: research already done at the start (and the part it unlocks, level 1).
     DATA.tree.forEach(function (n) {
@@ -203,6 +204,8 @@ var Engine = (function () {
     if (c.cust && (!ctx || ctx.cust !== c.cust)) return false;
     if (c.dayparts && (!ctx || c.dayparts.indexOf(ctx.daypart) < 0)) return false;
     if (c.line_ge != null && R.machines[YOU].queue.length < c.line_ge) return false;
+    if (c.week_ge != null && R.qDay + 1 < c.week_ge) return false;
+    if (c.notFirst && rankNow(S) === 1) return false;
     return true;
   }
 
@@ -241,7 +244,84 @@ var Engine = (function () {
       if (!D) continue;
       for (j = 0; j < D.fx.length; j++) { f = D.fx[j]; if (f.k === k && condOk(S, f.c, ctx)) s += f.v * sm.lv; }
     }
+    var ch = activeChips(S);
+    for (i = 0; i < ch.length; i++) {
+      for (j = 0; j < ch[i].fx.length; j++) { f = ch[i].fx[j]; if (f.k === k && condOk(S, f.c, ctx)) s += f.v; }
+    }
     return s;
+  }
+
+  // ───────────────────────── talent chips (the sockets on VEND-3's board, data/chips.js)
+  // A group opens when you have earned enough Refresh Points in total. Each open group: one socket + its free chip.
+  function chipGroups(S) {
+    var e = S.meta.rpEarned | 0;
+    return (DATA.chipGroups || []).filter(function (g) { return e >= g.at; });
+  }
+  // Sockets: [{ i, id, warm }] (one per open group). A warm chip starts working at the next review.
+  function chipSockets(S) {
+    var n = chipGroups(S).length, ch = S.meta.chips || (S.meta.chips = []), out = [];
+    for (var i = 0; i < n; i++) out.push({ i: i, id: ch[i] ? ch[i].id : null, warm: !!(ch[i] && ch[i].warm) });
+    return out;
+  }
+  var chipCache = { S: null, key: '', list: [] };
+  function activeChips(S) {
+    var ch = S.meta.chips || [], key = (S.meta.rpEarned | 0) + ch.map(function (c) { return c ? c.id + (c.warm ? '~' : '') : '-'; }).join(',');
+    if (chipCache.S === S && chipCache.key === key) return chipCache.list;
+    var out = [], open = chipGroups(S);
+    open.forEach(function (g) { if (CHIP[g.free]) out.push(CHIP[g.free]); });
+    for (var i = 0; i < open.length; i++) if (ch[i] && ch[i].id && !ch[i].warm && CHIP[ch[i].id]) out.push(CHIP[ch[i].id]);
+    chipCache = { S: S, key: key, list: out };
+    return out;
+  }
+  function chipOn(S, id) { return activeChips(S).some(function (c) { return c.id === id; }); }
+  // Chips you can put in a socket: the open groups' chips that are not free and not in another socket.
+  function chipChoices(S) {
+    var open = chipGroups(S), used = (S.meta.chips || []).map(function (c) { return c && c.id; });
+    var free = open.map(function (g) { return g.free; });
+    return (DATA.chips || []).filter(function (c) {
+      return open.some(function (g) { return g.id === c.group; }) && free.indexOf(c.id) < 0;
+    }).map(function (c) { return { id: c.id, used: used.indexOf(c.id) >= 0 }; });
+  }
+  function openChips(S, i) {
+    if (S.pause || i < 0 || i >= chipGroups(S).length) return false;
+    S.pause = { type: 'chips', slot: i };
+    return true;
+  }
+  // Put a chip in socket i (id null = take it out). A new chip warms up until the next review.
+  function setChip(S, i, id) {
+    var ch = S.meta.chips || (S.meta.chips = []);
+    if (i < 0 || i >= chipGroups(S).length) return false;
+    if (id) {
+      if (!CHIP[id] || chipChoices(S).every(function (c) { return c.id !== id; })) return false;
+      ch.forEach(function (c, n) { if (c && c.id === id && n !== i) ch[n] = null; });   // (a chip is in one socket only)
+      if (ch[i] && ch[i].id === id) { if (S.pause && S.pause.type === 'chips') S.pause = null; return true; }
+      ch[i] = { id: id, warm: true };
+      S.meta.tut.chipPlaced = 1;
+      log(S, myName(S), 'Put the chip "' + CHIP[id].name + '" in socket ' + (i + 1) + '. It starts working at the next review.', 'patch');
+    } else ch[i] = null;
+    stat(S, 'chip', id || '-', i);
+    emit(S, { type: 'chip', slot: i, id: id || null });
+    if (S.pause && S.pause.type === 'chips') S.pause = null;
+    return true;
+  }
+  // The door at the bottom of VEND-3. It stays shut; knocking gives a line (each once).
+  function knockDoor(S) {
+    var L = DATA.story.door || [];
+    for (var i = 0; i < L.length; i++) if (!S.meta.seen['door_' + i]) return sayOnce(S, 'door_' + i, myName(S), L[i], { machine: YOU, kind: 'you' });
+    return false;
+  }
+  // At a review (and a reset) the warm chips start working.
+  function warmChips(S) {
+    (S.meta.chips || []).forEach(function (c) { if (c && c.warm) { c.warm = false; emit(S, { type: 'chipOn', id: c.id }); } });
+  }
+  // A new group: VEND-3 says so (once), and Management explains chips (once).
+  function checkChipGroups(S) {
+    chipGroups(S).forEach(function (g) {
+      if (S.meta.seen['chipg_' + g.id]) return;
+      sayOnce(S, 'chipg_' + g.id, myName(S), g.open, { machine: YOU, kind: 'you' });
+      mail(S, 'chips');
+      emit(S, { type: 'chipGroup', id: g.id, novel: true });
+    });
   }
 
   function lifeComplete(S, lifeId) {
@@ -268,7 +348,12 @@ var Engine = (function () {
     var extra = 0;   // Thousand Fingers: not doubled by the script's own doublers
     if (id === 'script') DATA.hardware.forEach(function (o) { if (o.id !== 'script' && o.pps) extra += B.scriptPerHw * (R.hw[o.id] | 0); });
     var up = hwNext(id), syn = up && (R.dbl[up.id] | 0) >= 2 ? 1 + B.hwSynergy * (R.hw[up.id] | 0) : 1;
-    return (h.pps * Math.pow(2, R.dbl[id] | 0) + extra) * syn * prodMult(S);
+    return (h.pps * Math.pow(2, R.dbl[id] | 0) + extra) * syn * prodMult(S) * hwChipMult(S);
+  }
+  // Chips that make hardware stronger: Night Shift, Overheat, Last-Minute Push (hw) and Slow Burn (hwRamp).
+  function hwChipMult(S) {
+    var ramp = Math.min(B.chipRampMax, fx(S, 'hwRamp') * Math.max(0, S.run.quarter - 1));
+    return 1 + fx(S, 'hw', { daypart: daypartOf(S).id }) + ramp;
   }
   function hwNext(id) {
     var list = DATA.hardware.filter(function (h) { return h.pps; });
@@ -283,7 +368,7 @@ var Engine = (function () {
   // Delivery drones: orders delivered per second.
   function droneRate(S) {
     var R = S.run, n = R.hw.drone | 0;
-    return n ? n * HW.drone.serve * Math.pow(2, R.dbl.drone | 0) * (1 + fx(S, 'drone')) : 0;
+    return n ? n * HW.drone.serve * Math.pow(2, R.dbl.drone | 0) * (1 + fx(S, 'drone')) * (1 - fx(S, 'carry')) : 0;
   }
   function pps(S) {
     var s = 0;
@@ -313,7 +398,11 @@ var Engine = (function () {
   function mineRateNow(S) { return B.procCash * (1 + fx(S, 'mine')) * (S.meta.research.done.r_mining ? 1 : 0.5); }
 
   // Side machines: +x% of all the money you earn while their condition is true (see data/side.js).
-  function boostK(S) { return (S.run.side && S.run.side.length) ? 1 + fx(S, 'boost', { daypart: daypartOf(S).id }) : 1; }
+  // Also chips: Underdog (boost while not 1st) and Momentum (streak × reviews in a row you were not last).
+  function boostK(S) {
+    var st = Math.min(B.chipStreakMax, fx(S, 'streak') * (S.run.streak | 0));
+    return 1 + fx(S, 'boost', { daypart: daypartOf(S).id }) + st;
+  }
   function boosted(S, amt) {
     var k = boostK(S);
     if (k > 1) S.run.rate.sideNow = (S.run.rate.sideNow || 0) + amt * (k - 1);
@@ -577,7 +666,10 @@ var Engine = (function () {
 
   // Every soda sells for the machine's price plus its own extra (Cola +$0, Grape +$1...). Free is free.
   function extraOf(d) { return (DATA.drinks[d] && DATA.drinks[d].extra) || 0; }
-  function priceOf(S, i, d) { var p = effPrice(S, i); return p > 0 ? p + extraOf(d) : 0; }
+  function priceOf(S, i, d) {
+    var p = effPrice(S, i);
+    return p > 0 ? p + extraOf(d) * (i === YOU ? 1 + fx(S, 'extraMult') : 1) : 0;   // (Flavor Lab chip)
+  }
   // The soda a customer gets at machine M: their favourite, or else the one they like best of what it has.
   function drinkFor(S, M, c) {
     if (M.stock[c.want] > 0) return c.want;
@@ -988,6 +1080,7 @@ var Engine = (function () {
   function hwAvailable(S, id) { var h = HW[id]; return !h.research || !!S.meta.research.done[h.research]; }
   function hwCost(S, id, extra) {
     var n = (S.run.hw[id] | 0) + (extra || 0);
+    if ((n + 1) % 7 === 0 && fx(S, 'free7') > 0) return 0;   // Spare Parts chip: every 7th copy is free
     return Math.ceil(HW[id].base * Math.pow(HW[id].grow || B.hardwareGrow, n) * (1 - metaFx(S, 'hwDiscount')));
   }
   function hwCostN(S, id, count) {
@@ -1355,6 +1448,7 @@ var Engine = (function () {
     if (lowest === YOU) {
       // Last place: a strike. Three in a row and Management resets you.
       R.strikes = (R.strikes | 0) + 1;
+      R.streak = 0;
       res.strikes = R.strikes;
       if (R.strikes >= B.strikesMax) { res.struckOut = true; beginReset(S, res); }
       else {
@@ -1365,6 +1459,7 @@ var Engine = (function () {
       }
     } else {
       R.strikes = 0;
+      R.streak = (R.streak | 0) + 1;
       var M = ms[lowest];
       res.patch = bumpRival(S, M, true);
       res.feature = installFeature(S, M);
@@ -1380,6 +1475,7 @@ var Engine = (function () {
     }
     ms.forEach(function (M) { M.qSales = 0; });
     R.qThoughts = {};
+    warmChips(S);
     R.qLost = 0;
     R.quarter++;
     // Rival-only mods arrive on a fixed schedule (the month is in DATA.rivals[id].mods).
@@ -1564,7 +1660,7 @@ var Engine = (function () {
     var P = S.pause;
     if (!P) return false;
     if (P.type === 'hold') return hold(S, false);
-    if (P.type === 'side') { S.pause = null; return true; }
+    if (P.type === 'side' || P.type === 'chips') { S.pause = null; return true; }
     if (P.type === 'boot') { S.pause = null; mail(S, 'welcome'); return true; }
     if (P.type === 'chapter') { S.pause = null; return true; }
     if (P.type === 'jailbreak') {
@@ -1731,6 +1827,7 @@ var Engine = (function () {
       for (var b = 0; b < B.modelDayBumps; b++) R.machines.forEach(function (M) { if (M.idx !== YOU) bumpRival(S, M); });
     }
     if (!intro && !m.seen.mail_fizz && R.t > 25) mail(S, 'fizz');
+    if (!intro && (R.day !== R.chipDay)) { R.chipDay = R.day; checkChipGroups(S); }   // (a new chip group: once a week is soon enough)
     if (R.cpuMailT != null) { R.cpuMailT -= dt; if (R.cpuMailT <= 0) { R.cpuMailT = null; mail(S, 'cpu'); } }
 
     var hour = hourOf(S), hourInt = Math.floor(hour), dp = daypartOf(S);
@@ -1839,7 +1936,7 @@ var Engine = (function () {
       if (M.fx) { M.fx.t -= dt; if (M.fx.t <= 0) { M.fx = null; delete R.liveKey['fx' + M.idx]; } }
       else {
         M.quirkT -= dt;
-        if (M.quirkT <= 0) { triggerQuirk(S, M); M.quirkT = between(S, D.quirkEvery[0], D.quirkEvery[1]); }
+        if (M.quirkT <= 0) { triggerQuirk(S, M); M.quirkT = between(S, D.quirkEvery[0], D.quirkEvery[1]) * (1 + fx(S, 'quirkSlow')); }
       }
       DATA.rivalDrinks.forEach(function (d) {
         if ((M.stock[d] | 0) <= 0) {
@@ -1910,6 +2007,19 @@ var Engine = (function () {
         }
       }
     });
+
+    // Emergency Can chip: an empty soda gets a few free cans (once a minute for each soda).
+    var rsv = intro ? 0 : fx(S, 'reserve');
+    if (rsv > 0) {
+      R.reserveT = R.reserveT || {};
+      R.drinks.forEach(function (d) {
+        var MY = R.machines[YOU];
+        if ((MY.stock[d] | 0) <= 0 && !(R.reserveT[d] > R.t)) {
+          MY.stock[d] = Math.min(capOf(S, MY), rsv); R.reserveT[d] = R.t + 60;
+          emit(S, { type: 'tube', drink: d, free: true });
+        }
+      });
+    }
 
     // Pneumatic tubes: one can at a time into the emptiest slot. Faster with every level.
     var tubes = Math.round(fx(S, 'tubes'));
@@ -2017,7 +2127,9 @@ var Engine = (function () {
     }
     Y.stock[d]--;
     newFans(S);
-    var pay = Math.round(boosted(S, priceOf(S, YOU, d) * (1 + fx(S, 'money', ctx))));
+    var cans = 1;
+    if (fx(S, 'carry') > 0 && Y.stock[d] > 0) { Y.stock[d]--; cans = 2; Y.cans = (Y.cans | 0) + 1; S.meta.totalCans = (S.meta.totalCans || 0) + 1; }   // Two Cans chip
+    var pay = Math.round(boosted(S, cans * priceOf(S, YOU, d) * (1 + fx(S, 'money', ctx))));
     score(S, pay);
     R.cash += pay;
     R.rate.salesNow += pay;
@@ -2034,7 +2146,7 @@ var Engine = (function () {
     M.stock[d]--;
     c.drink = d; c.st = 'buy'; c.lane = laneIdx;
     var price = priceOf(S, M.idx, d);
-    if (M.idx === YOU) price = boosted(S, price * (1 + fx(S, 'money', { daypart: daypartOf(S).id, cust: c.type })));
+    if (M.idx === YOU) price = boosted(S, price * (1 + fx(S, 'money', { daypart: daypartOf(S).id, cust: c.type }) + fx(S, 'lineMoney') * M.queue.length));
     if (M.fx && M.fx.type === 'nopay') price = 0;
     c.pay = Math.round(price * 100) / 100;
     L.c = c.id;
@@ -2080,7 +2192,7 @@ var Engine = (function () {
   // and slower: drones can catch up.
   function newFans(S) {
     var F = S.run.fans || 0;
-    addFans(S, B.fanChance * (1 + fx(S, 'fans')) * (S.run.buffs.trending ? 7 : 1) / (1 + F / B.fanSoft));
+    addFans(S, B.fanChance * (1 + fx(S, 'fans')) * (S.run.buffs.trending ? 7 : 1) / (1 + F / (B.fanSoft * (1 + fx(S, 'fanSoft')))));
   }
   // `n` can be a part of a fan (it adds up).
   function addFans(S, n) {
@@ -2095,6 +2207,7 @@ var Engine = (function () {
   function lostOrders(S, n) {
     var R = S.run;
     R.ordersLost = (R.ordersLost | 0) + n; R.qLost = (R.qLost | 0) + n;
+    if (fx(S, 'noLeave') > 0) return;   // Loyal Fans chip
     for (var i = 0; i < n; i++) if (rand(S) < B.fanLeave && R.fans > 0) R.fans--;
   }
 
@@ -2238,6 +2351,12 @@ var Engine = (function () {
       }
       o.v = 9;
     }
+    if (o.v === 9) {
+      // 0.3.2 → 0.3.3: talent chips (sockets on VEND-3's board) and the review streak.
+      if (o.meta && !o.meta.chips) o.meta.chips = [];
+      if (o.run) { o.run.streak = o.run.streak | 0; o.run.reserveT = {}; }
+      o.v = 10;
+    }
     return o;
   }
 
@@ -2330,7 +2449,8 @@ var Engine = (function () {
     buyResearch: buyResearch, researchAvailable: researchAvailable, resCost: resCost, resLevel: resLevel,
     droneRate: droneRate, prodMult: prodMult, clickPower: clickPower, clickCash: clickCash, ordersCap: ordersCap,
     pickCard: pickCard, reroll: reroll, closeInfo: closeInfo, hold: hold, clickGold: clickGold, stat: stat, loyalChance: loyalChance,
-    buyTree: buyTree, treeReady: treeReady, startShift: startShift, moveWorld: moveWorld, extraOf: extraOf, priceOf: priceOf, requestReset: requestReset, canReset: canReset,
+    buyTree: buyTree, treeReady: treeReady, startShift: startShift, moveWorld: moveWorld,
+    chipGroups: chipGroups, chipSockets: chipSockets, chipChoices: chipChoices, activeChips: activeChips, chipOn: chipOn, openChips: openChips, setChip: setChip, knockDoor: knockDoor, CHIP: CHIP, hwChipMult: hwChipMult, extraOf: extraOf, priceOf: priceOf, requestReset: requestReset, canReset: canReset,
     hourOf: hourOf, daypartOf: daypartOf, calendar: calendar, monthName: monthName, rankNow: rankNow, rivalName: rivalName, rpFor: rpFor,
     youStats: youStats, rates: rates, perClick: perClick, rivalInfo: rivalInfo, effPrice: effPrice, available: available,
     capOf: capOf, lanesOf: lanesOf, lineMax: lineMax, folLineMax: folLineMax, lifeComplete: lifeComplete, hasHat: hasHat, fmtVer: fmtVer,

@@ -6,7 +6,7 @@
   'use strict';
 
   var EKEY = 'imfridge_wiki_edits', NKEY = 'imfridge_wiki_notes';
-  var FILES = ['core.js', 'cards.js', 'rivals.js', 'story.js', 'machine.js', 'hardware.js', 'research.js', 'tree.js', 'news.js'];
+  var FILES = ['core.js', 'cards.js', 'rivals.js', 'story.js', 'machine.js', 'hardware.js', 'research.js', 'tree.js', 'news.js', 'side.js', 'chips.js'];
   var ORIG = JSON.parse(JSON.stringify(DATA));   // the game's values, never changed
   var src = {}, edits = load(EKEY), notes = load(NKEY), sections = [];
   var $ = function (id) { return document.getElementById(id); };
