@@ -1,5 +1,5 @@
 // I'M FRIDGE — side machines: your own small red machines next to VEND-3 (the new park only).
-// Two slots. Each opens with a research AND a number of followers this run (like Gnorp buildings need gnorps).
+// Two slots. Each opens with a research AND a number of fans this run (like Gnorp buildings need gnorps).
 // Pick one machine per slot (each machine only once). They reset with the run, like everything in the Shop.
 // cost(level) = base × grow^level (level 0 = picking it).  `fx`: per level, like machine upgrades.
 // Effect keys: boost = +x% of ALL the money you earn (cans, drones, hardware, clicks) while the condition is true.
@@ -10,8 +10,8 @@ var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The two slots, left and right of VEND-3 (positions: DATA.worlds[2].slots).
 DATA.sideSlots = [
-  { name: 'Left slot', research: 'r_permit1', followers: 200 },
-  { name: 'Right slot', research: 'r_permit2', followers: 1000 }
+  { name: 'Left slot', research: 'r_permit1', fans: 150 },
+  { name: 'Right slot', research: 'r_permit2', fans: 600 }
 ];
 
 DATA.side = [

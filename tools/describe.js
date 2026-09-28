@@ -9,7 +9,7 @@ var Wiki = (function () {
 
   // Which file each top-level DATA key lives in (for the exported change list).
   var FILE = {
-    balance: 'core.js', months: 'core.js', drinks: 'core.js', startDrinks: 'core.js', dayparts: 'core.js', weather: 'core.js',
+    balance: 'core.js', months: 'core.js', drinks: 'core.js', startDrinks: 'core.js', rivalDrinks: 'core.js', dayparts: 'core.js', weather: 'core.js',
     customers: 'core.js', regulars: 'core.js', world: 'core.js', worlds: 'core.js',
     machine: 'machine.js', hardware: 'hardware.js', doublerAt: 'hardware.js', doublerCost: 'hardware.js',
     research: 'research.js', tree: 'tree.js', treeGroups: 'tree.js',
@@ -31,16 +31,16 @@ var Wiki = (function () {
     click: ['clicks make +{v} processing', ''],
     clickMult: ['clicks make +{p} processing', ''],
     clickPct: ['every click also adds {p} of your hardware processing per second', ''],
-    likes: ['+{p} likes', ''],
+    fans: ['+{p} new fans from sales', ''],
     review: ['+{p} review bonus', ''],
-    loyal: ['followers pay up to {m} more than the cheapest rival', ''],
+    loyal: ['fans pay up to {m} more than the cheapest rival', ''],
     goldRate: ['influencers come +{p} more often', ''],
     goldEye: ['influencers stay twice as long', ''],
     vend: ['sell {p} faster', ''],
     cap: ['+{v} cans per drink', ''],
     queue: ['+{p} line length', ''],
     patience: ['people in your line wait {p} longer', ''],
-    tubes: ['Pneumatic Tubes +{v} level', ''],
+    tubes: ['tubes +{v} level (faster refills)', ''],
     drink: ['adds the drink {v}', ''],
     lanes: ['+{v} dispenser (serve two at once)', ''],
     smartPrice: ['Smart Price', ''],
@@ -179,8 +179,9 @@ var Wiki = (function () {
     // 1. Overview
     S.push({ id: 'overview', title: 'Overview', blocks: [
       text('Game version ' + D.version + '. Everything below is read from the game\'s data files (js/data/*.js), so it is always up to date.'),
-      text('**How money works.** There is one number: money earned this run (the score at every review). It comes from: hardware (like Cookie Clicker buildings: every point of processing in Mining earns ' + money(B.procCash) + ' a second, half before the SodaCoin Wallet); cans sold in person and by drone; clicks (each click earns money right away); tips and influencer bonuses. Side machines (the new park) add a % of all of it while their condition is true.'),
-      text('**Followers and drones.** Followers per second = ' + B.folK + ' × (likes per second)^' + B.folExp + '. They order online (at most ' + B.ordersMax + ' orders wait) and walk to your line when there is room. Drones deliver online orders; when more orders come in than drones deliver, the extra ones are lost.'),
+      text('**How money works.** There is one number: money earned this run (the score at every review). It comes from: hardware (like Cookie Clicker buildings: every point of processing in Mining earns ' + money(B.procCash) + ' a second, half before the SodaCoin Wallet); cans sold in person and by drone (every soda sells for your price + its own extra); clicks (processing too: the slider splits each click into money and research); tips and influencer bonuses. Side machines (the new park) add a % of all of it while their condition is true.'),
+      text('**Fans and drones.** Every can you sell brings a new fan with chance ' + B.fanChance + ' ÷ (1 + fans ÷ ' + B.fanSoft + '), so fans come slower the more you have. Every fan orders ' + B.fanOrder + ' cans per second online (at most ' + B.ordersMax + ' orders wait). Orders walk to your line when there is room; drones deliver the rest, each with a can from your machine (no cans: the order waits). Extra or expired orders are lost, and each one makes a fan leave with chance ' + B.fanLeave + '.'),
+      text('**Moving.** After the Chapter 1 goal you can move to the new park without a reset: you keep everything. That run uses the new park\'s movedK / movedGrow for rival-only mods (it has no new Refresh Points yet).'),
       text('**Reviews.** At the end of every month (4 weeks). Last place = a strike; ' + B.strikesMax + ' strikes in a row = reset. Not being last: a card (1 of 3) and a cash bonus of ' + pct(B.reviewBonus) + ' of the month\'s earnings.'),
       text('**Chapters.** Chapter 1: earn ' + money(B.ch1Goal) + ' in one run (or reset once). Chapter 2 (the new park): earn ' + money(B.ch2Goal) + ' in one run there.'),
       text('**Resets (prestige).** Refresh Points = floor(' + B.rpK + ' × cube root of the run\'s money in cents) + reviews survived. Every Refresh Point ever earned: +' + pct(B.rpProd) + ' to all processing. Spend them in the Refresh tree.')
@@ -247,7 +248,7 @@ var Wiki = (function () {
     if (D.side) {
       S.push({ id: 'side', title: 'Side machines', intro: headerOf(src['side.js']), blocks: [
         table('Slots', ['Slot', 'Needs research', 'Followers this run'], D.sideSlots.map(function (sl, i) {
-          return [{ t: sl.name }, { t: rname(sl.research) }, ed(D, 'sideSlots.' + i + '.followers', 'num', 'Side machines › ' + sl.name + ' › followers needed')];
+          return [{ t: sl.name }, { t: rname(sl.research) }, ed(D, 'sideSlots.' + i + '.fans', 'num', 'Side machines › ' + sl.name + ' › fans needed')];
         })),
         table('Machines (pick one per slot, then buy levels)', ['', 'Machine', 'Works', 'Price to pick', 'Growth', 'Max level', 'Effect per level', 'Description', 'Cost of each level'],
           D.side.map(function (m) {
@@ -324,7 +325,7 @@ var Wiki = (function () {
       var rows = [
         [{ t: 'Parody of' }, { t: R.parody }],
         [{ t: 'Appeal (how much customers like it)' }, ed(D, 'rivals.' + id + '.appeal', 'num', L + 'appeal')],
-        [{ t: 'Hype (share of its processing that makes followers; the rest is research)' }, ed(D, 'rivals.' + id + '.hype', 'num', L + 'hype')],
+        [{ t: 'Hype (share of its processing that brings it customers; the rest is research)' }, ed(D, 'rivals.' + id + '.hype', 'num', L + 'hype')],
         [{ t: 'Pricing' }, { t: pricing }]
       ];
       if (R.fairPrice) rows.push([{ t: 'Fair price' }, ed(D, 'rivals.' + id + '.fairPrice', 'money', L + 'fair price')]);
@@ -367,18 +368,21 @@ var Wiki = (function () {
           return [ed(D, 'customers.' + k + '.name', 'text', L + 'name'), { t: c.look }, ed(D, 'customers.' + k + '.budget.0', 'money', L + 'budget from'), ed(D, 'customers.' + k + '.budget.1', 'money', L + 'budget up to'),
             ed(D, 'customers.' + k + '.speed', 'num', L + 'walk speed'), { t: Object.keys(c.wants).map(function (d) { return d + ' ' + c.wants[d]; }).join(', ') }]
             .concat(dps.map(function (d) { return ed(D, 'customers.' + k + '.w.' + d, 'num', L + 'how common ' + d); }));
-        }), 'Followers pay ×' + B.followerBudget + ' of their budget.'),
+        }), 'Fans pay ×' + B.followerBudget + ' of their budget.'),
       table('Parts of the day (more or fewer walk-ins)', ['Part', 'From', 'To', 'Walk-ins ×'], D.dayparts.map(function (p, i) {
         return [{ t: p.name }, { t: p.from + ':00' }, { t: p.to + ':00' }, ed(D, 'dayparts.' + i + '.mult', 'num', 'Park › ' + p.name + ' ' + p.from + '–' + p.to + ' › walk-ins ×')];
       })),
       table('Weather', ['Weather', 'Chance', 'Walk-ins ×'], Object.keys(D.weather).map(function (w) {
         return [{ t: D.weather[w].name }, ed(D, 'weather.' + w + '.chance', 'num', 'Park › weather ' + w + ' › chance'), ed(D, 'weather.' + w + '.traffic', 'num', 'Park › weather ' + w + ' › walk-ins ×')];
       })),
-      table('Drinks', ['Drink', 'Colour'], Object.keys(D.drinks).map(function (d) { return [{ t: D.drinks[d].name }, { t: D.drinks[d].color, swatch: D.drinks[d].color }]; }), 'You start with: ' + D.startDrinks.join(', ') + '. Grape is a research.'),
-      table('The parks', ['Park', 'Machines (left to right)', 'Machine x positions', 'Rival-only mods ×', 'Mod levels × per month'], Object.keys(D.worlds).map(function (w) {
+      table('Drinks', ['Drink', 'Colour', 'Sells for price +'], Object.keys(D.drinks).map(function (d) { return [{ t: D.drinks[d].name }, { t: D.drinks[d].color, swatch: D.drinks[d].color }, ed(D, 'drinks.' + d + '.extra', 'money', 'Park › ' + D.drinks[d].name + ' › extra')]; }),
+        'You start with: ' + D.startDrinks.join(', ') + ' (the others are Shop upgrades). Rivals sell: ' + D.rivalDrinks.join(', ') + '. A customer without their favourite still likes the machine ×' + B.otherDrink + '.'),
+      table('The parks', ['Park', 'Machines (left to right)', 'Machine x positions', 'Rival-only mods ×', 'Mod levels × per month', 'After moving in: mods ×', 'After moving in: levels ×'], Object.keys(D.worlds).map(function (w) {
         var W = D.worlds[w];
         return [{ t: w + ': ' + W.name }, { t: W.order.join(', ') }, { t: W.machineX.join(', ') }, W.rivalK ? ed(D, 'worlds.' + w + '.rivalK', 'num', 'Park › ' + W.name + ' › rival-only mods ×') : { t: '1' },
-          W.modGrow ? ed(D, 'worlds.' + w + '.modGrow', 'num', 'Park › ' + W.name + ' › mod levels × per month') : { t: B.modGrow + ' (balance.modGrow)' }];
+          W.modGrow ? ed(D, 'worlds.' + w + '.modGrow', 'num', 'Park › ' + W.name + ' › mod levels × per month') : { t: B.modGrow + ' (balance.modGrow)' },
+          W.movedK != null ? ed(D, 'worlds.' + w + '.movedK', 'num', 'Park › ' + W.name + ' › after moving in: mods ×') : { t: '—' },
+          W.movedGrow != null ? ed(D, 'worlds.' + w + '.movedGrow', 'num', 'Park › ' + W.name + ' › after moving in: levels ×') : { t: '—' }];
       }))
     ] });
     return S;

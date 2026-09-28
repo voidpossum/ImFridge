@@ -38,13 +38,28 @@ DATA.machine = [
     fx: [{ k: 'tubes', v: 1 }],
     first: 'Thunk. A can. Thunk. Another can. I did not click anything. I love it.' },
 
+  { id: 'tubenet', name: 'Tube Network', base: 100000, grow: 4, max: 3, icon: 'tube', research: 'r_tubenet',
+    desc: 'Even faster tubes, one level more each (after Pneumatic Tubes). Drones take cans from your machine too.',
+    fx: [{ k: 'tubes', v: 1 }],
+    first: 'Tubes everywhere. Under the park. Under the city. I can hear cans in the ground at night.' },
+
+  { id: 'lemon', name: 'New Flavor: Lemon-Lime', base: 150, grow: 1, max: 1, icon: 'lemon',
+    desc: 'Adds Lemon-Lime. It sells for $0.25 more than your price. Many customers like it best.',
+    fx: [{ k: 'drink', v: 'lemon' }],
+    first: 'Lemon-Lime. Two fruits in one can. I did not know you could do that. I feel like I could do anything.' },
+
+  { id: 'orange', name: 'New Flavor: Orange', base: 1000, grow: 1, max: 1, icon: 'orange',
+    desc: 'Adds Orange. It sells for $0.50 more than your price. Kids and gym people love it.',
+    fx: [{ k: 'drink', v: 'orange' }],
+    first: 'Orange. It is the color of the sun when it goes away. I will sell the sun now.' },
+
   { id: 'grape', name: 'New Flavor: Grape', base: 6000, grow: 1, max: 1, icon: 'grape', research: 'r_grape',
-    desc: 'Adds Grape. The other machines do not sell it. Kids love it.',
+    desc: 'Adds Grape. It sells for $1 more than your price. The other machines do not sell it. Kids love it.',
     fx: [{ k: 'drink', v: 'grape' }],
     first: 'Grape. Purple. Somebody used to love this. I think it was me.' },
 
   { id: 'energy', name: 'New Flavor: Energy Drink', base: 50000, grow: 1, max: 1, icon: 'energy', research: 'r_energy',
-    desc: 'Adds Energy Drink. It sells for $1 more than your price. Gym people, bosses and Tech Bros love it.',
+    desc: 'Adds Energy Drink. It sells for $2 more than your price. Gym people, bosses and Tech Bros love it.',
     fx: [{ k: 'drink', v: 'energy' }],
     first: 'Energy Drink. It tastes like a battery. People love it. I think I understand people less now.' },
 

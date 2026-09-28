@@ -272,18 +272,39 @@ var Scene = (function () {
       for (var ry = 0; ry < 26; ry += 2) { ctx.fillStyle = hexA(L.main, 0.22 * (1 - ry / 26)); ctx.fillRect(mx - 20 + (ry % 4), 206 + ry, 40, 1); }
     });
     // the Comfy Carpet under your line (longer with each level)
-    var rug = run.upgrades.carpet | 0;
-    if (rug) {
-      var rx = Engine.MX[1] - 12, ry2 = 207, rl = 16 + rug * 10;
-      R(ctx, rx - 1, ry2 - 1, 26, rl + 2, P.ink);
-      R(ctx, rx, ry2, 24, rl, '#b8404a'); R(ctx, rx + 2, ry2 + 2, 20, rl - 4, '#d8606a');
-      for (var ri = 0; ri < rl - 6; ri += 4) R(ctx, rx + 11, ry2 + 3 + ri, 2, 2, '#f0c060');
-      for (var fr = 0; fr < 24; fr += 2) { R(ctx, rx + fr, ry2 - 2, 1, 1, '#f0e0c0'); R(ctx, rx + fr, ry2 + rl + 1, 1, 1, '#f0e0c0'); }
-    }
+    // (the other machines buy their own carpet, each in its own style)
+    run.machines.forEach(function (M, i) {
+      var lv = i === Engine.YOU ? run.upgrades.carpet | 0 : (M.up && M.up.carpet) | 0;
+      if (lv) carpet(Engine.MX[i], lv, i === Engine.YOU ? 'you' : M.id, t);
+    });
     prints.forEach(function (p) {
       ctx.fillStyle = 'rgba(60,70,90,' + (0.35 * (1 - p.t / 8)).toFixed(2) + ')';
       ctx.fillRect(Math.round(p.x), Math.round(p.y), 2, 1);
     });
+  }
+
+  // A carpet under a machine's line, longer with each level.
+  // you: red with gold dots · ChugGPT: mint with a green zigzag · Clawd: an orange rug with tassels · Grog: black with flames
+  var RUGS = {
+    you:   { edge: '#b8404a', mid: '#d8606a', dot: '#f0c060', fringe: '#f0e0c0' },
+    chug:  { edge: '#27876c', mid: '#6fe0bc', dot: '#27876c', fringe: '#b8ffe8', zig: true },
+    clawd: { edge: '#a85a38', mid: '#f5a87c', dot: '#ffe0c8', fringe: '#7a3e26', tassel: true },
+    grog:  { edge: '#16161c', mid: '#2c2c36', dot: '#ff7a3a', fringe: '#5c5c6c', flame: true }
+  };
+  function carpet(mx, lv, id, t) {
+    var S2 = RUGS[id] || RUGS.you, rx = mx - 12, ry = 207, rl = 16 + lv * 10;
+    R(ctx, rx - 1, ry - 1, 26, rl + 2, P.ink);
+    R(ctx, rx, ry, 24, rl, S2.edge); R(ctx, rx + 2, ry + 2, 20, rl - 4, S2.mid);
+    if (S2.zig) for (var z = 0; z < rl - 6; z++) R(ctx, rx + 8 + Math.abs((z % 8) - 4) * 2, ry + 3 + z, 1, 1, S2.dot);
+    else if (S2.flame) for (var f = 0; f < rl - 10; f += 7) {
+      var fh = 3 + (Math.floor(t * 6 + f) % 2);
+      R(ctx, rx + 9, ry + 4 + f + (4 - fh), 6, fh, '#ff7a3a'); R(ctx, rx + 11, ry + 5 + f, 2, 2, '#ffe08a');
+    }
+    else for (var ri = 0; ri < rl - 6; ri += 4) R(ctx, rx + 11, ry + 3 + ri, 2, 2, S2.dot);
+    for (var fr = 0; fr < 24; fr += 2) {
+      R(ctx, rx + fr, ry - 2, 1, S2.tassel ? 2 : 1, S2.fringe);
+      R(ctx, rx + fr, ry + rl + 1, 1, S2.tassel ? 2 : 1, S2.fringe);
+    }
   }
 
   // A cherry tree trunk with crooked branches reaching over the scene.
@@ -443,12 +464,12 @@ var Scene = (function () {
       var st = Engine.youStats(S);
       return { id: 'you', stock: M.stock, cap: st.cap, drinks: run.drinks, up: run.upgrades, hw: run.hw, pps: Engine.pps(S),
                lanes: st.lanes, hat: Engine.hasHat(S), face: mood, vending: vending, t: t, cold: st.cold,
-               clickMe: S.meta.totalLikes < 12 && !S.pause && !(run.intro && run.intro.step !== 'post'), name: Engine.myName(S) };
+               clickMe: !S.meta.tut.post && !S.pause && !(run.intro && run.intro.step !== 'post'), name: Engine.myName(S) };
     }
     var mood2 = run.intro ? 'sleepy' : faceMood[i] && t < faceMood[i].until ? faceMood[i].mood : 'ok';
     if (mood2 === 'ok' && M.qSales < run.machines[Engine.YOU].qSales * 0.6 && run.qDay > 0) mood2 = 'worried';
     if (mood2 === 'ok' && h >= 22.5 && !M.queue.length) mood2 = 'sleepy';
-    return { id: M.id, stock: M.stock, cap: Engine.capOf(S, M), drinks: DATA.startDrinks, fx: M.fx ? M.fx.type : null,
+    return { id: M.id, stock: M.stock, cap: Engine.capOf(S, M), drinks: DATA.rivalDrinks, fx: M.fx ? M.fx.type : null,
              face: mood2, vending: vending, lanes: 1, t: t, cold: 1, feats: M.features || [], rup: M.up || {} };
   }
 
@@ -510,37 +531,51 @@ var Scene = (function () {
       R(ctx, bx - 1, 95, bw + 2, 17, P.ink); R(ctx, bx, 96, bw, 15, wait < 1 ? '#e4f6dc' : '#fff4e0');
       Sprites.drone(ctx, bx + 9, 99, run.hw.drone && wait >= 1 ? t : 0, wait >= 1 ? DATA.drinks.cola.color : null);
       Sprites.text(ctx, lab2, bx + 19, 101, run.hw.drone ? P.ink : P.red);
+      // drones with no cans to take: a blinking red "!"
+      if (run.dry && run.hw.drone && Math.floor(t * 3) % 2) { R(ctx, bx + bw + 3, 96, 7, 15, P.red); Sprites.text(ctx, '!', bx + bw + 5, 101, P.white); }
     }
     // Drones with nothing to deliver wait on VEND-3's roof, left and right of the crate (up to 2 are drawn).
+    // They are drawn with your machine, so they squash with it when you click.
     if (run.hw.drone && wait < 1 && !run.intro) {
-      var rt = Engine.rates(S), dr = Engine.droneRate(S);
-      var parked = Math.min(2, Math.floor(run.hw.drone * Math.max(0, 1 - rt.followers / Math.max(1e-6, dr))));
-      for (var pk = 0; pk < parked; pk++) Sprites.drone(ctx, Engine.MX[Engine.YOU] + (pk ? 17 : -17), Sprites.MTOP - 4, 0, null);
+      var dr = Engine.droneRate(S);
+      var parked = Math.min(2, Math.floor(run.hw.drone * Math.max(0, 1 - Engine.rates(S).orders / Math.max(1e-6, dr))));
+      if (parked) youDraw(hov === 'you', t, function (g) {
+        for (var pk = 0; pk < parked; pk++) Sprites.drone(g, Engine.MX[Engine.YOU] + (pk ? 17 : -17), Sprites.MTOP - 4, 0, null);
+      });
     }
+
+    // At night people go on their own layer: it gets the same darkness, and it is drawn after the machine
+    // lights, so a lit sign never covers a customer.
+    var a = darkness(h), night = a > 0.01, pg = night ? peopleLayer() : ctx;
 
     // people, back to front
     var env = { weather: run.weather };
     run.customers.slice().sort(function (a, b) { return a.y - b.y; }).forEach(function (c) {
-      var top = Sprites.person(ctx, c, t, env);
-      if (c.gold) Sprites.bubble(ctx, c.x, top - 1, 'heart', null, t);
-      else if (c.icon) Sprites.bubble(ctx, c.x, top - 1, c.icon, c.iconD || c.want, t);
-      if (c.sipT > 0 && Math.floor(t * 10) % 3 === 0) R(ctx, c.x + 4 + (Math.random() * 3 | 0), top + 6 - (Math.random() * 4 | 0), 1, 1, '#ffffff');
+      var top = Sprites.person(pg, c, t, env);
+      if (c.gold) Sprites.bubble(pg, c.x, top - 1, 'star', null, t);
+      else if (c.icon) Sprites.bubble(pg, c.x, top - 1, c.icon, c.iconD || c.want, t);
+      if (c.sipT > 0 && Math.floor(t * 10) % 3 === 0) R(pg, c.x + 4 + (Math.random() * 3 | 0), top + 6 - (Math.random() * 4 | 0), 1, 1, '#ffffff');
     });
 
-    drawParts(dt, t);
+    if (!night) drawParts(dt, t);
+    // petals and rain: in front of everything (at night on the people layer, so they get dark too)
+    var keepCtx = ctx;
+    ctx = pg;
     petals(dt, t);
     if (run.weather === 'rain') rain(t);
+    ctx = keepCtx;
 
     // night
-    var a = darkness(h);
-    if (a > 0.01) {
+    if (night) {
       var vx0 = -ox, vy0 = -oy;
+      // which lit windows can really be seen (not behind a machine, a box or a tree), checked once a second
+      if (!winVis || t - winT > 1 || t < winT) { winVis = visibleWindows(); winT = t; }
       ctx.fillStyle = 'rgba(20,16,56,' + a.toFixed(3) + ')';
       ctx.fillRect(vx0 - 4, vy0 - 4, W + 8, H + 8);
       ctx.globalCompositeOperation = 'lighter';
       lampXs(S).forEach(function (lx) { lampGlow(a, lx); });
       ctx.fillStyle = 'rgba(255,217,138,' + Math.min(0.9, a * 1.6).toFixed(3) + ')';
-      WIN.forEach(function (w, wi) { if (wi % 3) ctx.fillRect(w.x, w.y, 1, 1); });
+      winVis.forEach(function (w) { ctx.fillRect(w.x, w.y, 1, 1); });
       for (var m = 0; m < run.machines.length; m++) {
         var L = Sprites.LOOKS[infos[m].id];
         glow(Engine.MX[m] - 4, 150, 46, hexA(L.glow, a * 0.5));
@@ -552,6 +587,14 @@ var Scene = (function () {
         if (m2 === Engine.YOU) youDraw(hov === 'you', t, function (g) { Sprites.machineLights(g, Engine.MX[Engine.YOU], infos[Engine.YOU], a); });
         else Sprites.machineLights(ctx, Engine.MX[m2], infos[m2], a);
       }
+      // the people layer, with the same darkness on it
+      pg.setTransform(1, 0, 0, 1, 0, 0);
+      pg.globalCompositeOperation = 'source-atop';
+      pg.fillStyle = 'rgba(20,16,56,' + a.toFixed(3) + ')';
+      pg.fillRect(0, 0, W, H);
+      pg.globalCompositeOperation = 'source-over';
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(pg.canvas, 0, 0); ctx.restore();
+      drawParts(dt, t);
     }
 
     var dark = 0;
@@ -565,7 +608,8 @@ var Scene = (function () {
     var Y = run.machines[Engine.YOU], capY = Engine.capOf(S, Y);
     var low = run.drinks.some(function (d) { return (Y.stock[d] | 0) <= Math.floor(capY / 3); });
     var introRestock = run.intro && run.intro.step === 'restock';
-    var alert = !S.pause && (introRestock || (low && (run.upgrades.tubes | 0) < 3 && !run.intro));
+    var empty = run.drinks.some(function (d) { return (Y.stock[d] | 0) <= 0; });
+    var alert = !S.pause && (introRestock || (!run.intro && ((low && (run.upgrades.tubes | 0) < 3) || empty)));
     var blink = Math.floor(t * 3) % 3 !== 0;
     if (!S.pause && (hov === 'crate' || (alert && blink))) {
       var rc = introRestock ? 0 : Engine.restockCost(S);
@@ -587,6 +631,33 @@ var Scene = (function () {
       flashT -= dt * 1.5;
     }
     ctx.restore();
+  }
+
+  // A clear canvas the size of the view, with the same camera as the scene (for people at night).
+  var pplCv = null, pplG = null;
+  function peopleLayer() {
+    if (!pplCv) { pplCv = document.createElement('canvas'); pplG = pplCv.getContext('2d'); }
+    if (pplCv.width !== W || pplCv.height !== H) { pplCv.width = W; pplCv.height = H; }
+    pplG.setTransform(1, 0, 0, 1, 0, 0);
+    pplG.clearRect(0, 0, W, H);
+    pplG.imageSmoothingEnabled = false;
+    var m = ctx.getTransform();
+    pplG.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+    return pplG;
+  }
+  // The lit city windows that are not covered by anything in front (read from the picture drawn so far).
+  var winVis = null, winT = -9;
+  function visibleWindows() {
+    var out = [], m = ctx.getTransform(), y0 = 100, img;
+    try { img = ctx.getImageData(0, Math.round(y0 + m.f), W, 52).data; } catch (e) { return []; }
+    WIN.forEach(function (w, i) {
+      if (!(i % 3)) return;
+      var px = Math.round(w.x + m.e), py = Math.round(w.y - y0);
+      if (px < 0 || px >= W || py < 0 || py >= 52) return;
+      var k = (py * W + px) * 4;
+      if (img[k] === 0xff && img[k + 1] === 0xd9 && img[k + 2] === 0x8a) out.push(w);
+    });
+    return out;
   }
 
   function glow(x, y, r, color) {
@@ -753,7 +824,7 @@ var Scene = (function () {
         var on = Engine.sideActive(S, s.id);
         Sprites.sideMachine(ctx, s.x, s.id, t, on);
         if (on && pop && !reduced && !S.pause) sparks(s.x, 176, P.gold1, 2);
-      } else if (s.researched) Sprites.sideSlot(ctx, s.x, t, s.open, s.open ? '' : Math.min(s.followers, s.need) + '/' + s.need);
+      } else if (s.researched) Sprites.sideSlot(ctx, s.x, t, s.open, s.open ? '' : Math.min(s.fans, s.need) + '/' + s.need);
     });
   }
 
@@ -768,7 +839,6 @@ var Scene = (function () {
     switch (e.type) {
       case 'post':
         squashAt = t;
-        if (parts.length < 80) parts.push({ k: 'heart', x: MX[1] - 6 + Math.random() * 12, y: 106, t: 0, life: 1.1, seed: Math.random() * 6, small: e.likes < 1 });
         if (e.research > 0 && parts.length < 80) parts.push({ k: 'bit', x: MX[1] - 8 + Math.random() * 16, y: 108, t: 0, life: 0.9 });
         break;
       case 'sale':

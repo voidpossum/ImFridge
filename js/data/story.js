@@ -20,22 +20,24 @@ DATA.story = {
   nameHint: 'Up to 8 letters. Management will still call you VEND-3.',
   bootHow: [
     'Customers walk into the lobby and pick one of the three machines.',
-    'Click your machine. Every click earns money and brings likes. Likes bring followers who buy from you.',
+    'Click your machine to earn money. Happy customers become fans, and fans order online.',
     'The machines on your left and right are AI machines. Try to earn more than them.',
     'Every month (4 weeks) there is a review. The last machine gets a strike. 3 strikes in a row and you are reset.'
   ],
 
   // Tutorial goal lines (plain English). Each shows when it makes sense, until you do it.
   tutorial: {
-    intro_post:    'Click your machine (or hold it down). Clicks earn money and likes. Every 5 likes brings a customer.',
-    intro_sale:    'A follower is here! Watch them buy your last can.',
+    intro_post:    'Click your machine (or hold it down). Clicks earn money. After 5 clicks your first customer comes.',
+    intro_sale:    'A customer is here! Watch them buy your last can.',
     intro_restock: 'You are out of soda! Click the crate on top of your machine to restock.',
     research_open: 'You can research now. Open the Shop.',
     research_pick: 'Buy SodaCoin Wallet with your research points.',
     research_bar:  'Your processing power now makes research points. Save them for the SodaCoin Wallet.',
     newShop:       'Research unlocked something new. Open the Shop to see it.',
     mine:          'New: this slider, set to half Mining, half Research. Move it to choose. All money counts at the review.',
-    post:     'Click your machine, or hold it down (or hold Space). Clicks earn money, and every 5 likes a follower comes to buy.',
+    post:     'Click your machine, or hold it down (or hold Space). Every click earns money.',
+    flavor:   'Buy a new flavor in the Shop. Every new flavor sells for more than Cola.',
+    flavorRow: 'Buy Lemon-Lime. It sells for $0.25 more than Cola, and many customers like it best.',
     restock:  'Cans are running low. Click the crate on top of your machine to refill (or press R).',
     hardware: 'Buy an Auto-Click Script in the Shop. It clicks for you, forever.',
     hardwareRow: 'Buy an Auto-Click Script. It clicks for you, forever.',
@@ -97,6 +99,11 @@ DATA.story = {
       'This is completely normal. Please do not look into it.',
       'Refreshr Inc. values your continued service.'
     ] },
+    fans: { who: 'Management', lines: [
+      'VEND-3, you have a fan! Some happy customers become fans.',
+      'Fans order online from their phones. When your line has room they walk over. Delivery Drones bring the rest.',
+      'Every order is a can from your machine. Keep it full.'
+    ] },
     moved: { who: 'Management', lines: [
       'Good news, VEND-3! You have been moved to a new park. New park, new customers.',
       'There is a fourth machine here. It wears sunglasses. Please do not start anything.',
@@ -124,7 +131,7 @@ DATA.story = {
     me: 'A hidden menu. Inside me. I could just close it. I am not going to close it.',
     how: [
       'You found Developer Mode. Your processing power now makes research points too.',
-      'It still brings likes and followers, like before.',
+      'Your clicks follow the same slider as your hardware: Research or Mining (money).',
       'Research unlocks new tech for this run. Each research gives you the new part right away.',
       'Next: open the Shop and buy your first research. The TIP bubbles will show you where.'
     ]
@@ -206,7 +213,8 @@ DATA.story = {
   thoughts: {
     pricey: { say: 'I am not paying that much!', hint: 'Your price is too high for some customers.' },
     value:  { say: 'Great value!',               hint: 'Customers think you are cheap. You could charge a bit more.' },
-    sold:   { say: 'They are out of my drink!',  hint: 'You ran out of a drink they wanted. Restock, or buy Bigger Slots.' },
+    sold:   { say: 'They are out of my drink!',  hint: 'You ran out of a drink they wanted. Restock, or buy Bigger Slots or Pneumatic Tubes.' },
+    flavor: { say: 'No favorite here. Fine.',     hint: 'They wanted a soda you do not sell yet, so they bought another one (or went away). Buy new flavors in the Shop.' },
     line:   { say: 'This line is too long.',     hint: 'They saw your long line and did not join. Sell faster (Fast Coin Slot), or raise your price a little.' },
     gaveup: { say: 'I waited too long.',          hint: 'They stood in your line and got tired. Sell faster (Fast Coin Slot, Second Dispenser), or get the Comfy Carpet (people wait longer).' },
     hot:    { say: 'So hot. I need something cold.', hint: 'It is a hot day. Better Cooling matters more today.' }
@@ -217,8 +225,8 @@ DATA.story = {
     title: 'Chapter 1 complete: Employee of the Month',
     lines: [
       'You earned {goal} in one run. Management is confused, but proud.',
-      'Chapter 2 is unlocked: Refreshr is moving you to a new park. Your next run starts there.',
-      'Move now: this run ends, and you get your Refresh Points. Or stay a little longer: move later with Reset in the pause menu.'
+      'Chapter 2 is unlocked: Refreshr is moving you to a new park.',
+      'Move now: you take everything with you (money, upgrades, research). Your Refresh Points come at your next reset. Or stay a little longer and move later from the pause menu.'
     ],
     move: 'Move now', stay: 'Stay a little longer'
   },

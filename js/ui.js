@@ -286,7 +286,7 @@ var UI = (function () {
 
   function buffText(res) {
     switch (res.kind) {
-      case 'trending': return 'Your likes and click money are 7 times bigger for a while.';
+      case 'trending': return 'New fans and click money are 7 times bigger for a while.';
       case 'rush': return 'You sell twice as fast for a while.';
       case 'tip': return 'A fan sent you ' + money(res.cash) + '.';
       case 'grant': return '+' + num(res.research) + ' research.';
@@ -439,7 +439,7 @@ var UI = (function () {
           'This month: <span class="n">' + money(M.qSales) + '</span> · Cans sold: <span class="n">' + num(M.cans | 0) + '</span> (all time ' + num(S.meta.totalCans || 0) + ')<br>' +
           'Sells one can every <span class="n">' + st.vend.toFixed(1) + ' s</span>' + (st.lanes > 1 ? ' (' + st.lanes + ' at once)' : '') + '<br>' +
           'Cans per drink: <span class="n">' + st.cap + '</span> · Line: <span class="n">' + Engine.lineMax(S, YOU) + '</span> walk-ins, <span class="n">' +
-          Engine.folLineMax(S, YOU) + '</span> followers<br>' +
+          Engine.folLineMax(S, YOU) + '</span> fans<br>' +
           'Cold bonus <span class="n">' + pct(st.cold) + '</span> · Appeal <span class="n">' + pct(st.appeal) + '</span><br>' +
           '<span class="d">The bar is all the money you earned this run: cans, clicks, mining and tips. At the review, the last machine gets a strike. ' + B.strikesMax + ' in a row = reset.</span>';
       }
@@ -462,16 +462,17 @@ var UI = (function () {
         var dr = Engine.droneRate(S), rt0 = Engine.rates(S);
         return '<b>' + esc(h.name) + '</b> <span class="n">(you own ' + n + ')</span><br><span class="d">' + esc(h.desc) + '</span>' +
           (n ? '<br>All ' + n + ' deliver up to <b>' + num(dr) + '</b> online orders per second.' : '') +
-          '<br>New orders come in at <b>' + num(rt0.followers) + '</b> per second.' +
-          (n && (dr >= rt0.followers || S.run.waiting < 1) ? '<br><b>Your drones keep up.</b>' : '<br>' + (n ? 'Your drones are too slow. ' : '') + 'Buy drones to deliver more.') +
-          '<br><span class="d">Drone sales count at the review.</span>';
+          '<br>Your ' + num(rt0.fans) + ' fans order <b>' + num(rt0.orders) + '</b> per second.' +
+          (n && rt0.dry ? '<br><b>Your drones have no cans:</b> restock, or buy Pneumatic Tubes.' :
+            n && (dr >= rt0.orders || S.run.waiting < 1) ? '<br><b>Your drones keep up.</b>' : '<br>' + (n ? 'Your drones are too slow. ' : '') + 'Buy drones to deliver more.') +
+          '<br><span class="d">Every delivery takes a can from your machine. Drone sales count at the review.</span>';
       }
       var each = Engine.hwEach(S, id), all = Engine.hwPPS(S, id);
       var sp = Engine.splitOf(S), rate = sp.mine * Engine.mineRateNow(S), inc = Engine.rates(S).income;
       return '<b>' + esc(h.name) + '</b> <span class="n">(you own ' + n + ')</span><br><span class="d">' + esc(h.desc) + '</span><br>' +
         'Each earns <b>' + money(each * rate) + '/s</b> (' + num(each) + ' processing).' +
         (n ? '<br>All ' + n + ' earn <b>' + money(all * rate) + '/s</b>' + (inc > 0 ? ' (' + pct(Math.min(1, all * rate / inc)) + ' of your income).' : '.') : '') +
-        '<br><span class="d">Processing also brings likes' + (S.meta.flags.jailbreak ? ' and research (your slider)' : '') + '.</span>';
+        (S.meta.flags.jailbreak ? '<br><span class="d">The rest of its processing makes research (your slider).</span>' : '');
     },
     dbl: function (id) {
       var d = Engine.doublerNext(S, id), h = Engine.HW[id];
@@ -497,7 +498,7 @@ var UI = (function () {
       if (!s.id) {
         return '<b>' + esc(s.name) + '</b><br>A slot next to VEND-3 for a small machine of your own.<br>' +
           (s.researched ? '' : 'Research "' + esc(Engine.RES[s.research].name) + '". ') +
-          (s.followers >= s.need ? '' : 'Reach ' + num(s.need) + ' followers this run (' + num(s.followers) + ' now).') +
+          (s.fans >= s.need ? '' : 'Reach ' + num(s.need) + ' fans this run (' + num(s.fans) + ' now).') +
           (s.open ? 'Open: click to pick a machine.' : '');
       }
       var D = Engine.SIDE[s.id], on = Engine.sideActive(S, s.id);
@@ -508,11 +509,12 @@ var UI = (function () {
     },
     wait: function () {
       var rt = Engine.rates(S), dr = Engine.droneRate(S);
-      return '<b>' + Math.floor(S.run.waiting) + ' of ' + Engine.ordersCap(S) + ' online orders.</b><br>Followers order online, then walk to your line when there is room.<br>' +
-        'Orders in: <b>' + num(rt.followers) + '/s</b> · Drones deliver: <b>' + num(dr) + '/s</b>' +
+      return '<b>' + Math.floor(S.run.waiting) + ' of ' + Engine.ordersCap(S) + ' online orders.</b><br>You have ' + num(rt.fans) + ' fans. They order online, then walk to your line when there is room.<br>' +
+        'Orders in: <b>' + num(rt.orders) + '/s</b> · Drones deliver: <b>' + num(dr) + '/s</b>' +
         (rt.ordersLost ? ' · Lost this month: <b>' + num(rt.ordersLost) + '</b>' : '') + '<br>' +
-        (!S.run.hw.drone ? 'You need Delivery Drones to deliver them.' : dr >= rt.followers || S.run.waiting < 1 ? '<b>Your drones keep up.</b>' : 'Your drones are too slow: buy more.') +
-        '<br><span class="d">When ' + Engine.ordersCap(S) + ' orders are waiting, new ones are lost. Orders nobody delivers expire.</span>';
+        (!S.run.hw.drone ? 'You need Delivery Drones to deliver them.' : rt.dry ? '<b>Your drones have no cans:</b> restock, or buy Pneumatic Tubes.' :
+          dr >= rt.orders || S.run.waiting < 1 ? '<b>Your drones keep up.</b>' : 'Your drones are too slow: buy more.') +
+        '<br><span class="d">When ' + Engine.ordersCap(S) + ' orders are waiting, new ones are lost. Orders nobody delivers expire, and now and then a fan leaves.</span>';
     },
     now: function (k) {
       var c = Engine.conditions(S).filter(function (x) { return x.k === k; })[0];
@@ -524,8 +526,8 @@ var UI = (function () {
   var pops = 0;
   function clickPop(x, y, got) {
     if (!got || pops > 24) return;
-    // Money first (the one number), then the likes it brought.
-    var txt = (got.cash > 0 ? '+' + money(got.cash + (got.mined || 0)) : '') + (got.likes > 0.005 ? ' +' + num(got.likes) + '♥' : '');
+    // What the click made, split by your slider: money (Mining) and research.
+    var txt = (got.cash > 0.005 ? '+' + money(got.cash + (got.mined || 0)) : '') + (got.research > 0.05 ? ' +' + num(got.research) + '∵' : '');
     if (!txt) return;
     var n = document.createElement('div');
     n.className = 'clickPop';
@@ -599,7 +601,7 @@ var UI = (function () {
                '<div class="bars slide" hidden data-tip="' + esc(SLIDE_TIP) + '">' +
                  '<div class="slideLab"><span class="b-mine">Mining <b class="pm"></b></span><span class="b-res">Research <b class="pr"></b></span></div>' +
                  '<input type="range" class="split" min="0" max="1" step="0.05" aria-label="Mining share (the rest goes to Research)"></div>' +
-               '<span class="priceCtl" data-tip="Your price per can. Cheaper sells more cans. Higher earns more per can. Followers compare it with the other machines.">' +
+               '<span class="priceCtl" data-tip="Your price per can (Cola). Other flavors sell for more. Cheaper sells more cans. Higher earns more per can. Fans compare it with the other machines.">' +
                '<button data-p="-1" aria-label="Lower price">−</button><b class="pv"></b><button data-p="1" aria-label="Raise price">+</button>' +
                '<label class="smart" hidden data-tip="Smart Price sets your price every hour: the average price of the other machines, so you are in the middle. Changing the price turns it off."><input type="checkbox"> Smart</label></span>' +
                '</div>'
@@ -630,9 +632,9 @@ var UI = (function () {
     });
   }
 
-  // One slider: Mining ⟷ Research. Your processing power always brings likes too.
-  var SLIDE_TIP = 'Your processing power always brings likes and followers.\n' +
-    'This slider picks what else it makes:\nMining = money right now (it counts at the review).\n' +
+  // One slider: Mining ⟷ Research, for clicks and hardware.
+  var SLIDE_TIP = 'This slider splits your processing power (clicks and hardware):\n' +
+    'Mining = money right now (it counts at the review).\n' +
     'Research = research points (for this run).';
   function paintSplit() {
     var Y = mcs[YOU], sp = Engine.splitOf(S), v = sp.mine || 0;
@@ -727,8 +729,8 @@ var UI = (function () {
 
   // ───────────────────────── top bar: what customers are thinking, what is going on, money
   var THOUGHT_SHORT = { pricey: 'too expensive', value: 'great value', sold: 'out of their drink', line: 'line too long',
-                        gaveup: 'gave up waiting', hot: 'want it colder' };
-  var THOUGHT_ICON = { pricey: 'pricey', value: 'value', sold: 'sold', line: 'line', gaveup: 'gaveup', hot: 'hot' };
+                        gaveup: 'gave up waiting', hot: 'want it colder', flavor: 'wanted another soda' };
+  var THOUGHT_ICON = { pricey: 'pricey', value: 'value', sold: 'sold', line: 'line', gaveup: 'gaveup', hot: 'hot', flavor: 'flavor' };
   var thoughtIcons = {}, thoughtT = 0;
   function thoughtIcon(k) {
     if (thoughtIcons[k]) return thoughtIcons[k];
@@ -754,7 +756,7 @@ var UI = (function () {
     setText(el.cash, money(R.cash));
     var rt = Engine.rates(S);
     setHTML(el.rates,
-      '<span data-tip="New followers per second (from likes). They walk in to buy from you.">' + Icons.img('tabCustomers') + num(rt.followers) + '/s</span>' +
+      '<span data-tip="' + esc('Fans: ' + num(rt.fans) + '. Happy customers become fans.\nThey order ' + num(rt.orders) + ' cans per second online. They walk in, or drones deliver.') + '">' + Icons.img('tabCustomers') + num(rt.fans) + '</span>' +
       (S.meta.flags.jailbreak ? '<span data-tip="Research points (you have ' + num(S.meta.research.points) + '). Spend them at the top of the Shop.">' + Icons.img('bits') + num(rt.research) + '/s</span>' : '') +
       '<span class="inc" data-tip="' + esc('Money per second (average). All of it counts at the review.\nCans sold (with drones): ' + money(rt.sales) + '/s\nHardware (mining): ' + money(rt.mined) + '/s\nClicks: ' + money(rt.clickMoney) + '/s' + (rt.side > 0.5 ? '\n(Side machines add ' + money(rt.side) + '/s of that)' : '')) + '">' + money(rt.income) + '/s</span>');
     setText(el.allTime, 'all time ' + money(S.meta.totalSales));
@@ -816,6 +818,7 @@ var UI = (function () {
       return Rs.points >= Engine.resCost(S, 'r_mining') ? 'research_pick' : 'research_bar';
     }
     if (Rs.done.r_mining && !tut.mine) return 'mine';
+    if (!tut.flavor && R.drinks.length === 1 && Engine.upgradeAvailable(S, 'lemon') && R.cash >= Engine.upgradeCost('lemon', 0)) return shopOpen() ? 'flavorRow' : 'flavor';
     var fresh = newItems();
     if (shopOpen()) fresh.forEach(function (k) { tut['nt_' + k] = 1; });
     else if (fresh.some(function (k) { return !tut['nt_' + k]; })) return 'newShop';
@@ -850,7 +853,8 @@ var UI = (function () {
       case 'golden':
         var g = R.customers.filter(function (c) { return c.gold; })[0];
         return g ? scene(g.x, g.y - 40, 'down') : null;
-      case 'hardware': return dom(el.rail.querySelector('[data-tab="shop"]'), 'right');
+      case 'hardware': case 'flavor': return dom(el.rail.querySelector('[data-tab="shop"]'), 'right');
+      case 'flavorRow': return dom(el.panel.querySelector('[data-act="up"][data-id="lemon"]'), 'right');
       case 'hardwareRow': return dom(el.panel.querySelector('[data-act="hw"][data-id="script"]'), 'right');
       case 'price': return dom(mcs[YOU].price, 'down');
     }
@@ -1110,15 +1114,16 @@ var UI = (function () {
           h += '<div class="guide"><img class="p" src="' + portrait(type) + '" alt="">' +
             '<span class="nm">' + esc(C.name) + '<span class="n">sold ' + (m.guide[type] | 0) + '</span></span>' +
             '<span class="look">' + esc(C.look) + '</span>' +
-            '<span class="d">Likes ' + wants + '. Pays ' + money(C.budget[0]) + '–' + money(C.budget[1]) + '. Comes: ' + esc(when) + '.</span></div>';
+            '<span class="d">Favorites: ' + wants + '. Pays ' + money(C.budget[0]) + '–' + money(C.budget[1]) + '. Comes: ' + esc(when) + '.</span></div>';
         });
-        h += '<div class="guide"><img class="p" src="' + portrait('office', 'phone') + '" alt=""><span class="nm">Follower</span>' +
-          '<span class="look">Any type, holding a phone</span><span class="d">They come because of your likes and walk straight to you. They pay a bit more.</span></div>';
+        h += '<div class="guide"><img class="p" src="' + portrait('office', 'phone') + '" alt=""><span class="nm">Fan</span>' +
+          '<span class="look">Any type, holding a phone</span><span class="d">A happy customer who ordered online. They walk straight to you and pay a bit more.</span></div>';
         if (m.flags.goldSeen) {
           h += '<div class="guide"><img class="p" src="' + portrait('office', 'gold') + '" alt=""><span class="nm">Influencer</span>' +
             '<span class="look">Sunglasses, a phone and a gold glow</span><span class="d">Rare. Click them before they leave for a big bonus.</span></div>';
         }
-        h += '<h3>In the park</h3><p class="note"><b>Online orders</b> (phone, at the left): followers who could not fit in your line. <b>Drones</b> deliver them: every drone is one more can sold. Orders nobody delivers expire.<br>' +
+        h += '<h3>In the park</h3><p class="note"><b>Fans</b>: some happy customers become fans. Fans order online. <b>Online orders</b> (counter at the left) walk to your line when there is room. <b>Drones</b> deliver the rest, with cans from your machine. Orders nobody delivers expire.<br>' +
+          '<b>Flavors</b>: every machine sells Cola for its price. Other sodas sell for more (Lemon-Lime +$0.25, Orange +$0.50, Grape +$1, Energy +$2). Customers have a favorite, but most buy another soda if you do not have it.<br>' +
           '<b>Glass tubes</b> under a machine are refills: capsules of new cans shoot up into it. The AI machines always refill this way. You get tubes with Pneumatic Tubes.</p>';
         return h;
       }
@@ -1160,6 +1165,10 @@ var UI = (function () {
           '<div class="set-row"><span>Reduce motion</span><input type="checkbox" data-set="reduced"' + (settings.reduced ? ' checked' : '') + '></div>' +
           '<div class="set-row"><span>Machine name</span><span class="seg"><input id="nameSet" maxlength="8" spellcheck="false" autocomplete="off" value="' + esc(Engine.myName(S)) + '">' +
           '<button class="btn" data-act="rename">Rename</button></span></div>';
+        if (S.meta.flags.ch1done && (S.run.world || 1) === 1) {
+          h += '<h3 style="margin-top:18px">The new park</h3><p class="note">Chapter 2 is waiting. Move now and take everything with you: money, upgrades, research and cards.</p>' +
+            '<button class="btn primary full" data-act="move">Move to the new park</button>';
+        }
         if (Engine.canReset(S)) {
           var rp = Engine.rpFor(S);
           h += '<h3 style="margin-top:18px">This run</h3><p class="note">You can reset whenever you like. Reset now and get ' + rp + ' Refresh Points (more if you earn more first). You lose this run\'s money, research, automation, upgrades and cards. Refresh Points and your Memory Book stay.</p>' +
@@ -1252,7 +1261,7 @@ var UI = (function () {
   }
   function sideSig() {
     return Engine.sideSlots(S).map(function (s) {
-      return s.i + (s.id || '') + s.lv + (s.researched ? 'r' : '') + (s.open ? 'o' : Math.min(s.followers, s.need));
+      return s.i + (s.id || '') + s.lv + (s.researched ? 'r' : '') + (s.open ? 'o' : Math.min(s.fans, s.need));
     }).join(',');
   }
   function sideHtml() {
@@ -1271,7 +1280,7 @@ var UI = (function () {
           '<span class="mid"><span class="nm">' + esc(s.name) + ': pick a machine</span><span class="d">4 machines to choose from</span></span><span></span></button>';
       } else {
         h += '<div class="row locked" data-tipfn="side:' + s.i + '">' + Icons.img('permit') + '<span class="mid"><span class="nm">' + esc(s.name) + '</span><span class="d">' +
-          (!s.researched ? 'Research "' + esc(Engine.RES[s.research].name) + '".' : 'Needs ' + num(s.need) + ' followers this run (' + num(s.followers) + ' now).') +
+          (!s.researched ? 'Research "' + esc(Engine.RES[s.research].name) + '".' : 'Needs ' + num(s.need) + ' fans this run (' + num(s.fans) + ' now).') +
           '</span></span><span></span></div>';
       }
     });
@@ -1284,7 +1293,7 @@ var UI = (function () {
     if (s.open && !s.id) { if (Engine.openSide(S, i)) Sfx.play('click'); return; }
     if (s.id) { openTab('shop'); return; }
     toast(s.name, !s.researched ? 'Research "' + Engine.RES[s.research].name + '" to open this slot.' :
-      'Reach ' + num(s.need) + ' followers this run to open this slot (' + num(s.followers) + ' now).', 'hint');
+      'Reach ' + num(s.need) + ' fans this run to open this slot (' + num(s.fans) + ' now).', 'hint');
   }
 
   // ───────────────────────── pop-ups (the game is paused while one is open)
@@ -1410,7 +1419,7 @@ var UI = (function () {
     chapter: function (P) {
       var c = DATA.story[P.id] || DATA.story.ch1;
       var goal = money(P.id === 'ch1win' ? B.ch1Goal : B.ch2Goal);
-      // After the Chapter 1 goal: move to the new park now (a reset), or stay in this run for a while.
+      // After the Chapter 1 goal: move to the new park now (you keep everything), or stay in this run for a while.
       var foot = c.move
         ? '<button class="btn" data-act="close">' + esc(c.stay) + '</button><button class="btn primary" data-act="move">' + esc(c.move) + '</button>'
         : '<button class="btn primary" data-act="close">Keep playing</button>';
@@ -1440,7 +1449,7 @@ var UI = (function () {
     else if (act === 'reroll') { Engine.reroll(S); Sfx.play('card'); }
     else if (act === 'close') { Engine.closeInfo(S); Sfx.play('click'); }
     else if (act === 'sidepick') { if (Engine.pickSide(S, S.pause.slot, b.dataset.id)) Sfx.play('coin'); else Sfx.play('nope'); }
-    else if (act === 'move') { Engine.closeInfo(S); Engine.requestReset(S); Sfx.play('click'); }   // Chapter 2: move to the new park
+    else if (act === 'move') { Engine.closeInfo(S); Engine.moveWorld(S); Sfx.play('click'); }   // Chapter 2: move to the new park (no reset)
     else onPanelClick(e);   // settings inside the pause menu
   }
 

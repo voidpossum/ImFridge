@@ -50,11 +50,11 @@ DATA.tree = [
 
   // The Crowd (bottom left)
   { id: 'viral', name: 'Viral Instinct', cost: 3, x: -1.5, y: 4.9, req: ['root'],
-    desc: '+25% likes.', fx: [{ k: 'likes', v: 0.25 }] },
+    desc: '+25% fans from customers.', fx: [{ k: 'fans', v: 0.25 }] },
   { id: 'goldeye', name: 'Golden Eye', cost: 6, x: -3.0, y: 5.3, req: ['viral'],
     desc: 'Influencers stay twice as long, and their bonus lasts 50% longer.', fx: [{ k: 'goldEye', v: 1 }] },
   { id: 'fanMail', name: 'Fan Mail', cost: 5, x: -4.2, y: 6.4, req: ['goldeye'],
-    desc: 'Start every run with Sipstagram Account researched (+100% likes).', fx: [{ k: 'startResearch', v: 'r_sipstagram' }] },
+    desc: 'Start every run with Sipstagram Account researched (twice as many fans).', fx: [{ k: 'startResearch', v: 'r_sipstagram' }] },
   { id: 'droneStart', name: 'Drone Hangar', cost: 6, x: -2.0, y: 6.6, req: ['viral'],
     desc: 'Start every run with Delivery Drones researched and 1 drone, ready for online orders.',
     fx: [{ k: 'startResearch', v: 'r_drones' }] },

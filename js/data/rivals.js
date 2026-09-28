@@ -184,7 +184,8 @@ DATA.rivalUpgrades = [
   { id: 'coin',  name: 'Fast Coin Slot', base: 1200, grow: 1.9, max: 5, vend: 0.1 },    // sells 10% faster per level
   { id: 'sign',  name: 'LED Sign',       base: 2000, grow: 1.9, max: 6, appeal: 0.06 }, // 6% more appeal per level
   { id: 'cool',  name: 'Better Cooling', base: 1600, grow: 1.9, max: 5, cold: 0.05 },   // colder drinks
-  { id: 'slots', name: 'Bigger Slots',   base: 2500, grow: 2.0, max: 4, cap: 3 }        // 3 more cans per drink
+  { id: 'slots', name: 'Bigger Slots',   base: 2500, grow: 2.0, max: 4, cap: 3 },       // 3 more cans per drink
+  { id: 'carpet', name: 'Comfy Carpet',  base: 3000, grow: 1.9, max: 5, patience: 0.1 } // its line waits 10% longer per level
 ];
 
 // Features a rival installs when it loses a review and gets updated. They stack until the end of the run.

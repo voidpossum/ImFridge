@@ -6,7 +6,7 @@
 var DATA = (typeof DATA !== 'undefined') ? DATA : {};
 
 // The game version, shown in the pause menu. Raise it with every build you share.
-DATA.version = '0.3.1';
+DATA.version = '0.3.2';
 
 DATA.balance = {
   tick: 0.1,              // seconds per engine step
@@ -29,18 +29,25 @@ DATA.balance = {
   priceStep: 25,          // the − / + buttons move the price by $0.25
   startCap: 6,            // cans per drink at the start of a run
   vendTime: 2.2,          // seconds to sell one can
-  tubeEvery: [3, 2, 1.2, 0.7, 0.4],   // Pneumatic Tubes: seconds per can at level 1, 2, 3, 4, 5
+  tubeEvery: [3, 2, 1.2, 0.7, 0.4, 0.12, 0.04, 0.015],   // tubes: seconds per can at level 1..8 (Pneumatic Tubes 1–5, then Tube Network 1–3)
 
-  // Clicks: every click earns money right away AND makes processing power.
-  // Processing power always brings likes (likes bring followers). Hardware processing also earns money every
-  // second, like buildings in Cookie Clicker. After Developer Mode one slider splits it: Research ⟷ Mining.
+  // Clicks and hardware make processing power. It earns money (Mining) and, after Developer Mode, research:
+  // one slider splits it, Research ⟷ Mining, for clicks and hardware alike. Hardware pays every second,
+  // like buildings in Cookie Clicker.
   clickPower: 1,          // processing per click
   holdCps: 10,            // holding the mouse on your machine (or Space) clicks this many times a second
-  clickCash: 5,           // cents earned per point of click power (1 click = $0.05 at the start; holding = 10 clicks/s)
+  clickCash: 5,           // cents per point of click power in Mining (1 click = $0.05 at the start; holding = 10 clicks/s)
   procCash: 30,           // cents per point of hardware processing put into Mining (half this before the SodaCoin Wallet)
   resRate: 0.3,           // research points per point of processing put into Research
-  folK: 0.5,              // followers per second = folK × (likes per second) ^ folExp.
-  folExp: 0.3,            //   So more likes still bring more followers, but slower: drones can keep up.
+  // Fans: every can you sell brings a new fan this often (fanChance = 0.3: about 1 in 3 at the start),
+  // divided by (1 + fans / fanSoft): the more fans you have, the slower new ones come.
+  // Every fan orders online now and then (fanOrder per second). Orders walk in, or drones deliver them.
+  fanChance: 0.3,
+  fanSoft: 100,
+  fanOrder: 0.02,         // orders per second per fan (about one every 50 seconds)
+  fanLeave: 0.05,         // an order nobody took: this chance that one fan gives up on you
+  goldFans: 10,           // a Trending customer you click brings this many fans
+  otherDrink: 0.75,       // how much a customer still likes a machine without their favourite soda (they buy another one)
   likesPerFollower: 5,    // rivals: this many likes → one follower walks to them
   followerPatience: 40,   // followers waiting outside give up over about this many seconds
   followerBudget: 1.4,    // followers are willing to pay more than walk-ins
@@ -104,14 +111,16 @@ DATA.months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', '
 
 // Drinks. `color` is the can colour in the pixel scene.
 DATA.drinks = {
-  cola:   { name: 'Cola',       color: '#8a3b2a', light: '#c0604a' },
-  lemon:  { name: 'Lemon-Lime', color: '#8fc43a', light: '#d6f28a' },
-  orange: { name: 'Orange',     color: '#f08a2a', light: '#ffc070' },
-  grape:  { name: 'Grape',      color: '#8a4ad0', light: '#c090f0' },
-  // extra: this much more than your price (cents). onlyIfSold: customers only ask for it once you sell it.
-  energy: { name: 'Energy Drink', color: '#1b1826', light: '#b6f23a', extra: 100, onlyIfSold: true }
+  // extra: every machine sells this soda for its price + extra (cents). onlyIfSold: customers only ask for it once you sell it.
+  cola:   { name: 'Cola',       color: '#8a3b2a', light: '#c0604a', extra: 0 },
+  lemon:  { name: 'Lemon-Lime', color: '#8fc43a', light: '#d6f28a', extra: 25 },
+  orange: { name: 'Orange',     color: '#f08a2a', light: '#ffc070', extra: 50 },
+  grape:  { name: 'Grape',      color: '#8a4ad0', light: '#c090f0', extra: 100 },
+  energy: { name: 'Energy Drink', color: '#1b1826', light: '#b6f23a', extra: 200, onlyIfSold: true }
 };
-DATA.startDrinks = ['cola', 'lemon', 'orange'];
+// You start with Cola only and unlock the others in the Shop. The rivals always sell these three.
+DATA.startDrinks = ['cola'];
+DATA.rivalDrinks = ['cola', 'lemon', 'orange'];
 
 // Parts of the day. `mult` scales walk-in traffic. Hours are 6..24.
 DATA.dayparts = [
@@ -181,6 +190,7 @@ DATA.worlds = {
   2: { name: 'the new park', order: ['chug', 'you', 'clawd', 'grog'], machineX: [135, 240, 345, 413], lookMin: 90, lookMax: 440,
        rivalK: 8,            // rival-only mods earn this much (× your processing multiplier from Refresh Points, see rivalPow)
        modGrow: 1.9,         // ...and their levels grow faster here (balance.modGrow is for the first park)
+       movedK: 2, movedGrow: 1.6,   // the same two, for a run that moved here after the Chapter 1 goal (it has no new Refresh Points yet)
        box: 67,              // a big cardboard box: a machine that arrives later
        slots: [191, 289] }   // your side slots, next to VEND-3 (empty until the next build); a lamp stands behind each
 };

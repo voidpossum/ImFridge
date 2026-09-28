@@ -361,7 +361,9 @@ var Sprites = (function () {
       case 'hot': R(ctx, cx, cy - 3, 1, 7, P.cyan); R(ctx, cx - 3, cy, 7, 1, P.cyan); R(ctx, cx - 2, cy - 2, 1, 1, P.cyan);
         R(ctx, cx + 2, cy + 2, 1, 1, P.cyan); R(ctx, cx + 2, cy - 2, 1, 1, P.cyan); R(ctx, cx - 2, cy + 2, 1, 1, P.cyan); break;
       case 'heart': heart(ctx, cx, cy, P.pink); break;
-      case 'phone': R(ctx, cx - 2, cy - 3, 4, 7, '#20202a'); R(ctx, cx - 1, cy - 2, 2, 4, P.cyan); heart(ctx, cx + 3, cy - 3, P.pink, true); break;
+      case 'star': star(ctx, cx, cy, P.gold1); break;   // a Trending customer
+      case 'flavor': { var d3 = DATA.drinks[drink] || DATA.drinks.cola; can(ctx, cx - 3, cy - 3, d3); text(ctx, '?', cx + 1, cy - 2, '#6a4a9a'); break; }   // wanted another soda
+      case 'phone': R(ctx, cx - 2, cy - 3, 4, 7, '#20202a'); R(ctx, cx - 1, cy - 2, 2, 4, P.cyan); R(ctx, cx + 3, cy - 4, 1, 3, P.gold1); R(ctx, cx + 2, cy - 3, 3, 1, P.gold1); break;
       case 'happy': R(ctx, cx - 1, cy - 3, 1, 5, '#6a4a9a'); R(ctx, cx, cy - 3, 2, 1, '#6a4a9a'); R(ctx, cx - 3, cy + 1, 3, 2, '#6a4a9a'); break;
       case 'sweat': R(ctx, cx, cy - 3, 1, 1, '#4aa8e0'); R(ctx, cx - 1, cy - 2, 3, 2, '#4aa8e0'); R(ctx, cx - 2, cy, 5, 2, '#4aa8e0');
         R(ctx, cx - 1, cy + 2, 3, 1, '#4aa8e0'); R(ctx, cx - 1, cy - 1, 1, 1, '#d0f0ff'); break;
@@ -376,6 +378,10 @@ var Sprites = (function () {
   }
 
   function can(ctx, x, y, d) { R(ctx, x, y, 3, 6, d.color); R(ctx, x, y, 3, 1, '#e8e8e8'); R(ctx, x + 1, y + 2, 1, 3, d.light); }
+  function star(ctx, x, y, color) {
+    R(ctx, x, y - 3, 1, 7, color); R(ctx, x - 3, y, 7, 1, color); R(ctx, x - 1, y - 1, 3, 3, color);
+    R(ctx, x - 2, y + 2, 1, 1, color); R(ctx, x + 2, y + 2, 1, 1, color); R(ctx, x, y, 1, 1, '#fff6d0');
+  }
   function heart(ctx, x, y, color, small) {
     if (small) { R(ctx, x - 1, y, 1, 1, color); R(ctx, x + 1, y, 1, 1, color); R(ctx, x - 1, y + 1, 3, 1, color); R(ctx, x, y + 2, 1, 1, color); return; }
     R(ctx, x - 3, y - 2, 2, 1, color); R(ctx, x + 1, y - 2, 2, 1, color);
@@ -391,6 +397,18 @@ var Sprites = (function () {
     clawd: { main: '#e0895a', light: '#f5a87c', dark: '#a85a38', deep: '#7a3e26', accent: '#ffe0c8', glow: '#ffc49a', label: 'CLAWD' },
     grog:  { main: '#3c3c48', light: '#5c5c6c', dark: '#26262e', deep: '#16161c', accent: '#f4f4f4', glow: '#ff7a3a', label: 'GROG' }
   };
+
+  // Where each soda goes behind the glass: [{ d, row, half, col }]. Three shelves; halves for 4+ sodas.
+  function glassCells(drinks) {
+    var n = drinks.length, out = [];
+    if (n <= 3) {
+      var order = n === 1 ? [0, 0, 0] : n === 2 ? [0, 1, 0] : [0, 1, 2];
+      order.forEach(function (k, row) { out.push({ d: drinks[k], row: row, half: false, col: 0 }); });
+      return out;
+    }
+    for (var i = 0; i < 6; i++) out.push({ d: drinks[i] || null, row: Math.floor(i / 2), half: true, col: i % 2 });
+    return out;
+  }
 
   // info: { id, stock, cap, drinks, face, fx, vending:[drinks], lanes, up, hat, t, ver, hw, heat }
   function machine(ctx, cx, info) {
@@ -420,25 +438,31 @@ var Sprites = (function () {
     R(ctx, gx - 1, gy - 1, gw + 2, gh + 2, P.steel2); R(ctx, gx - 1, gy - 1, gw + 2, 1, P.steel0);
     R(ctx, gx, gy, gw, gh, info.dim ? '#3a5260' : '#dcf0f2');
     R(ctx, gx, gy, gw, 6, info.dim ? '#445e6e' : '#f6fcfc');
-    var rows = info.drinks.length, rowH = Math.floor((gh - 2) / Math.max(3, rows));
-    for (var r = 0; r < rows; r++) {
-      var d = info.drinks[r], dd = DATA.drinks[d], ry = gy + 1 + r * rowH;
+    // Always three shelves. 1–3 sodas: full-width shelves (one soda fills all three, two sodas share them).
+    // 4–6 sodas: every shelf splits into a left and a right half (3 cans wide, 2 high).
+    var cells = glassCells(info.drinks), rowH = Math.floor((gh - 2) / 3);
+    cells.forEach(function (cl, ci) {
+      var d = cl.d, cw = cl.half ? 13 : gw - 2, cx0 = gx + 1 + (cl.half && cl.col ? 14 : 0), ry = gy + 1 + cl.row * rowH;
       // spiral coil + shelf
-      R(ctx, gx + 1, ry + rowH - 2, gw - 2, 1, '#fffaf0');
-      for (var k = 0; k < gw - 4; k += 5) { R(ctx, gx + 2 + k, ry + rowH - 2, 3, 1, '#d8443c'); R(ctx, gx + 3 + k, ry + rowH - 1, 2, 1, (k / 5 + r) % 3 ? '#6cd48a' : '#6fc3ff'); }
-      R(ctx, gx + 1, ry + rowH - 1, 1, 1, P.glass3); R(ctx, gx + gw - 2, ry + rowH - 1, 1, 1, P.glass3);
-      var cap = info.cap, st = info.stock[d] | 0, perRow = 6, subRows = cap > 6 ? 2 : 1;
+      R(ctx, cx0, ry + rowH - 2, cw, 1, '#fffaf0');
+      for (var k = 0; k < cw - 3; k += 5) { R(ctx, cx0 + 1 + k, ry + rowH - 2, 3, 1, '#d8443c'); R(ctx, cx0 + 2 + k, ry + rowH - 1, 2, 1, (k / 5 + ci) % 3 ? '#6cd48a' : '#6fc3ff'); }
+      R(ctx, cx0, ry + rowH - 1, 1, 1, P.glass3); R(ctx, cx0 + cw - 1, ry + rowH - 1, 1, 1, P.glass3);
+      if (cl.half && !cl.col) R(ctx, cx0 + 13, ry + 1, 1, rowH - 2, 'rgba(160,190,200,0.55)');   // divider
+      if (!d) return;
+      var dd = DATA.drinks[d], cap = info.cap, st = info.stock[d] | 0;
+      var perRow = cl.half ? 3 : 6, subRows = cl.half || cap > 6 ? 2 : 1;
       var show = st <= 0 ? 0 : Math.max(1, Math.ceil(perRow * subRows * st / Math.max(1, cap)));
       for (var n = 0; n < show; n++) {
         var sr = Math.floor(n / perRow), col = n % perRow;
-        var cxn = gx + 2 + col * 4, cyn = ry + rowH - 8 - sr * 6 + (subRows === 1 ? 0 : 1);
+        var cxn = cx0 + 1 + col * 4, cyn = ry + rowH - 8 - sr * 6 + (subRows === 1 ? 0 : 1);
         if (info.fx === 'cubes') { R(ctx, cxn, cyn + 2, 3, 3, '#8a8a96'); R(ctx, cxn, cyn + 2, 3, 1, '#c8c8d4'); }
         else can(ctx, cxn, cyn, dd);
       }
       if (st <= 0 && info.id === 'you' && Math.floor(t * 3) % 2) {   // empty: a blinking warning on that shelf
-        R(ctx, gx + 10, ry + rowH - 9, 7, 7, P.red); text(ctx, '!', gx + 12, ry + rowH - 8, P.white);
+        var wx = cx0 + Math.floor(cw / 2) - 3;
+        R(ctx, wx, ry + rowH - 9, 7, 7, P.red); text(ctx, '!', wx + 2, ry + rowH - 8, P.white);
       }
-    }
+    });
     // glass shine and condensation
     ctx.fillStyle = 'rgba(255,255,255,0.28)';
     for (var s = 0; s < gh - 4; s++) { ctx.fillRect(gx + 3 + Math.floor(s / 8), gy + 2 + s, 1, 1); ctx.fillRect(gx + 6 + Math.floor(s / 8), gy + 2 + s, 1, 1); }
@@ -488,6 +512,11 @@ var Sprites = (function () {
     }
     // rival sign: a row of bulbs on top, in its own colour; they run from level 3
     if (info.id !== 'you' && U.sign) marquee(ctx, x0, y0, U.sign >= 3 ? t : 0, U.sign, U.sign >= 5 ? null : L.glow);
+    // ...and from level 4 a light strip down both sides, in its own colour
+    if (info.id !== 'you' && U.sign >= 4) [x0 - 4, x0 + MW].forEach(function (sx, side) {
+      R(ctx, sx, y0 + 8, 4, 70, P.ink); R(ctx, sx + 1, y0 + 9, 2, 68, L.deep);
+      for (var i = 0; i < 17; i++) R(ctx, sx + 1, y0 + 10 + i * 4, 2, 2, (i + side + Math.floor(t * (4 + U.sign))) % 3 === 0 ? L.glow : L.dark);
+    });
     // rival quirk marker
     if (info.id !== 'you' && info.fx) fxMark(ctx, x0 + 30, y0 - 16 + (Math.floor(t * 3) % 2), info.fx);
     // rival feature badge (installed after an update)
